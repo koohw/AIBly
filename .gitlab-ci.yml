@@ -1,8 +1,94 @@
 stages:
-  - trigger-services
+  - trigger-jenkins
+  - file-check
+
+trigger-jenkins:
+  stage: trigger-jenkins
+  image: badouralix/curl-jq
+  tags:
+    - "ci / cd"
+
+  variables:
+    JOB_NAME: "git-lab-trigger-test"
+    JENKINS_MAIN_URL: "${JENKINS_MAIN_URL%/}"
+    TRIGGER_URL: "$JENKINS_MAIN_URL/job/$JOB_NAME/buildWithParameters"
+    TOKEN: "$JENKINS_KEY_NAME"
+    PARAM_BRANCH: "$CI_COMMIT_REF_NAME"
+    PARAM_REPO: "$(echo $CI_REPOSITORY_URL | sed -E 's#https://[^@]+@#https://#')"
+
+  script: |
+    set -euo pipefail
+    echo "🚀 Triggering Jenkins job: $JOB_NAME"
+    
+    RESPONSE_HEADERS=$(curl -siS -X POST "$TRIGGER_URL" \
+      --user "$JENKINS_USER:$JENKINS_KEY_VALUE" \
+      --data-urlencode "token=$TOKEN" \
+      --data-urlencode "BRANCH_NAME=$PARAM_BRANCH" \
+      --data-urlencode "GIT_REPO_URL=$PARAM_REPO")
+    
+    echo "$RESPONSE_HEADERS"
+    
+    QUEUE_PATH=$(echo "$RESPONSE_HEADERS" \
+      | grep -i '^Location:' \
+      | awk '{print $2}' \
+      | sed -E 's#https?://[^/]+(/queue/item/[0-9]+/)#\1#' \
+      | tr -d '\r')
+    
+    echo "📋 Queue Path: $QUEUE_PATH"
+    
+    echo "📡 빌드 번호 대기 중…"
+    BUILD_NUMBER=""
+    for i in $(seq 1 30); do
+      INFO=$(curl -sS \
+        --user "$JENKINS_USER:$JENKINS_KEY_VALUE" \
+        "$JENKINS_MAIN_URL${QUEUE_PATH}api/json")
+      BUILD_NUMBER=$(echo "$INFO" | jq -r '.executable.number // empty')
+      if [ -n "$BUILD_NUMBER" ]; then
+        echo "✅ 실제 빌드 번호: $BUILD_NUMBER"
+        break
+      fi
+      echo "⏳ 아직 큐 대기 중 ($i)…"
+      sleep 2
+    done
+    
+    if [ -z "$BUILD_NUMBER" ]; then
+      echo "❌ 빌드 번호를 가져오지 못했습니다."
+      exit 1
+    fi
+
+    echo "🔎 빌드 상태 추적 시작: #$BUILD_NUMBER"
+    JOB_API="$JENKINS_MAIN_URL/job/$JOB_NAME/$BUILD_NUMBER/api/json"
+    elapsed=0
+    while [ $elapsed -lt 300 ]; do
+      RESULT=$(curl -sS \
+        --user "$JENKINS_USER:$JENKINS_KEY_VALUE" \
+        "$JOB_API" \
+        | jq -r '.result // "BUILDING"')
+      if [ "$RESULT" != "BUILDING" ]; then
+        if [ "$RESULT" = "SUCCESS" ]; then
+          echo "✅ Jenkins build #$BUILD_NUMBER SUCCESS"
+          exit 0
+        else
+          echo "❌ Jenkins build #$BUILD_NUMBER FAILED: $RESULT"
+          echo "=== Jenkins Console (last 100 lines) ==="
+          curl -sS \
+            --user "$JENKINS_USER:$JENKINS_KEY_VALUE" \
+            "$JENKINS_MAIN_URL/job/$JOB_NAME/$BUILD_NUMBER/consoleText" \
+          | tail -n 100
+          exit 1
+        fi
+      fi
+      echo "⏳ 빌드 진행 중… (${elapsed}s)"
+      sleep 10
+      elapsed=$((elapsed + 10))
+    done
+
+    echo "❌ Jenkins 빌드 대기 시간 초과"
+    exit 1
+
 
 trigger-ai:
-  stage: trigger-services
+  stage: file-check
   trigger:
     include: cicd_test/AI/.gitlab-ai-ci.yml
     strategy: depend
@@ -14,7 +100,7 @@ trigger-ai:
         - cicd_test/AI/Dockerfile
 
 trigger-be:
-  stage: trigger-services
+  stage: file-check
   trigger:
     include: cicd_test/BE/.gitlab-be-ci.yml
     strategy: depend
@@ -26,7 +112,7 @@ trigger-be:
         - cicd_test/BE/Dockerfile
 
 trigger-fe:
-  stage: trigger-services
+  stage: file-check
   trigger:
     include: cicd_test/FE/.gitlab-fe-ci.yml
     strategy: depend
@@ -36,3 +122,4 @@ trigger-fe:
         - cicd_test/FE/**/*
       exists:
         - cicd_test/FE/Dockerfile
+
