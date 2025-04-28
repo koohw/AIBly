@@ -5,8 +5,9 @@ trigger-ai:
   stage: trigger-services
   trigger:
     include: cicd_test/AI/.gitlab-ai-ci.yml
+    strategy: depend
   rules:
-    - if: '$CI_COMMIT_BRANCH'  # 브랜치가 있을 때(커밋이 있을 때)
+    - if: '$CI_COMMIT_BRANCH'
       changes:
         - cicd_test/AI/**/*
       exists:
@@ -16,6 +17,7 @@ trigger-be:
   stage: trigger-services
   trigger:
     include: cicd_test/BE/.gitlab-be-ci.yml
+    strategy: depend
   rules:
     - if: '$CI_COMMIT_BRANCH'
       changes:
@@ -27,6 +29,7 @@ trigger-fe:
   stage: trigger-services
   trigger:
     include: cicd_test/FE/.gitlab-fe-ci.yml
+    strategy: depend
   rules:
     - if: '$CI_COMMIT_BRANCH'
       changes:
