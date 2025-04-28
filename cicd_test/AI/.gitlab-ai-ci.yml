@@ -1,8 +1,8 @@
 stages:
-  - jenkins-trigger
+  - ai-jenkins-trigger
 
-jenkins-trigger:
-  stage: jenkins-trigger
+ai-jenkins-trigger:
+  stage: ai-jenkins-trigger
   image: badouralix/curl-jq # curl과 jq가 이미 포함된 경량화 이미지
   tags:
     - "ci / cd"
