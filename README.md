@@ -409,94 +409,54 @@ tracklet 생성
 import json
 import os
 from tqdm import tqdm
-import numpy as np
 
-# IOU 계산 함수
-def compute_iou(box1, box2):
-    """box: [x1, y1, x2, y2]"""
-    x1 = max(box1[0], box2[0])
-    y1 = max(box1[1], box2[1])
-    x2 = min(box1[2], box2[2])
-    y2 = min(box1[3], box2[3])
-    inter_area = max(0, x2 - x1) * max(0, y2 - y1)
+# 1. 파일 경로 설정
+tracklets_path = './tracklets.json'
+meta_folder = '/home/j-k12e203/traffic_data/val/labels/t_junction'  # (또는 train으로도 가능)
+output_path = './tracklets_with_video_info.json'
 
-    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
-    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+# 2. tracklets.json 읽기
+with open(tracklets_path, 'r') as f:
+    tracklets = json.load(f)
 
-    union_area = box1_area + box2_area - inter_area
-    if union_area == 0:
-        return 0.0
-    return inter_area / union_area
+# 3. 메타데이터 읽기 (모든 파일 읽기)
+file2videoinfo = {}
 
-# 1. 저장한 JSON 읽기
-with open('./yolo_detection_results.json', 'r') as f:
-    detection_data = json.load(f)
+json_files = [f for f in os.listdir(meta_folder) if f.endswith('.json')]
 
-# 2. Tracklet 결과 저장할 리스트
-tracklets = []
-track_id_counter = 0
+for json_file in tqdm(json_files, desc="Loading meta files"):
+    json_path = os.path.join(meta_folder, json_file)
+    with open(json_path, 'r') as f:
+        meta = json.load(f)
+        file_name = meta['file_name']
+        video_file_name = meta['video_file_name']
+        sequence_frame_number = meta['sequence_frame_number']
+        file2videoinfo[file_name] = {
+            'video_file_name': video_file_name,
+            'sequence_frame_number': sequence_frame_number
+        }
 
-# 3. 트래킹에 사용할 임시 저장소 (최근 프레임들의 active track 관리)
-active_tracks = []
+# 4. tracklets에 video info 추가
+new_tracklets = []
 
-# 4. 프레임 순서대로 처리
-for frame_idx, frame_data in tqdm(enumerate(detection_data), total=len(detection_data), desc="Building tracklets"):
-    image_file = frame_data['image_file']
-    detections = frame_data['detections']
-    
-    frame_tracks = []
-    used_track = set()
+for tr in tqdm(tracklets, desc="Matching video info"):
+    file_name = tr['image_file']
+    if file_name in file2videoinfo:
+        tr['video_file_name'] = file2videoinfo[file_name]['video_file_name']
+        tr['sequence_frame_number'] = file2videoinfo[file_name]['sequence_frame_number']
+    else:
+        tr['video_file_name'] = 'unknown'
+        tr['sequence_frame_number'] = -1
+    new_tracklets.append(tr)
 
-    for det in detections:
-        bbox = det['bbox']
-        score = det['score']
-        cls = det['class']
+# 5. 저장
+with open(output_path, 'w') as f:
+    json.dump(new_tracklets, f, indent=2)
 
-        matched = False
-        # 기존 active track들과 매칭 시도
-        for track in active_tracks:
-            if track['class'] != cls:
-                continue  # 클래스가 다르면 매칭 안 함
-            iou = compute_iou(bbox, track['bbox'])
-            if iou > 0.5:  # IOU threshold
-                track_id = track['track_id']
-                used_track.add(id(track))
-                matched = True
-                break
-        
-        if not matched:
-            # 새로운 트랙 생성
-            track_id = track_id_counter
-            track_id_counter += 1
-        
-        frame_tracks.append({
-            'frame_idx': frame_idx,
-            'image_file': image_file,
-            'bbox': bbox,
-            'score': score,
-            'class': cls,
-            'track_id': track_id,
-        })
-    
-    # 업데이트: 이번 프레임에 매칭된 트랙으로 active_tracks 갱신
-    active_tracks = []
-    for track in frame_tracks:
-        active_tracks.append({
-            'bbox': track['bbox'],
-            'class': track['class'],
-            'track_id': track['track_id']
-        })
-    
-    # frame_tracks를 최종 트랙에 추가
-    tracklets.extend(frame_tracks)
+print(f"✅ Tracklets에 video info 추가 완료: {output_path}")
 
-# 5. 최종 Tracklet JSON 저장
-with open('./tracklets.json', 'w') as f:
-    json.dump(tracklets, f, indent=2)
-
-print(f"Tracklet 결과 저장 완료: ./tracklets.json")
 ------------------------
-Tracklet json 형식식
+Tracklet json 형식
 [
   {
     "frame_idx": 0,
