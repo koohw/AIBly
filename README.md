@@ -345,8 +345,8 @@ import os
 import json
 from tqdm import tqdm
 
-# 1. 모델 불러오기
-model = YOLO('runs/detect/train7/weights/best.pt')
+# 1. 모델 불러오기 (경로 수정)
+model = YOLO('/home/j-k12e203/traffic_data/runs/detect/train7/weights/best.pt')
 
 # 2. source 폴더 설정 (val 또는 test)
 source_dir = '/home/j-k12e203/traffic_data/val/images/t_junction'  # 예시
@@ -387,6 +387,7 @@ with open(output_json_path, 'w') as f:
     json.dump(all_results, f, indent=2)
 
 print(f"YOLO Detection 결과 저장 완료: {output_json_path}")
+
 -------------------------------
 yolo json 형식
 [
