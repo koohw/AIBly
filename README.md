@@ -388,3 +388,17 @@ with open(output_json_path, 'w') as f:
 
 print(f"YOLO Detection 결과 저장 완료: {output_json_path}")
 -------------------------------
+yolo json 형식
+[
+  {
+    "image_file": "example1.png",
+    "detections": [
+      {"bbox": [x1, y1, x2, y2], "score": 0.95, "class": 0},
+      {"bbox": [x1, y1, x2, y2], "score": 0.88, "class": 2}
+    ]
+  },
+  {
+    "image_file": "example2.png",
+    "detections": []
+  }
+]
