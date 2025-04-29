@@ -338,4 +338,53 @@ cp /home/j-k12e203/traffic_data/yolo_labels/val/*.txt /home/j-k12e203/traffic_da
 --------------------------
 YOLO 실행코드
 yolo detect train data=/home/j-k12e203/traffic_data/data.yaml model=yolov8n.pt epochs=10 imgsz=640 device=2 batch=32
+---------------------------
+YOLO 추론 결과 json 저장
+from ultralytics import YOLO
+import os
+import json
+from tqdm import tqdm
 
+# 1. 모델 불러오기
+model = YOLO('runs/detect/train7/weights/best.pt')
+
+# 2. source 폴더 설정 (val 또는 test)
+source_dir = '/home/j-k12e203/traffic_data/val/images/t_junction'  # 예시
+output_json_path = './yolo_detection_results.json'
+
+# 3. 결과 저장용 리스트
+all_results = []
+
+# 4. source_dir 안의 모든 이미지 추론
+image_files = [f for f in os.listdir(source_dir) if f.endswith(('.png', '.jpg', '.jpeg'))]
+
+for img_file in tqdm(image_files, desc="Running YOLO inference"):
+    img_path = os.path.join(source_dir, img_file)
+    
+    # 1장 이미지 추론
+    results = model.predict(img_path, save=False, conf=0.3, verbose=False)[0]
+    
+    # 추론 결과를 리스트에 저장
+    detections = []
+    for box in results.boxes:
+        bbox = box.xyxy[0].cpu().numpy().tolist()  # [x1, y1, x2, y2]
+        score = box.conf[0].cpu().item()
+        cls = int(box.cls[0].cpu().item())
+        
+        detections.append({
+            'bbox': bbox,
+            'score': score,
+            'class': cls,
+        })
+    
+    all_results.append({
+        'image_file': img_file,
+        'detections': detections
+    })
+
+# 5. 결과를 JSON으로 저장
+with open(output_json_path, 'w') as f:
+    json.dump(all_results, f, indent=2)
+
+print(f"YOLO Detection 결과 저장 완료: {output_json_path}")
+-------------------------------
