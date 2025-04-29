@@ -496,4 +496,23 @@ with open('./tracklets.json', 'w') as f:
 
 print(f"Tracklet 결과 저장 완료: ./tracklets.json")
 ------------------------
-
+Tracklet json 형식식
+[
+  {
+    "frame_idx": 0,
+    "image_file": "00001.png",
+    "bbox": [100.0, 120.0, 200.0, 250.0],
+    "score": 0.95,
+    "class": 0,
+    "track_id": 5
+  },
+  {
+    "frame_idx": 0,
+    "image_file": "00001.png",
+    "bbox": [50.0, 80.0, 120.0, 150.0],
+    "score": 0.91,
+    "class": 2,
+    "track_id": 7
+  },
+  ...
+]
