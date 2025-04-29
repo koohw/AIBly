@@ -1,5 +1,6 @@
 stages:
   - trigger-jenkins
+  - file-check-test
   - file-check
 
 trigger-jenkins:
@@ -88,7 +89,7 @@ trigger-jenkins:
 
 
 trigger-ai:
-  stage: file-check
+  stage: file-check-test
   trigger:
     include: cicd_test/AI/.gitlab-ai-ci.yml
     strategy: depend
@@ -100,7 +101,7 @@ trigger-ai:
         - cicd_test/AI/Dockerfile
 
 trigger-be:
-  stage: file-check
+  stage: file-check-test
   trigger:
     include: cicd_test/BE/.gitlab-be-ci.yml
     strategy: depend
@@ -112,7 +113,7 @@ trigger-be:
         - cicd_test/BE/Dockerfile
 
 trigger-fe:
-  stage: file-check
+  stage: file-check-test
   trigger:
     include: cicd_test/FE/.gitlab-fe-ci.yml
     strategy: depend
@@ -123,3 +124,15 @@ trigger-fe:
       exists:
         - cicd_test/FE/Dockerfile
 
+
+fe-file-check:
+  stage: file-check
+  trigger:
+    include: frontend/.gitlab-fe-ci.yml
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - frontend/**/*
+      exists:
+        - frontend/Dockerfile
