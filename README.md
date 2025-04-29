@@ -558,3 +558,108 @@ print(f"✅ VTN용 시퀀스 생성 완료: {output_dir} 안에 {seq_id}개 시�
     { "frame_idx": 15, "objects": [...] }
   ]
 }
+--------------------------
+accident_dataset.py 코드 
+파일 위치 : vtn_accident_project/dataset
+import os
+import json
+from torch.utils.data import Dataset
+
+class AccidentDataset(Dataset):
+    def __init__(self, sequence_dir, label_json_path, sequence_length=16, transform=None):
+        self.sequence_dir = sequence_dir
+        self.transform = transform
+        self.sequence_length = sequence_length
+        
+        self.sequence_files = sorted([
+            os.path.join(sequence_dir, f) for f in os.listdir(sequence_dir) if f.endswith('.json')
+        ])
+        
+        with open(label_json_path, 'r') as f:
+            label_data = json.load(f)
+        
+        self.video_to_label = {}
+        for item in label_data:
+            video_name = item['video']['video_name']
+            accident_type = item['video']['traffic_accident_type']
+            self.video_to_label[video_name] = accident_type
+
+    def __len__(self):
+        return len(self.sequence_files)
+
+    def __getitem__(self, idx):
+        seq_path = self.sequence_files[idx]
+        with open(seq_path, 'r') as f:
+            seq_data = json.load(f)
+
+        video_name = seq_data['video_name']
+        label = self.video_to_label.get(video_name, -1)
+
+        frames = seq_data['frames']
+        assert len(frames) == self.sequence_length, f"Expected {self.sequence_length} frames but got {len(frames)}"
+
+        all_objects = []
+        for frame in frames:
+            objs = frame['objects']
+            all_objects.append(objs)
+        
+        sample = {
+            'objects': all_objects,
+            'label': label,
+            'video_name': video_name
+        }
+        
+        if self.transform:
+            sample = self.transform(sample)
+        
+        return sample
+--------------------------------------
+vtn_accident.py 코드
+파일 위치 vtn_accident_project/model/vtn_accident.py
+import torch
+import torch.nn as nn
+
+class SimpleVTN(nn.Module):
+    def __init__(self, num_classes=132, sequence_length=16, hidden_dim=512):
+        super(SimpleVTN, self).__init__()
+        
+        self.sequence_length = sequence_length
+        self.hidden_dim = hidden_dim
+        
+        # (1) input: bounding box sparse feature를 Linear Embedding
+        self.input_embed = nn.Linear(4, hidden_dim)  # bbox (x1,y1,x2,y2) 4개
+        
+        # (2) Transformer Encoder (VTN Backbone)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=8)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=6)
+
+        # (3) Classification Head
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(hidden_dim),
+            nn.Linear(hidden_dim, num_classes)
+        )
+    
+    def forward(self, batch_objects):
+        """
+        batch_objects: [batch_size, sequence_length, num_objects, 4]
+        """
+        batch_size, seq_len, num_objects, _ = batch_objects.shape
+        
+        # object dimension을 합치자
+        x = batch_objects.view(batch_size, seq_len * num_objects, 4)
+        
+        # (1) bbox를 hidden_dim으로 embedding
+        x = self.input_embed(x)  # [batch_size, seq_len*num_objects, hidden_dim]
+        
+        # (2) Transformer Encoder
+        x = x.permute(1, 0, 2)  # [seq_len*num_objects, batch_size, hidden_dim]
+        x = self.transformer_encoder(x)  # [seq_len*num_objects, batch_size, hidden_dim]
+        x = x.permute(1, 0, 2)  # [batch_size, seq_len*num_objects, hidden_dim]
+
+        # (3) 평균 pooling (전체 objects over all frames)
+        x = x.mean(dim=1)  # [batch_size, hidden_dim]
+        
+        # (4) Classification
+        out = self.classifier(x)  # [batch_size, num_classes]
+        return out
+------------------------
