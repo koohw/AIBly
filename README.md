@@ -29,18 +29,19 @@ VS_차대차_이미지_T자형교차로.zip
 2.Validation/라벨링데이터_231108_add/	
 VL_차대차_이미지_T자형교차로.zip
 --------------------------
-파일 구조
-/traffic_data/
-    ├── train/
-    │   ├── images/
-    │   │   └── t_junction/
-    │   └── labels/
-    │       └── t_junction/
-    ├── val/
-    │   ├── images/
-    │   │   └── t_junction/
-    │   └── labels/
-    │       └── t_junction/
+최종 파일구조
+/home/j-k12e203/traffic_data/
+├── images/                 # (현재는 YOLO용만 정리되어 있음)
+/videos/
+│   ├── TL/
+│   │   ├── t_junction/
+│   │   │   ├── videos/      # mp4 영상
+│   │   │   └── json/        # 각 영상별 사고 정보 json
+│   ├── TS/
+│   │   └── (동일)
+/vtn_sequences/              # bbox tracklet 기반 VTN 입력 (accident type 없음)
+/vtn_sequences_labeled/      # bbox + accident type 매핑 완료된 VTN 입력
+/vtn_accident_project/       # VTN 모델, Dataset, config 파일들
 --------------------------------
 다운로드 후 압축풀기
 import zipfile
