@@ -476,3 +476,85 @@ Tracklet json 형식
   },
   ...
 ]
+------------------------------
+VTN 시퀀스 생성 코드 16프레임 기준
+import json
+import os
+from collections import defaultdict
+from tqdm import tqdm
+
+# 파일 경로
+tracklets_path = './tracklets_with_video_info.json'
+output_dir = './vtn_sequences'
+os.makedirs(output_dir, exist_ok=True)
+
+# 읽기
+with open(tracklets_path, 'r') as f:
+    tracklets = json.load(f)
+
+# 비디오별로 묶기
+video_dict = defaultdict(list)
+for t in tracklets:
+    video_dict[t['video_file_name']].append(t)
+
+# 비디오별로 처리
+sequence_length = 16
+seq_id = 0
+
+for video_name, tracks in tqdm(video_dict.items(), desc="Building sequences"):
+    # sequence_frame_number 기준 정렬
+    tracks = sorted(tracks, key=lambda x: x['sequence_frame_number'])
+
+    # 모든 frames 모으기
+    frame_dict = defaultdict(list)
+    for tr in tracks:
+        frame_idx = tr['sequence_frame_number']
+        frame_dict[frame_idx].append({
+            'track_id': tr['track_id'],
+            'bbox': tr['bbox'],
+            'class': tr['class'],
+            'score': tr['score'],
+        })
+
+    frame_indices = sorted(frame_dict.keys())
+    
+    # 슬라이딩 윈도우로 시퀀스 만들기
+    for i in range(len(frame_indices) - sequence_length + 1):
+        selected_frames = frame_indices[i:i+sequence_length]
+        
+        sequence = {
+            'video_name': video_name,
+            'start_frame': selected_frames[0],
+            'frames': []
+        }
+
+        valid = True
+        for fi in selected_frames:
+            if fi not in frame_dict:
+                valid = False
+                break
+            sequence['frames'].append({
+                'frame_idx': fi,
+                'objects': frame_dict[fi]
+            })
+
+        if valid:
+            # 파일 하나씩 저장
+            seq_path = os.path.join(output_dir, f'seq_{seq_id:06d}.json')
+            with open(seq_path, 'w') as f:
+                json.dump(sequence, f, indent=2)
+            seq_id += 1
+
+print(f"✅ VTN용 시퀀스 생성 완료: {output_dir} 안에 {seq_id}개 시퀀스 저장됨")
+---------------------------
+시퀀스 json 형식
+{
+  "video_name": "bb_1_160505_pedestrian_117_091",
+  "start_frame": 0,
+  "frames": [
+    { "frame_idx": 0, "objects": [{ "track_id": 3, "bbox": [...], "class": 0, "score": 0.9 }, {...}] },
+    { "frame_idx": 1, "objects": [{ "track_id": 3, "bbox": [...], "class": 0, "score": 0.91 }, {...}] },
+    ...
+    { "frame_idx": 15, "objects": [...] }
+  ]
+}
