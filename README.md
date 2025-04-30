@@ -663,3 +663,38 @@ class SimpleVTN(nn.Module):
         out = self.classifier(x)  # [batch_size, num_classes]
         return out
 ------------------------
+## 📥 입력 데이터 구성
+
+### 1. 📦 bbox 시퀀스
+| 변수 | 설명 | 형태 |
+|------|------|------|
+| `bbox` | 프레임별 차량/신호등 위치 정보 | `[T, N, 4]` (x, y, w, h) |
+| 전처리 | A/B 차량 + 신호등 등 **사고 관련 객체만 필터링** 사용 |
+
+### 2. 🧾 사고 메타 정보 (정수형 → `nn.Embedding`)
+| 변수명 | 설명 |
+|--------|------|
+| `accident_place_feature` | 사고 장소 형태 |
+| `vehicle_a_progress_info` | 차량 A 진행 방향 |
+| `vehicle_b_progress_info` | 차량 B 진행 방향 |
+| `video_point_of_view` | 블박 시점 여부 |
+| `damage_location` | 피해 차량 부위 (1~8 방향) |
+
+---
+
+## 🎯 출력 (Target)
+
+| 변수 | 설명 |
+|------|------|
+| `traffic_accident_type` | 사고 유형 클래스 번호 (현재 129개: 0~128) |
+
+> T자형 교차로 데이터 기반으로 106~128 일부 클래스만 먼저 학습
+## 🏋️ 학습 결과
+
+- ✅ `train.pkl`: 1080건, `val.pkl`: 163건 (T자형 교차로 기준)
+- ✅ Loss 감소: **3.09 → 0.14**
+- ✅ Validation Accuracy: **98.16%**
+- ✅ 단일 추론 예측 성공: 예측=정답 (예: 110 → 110)
+- ✅ confusion matrix에서 대부분 대각선 정렬 (고정밀 모델)
+
+---
