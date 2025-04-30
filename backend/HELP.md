@@ -9,7 +9,7 @@ For further reference, please consider the following sections:
 * [Spring Web](https://docs.spring.io/spring-boot/3.4.5/reference/web/servlet.html)
 * [Spring Security](https://docs.spring.io/spring-boot/3.4.5/reference/web/spring-security.html)
 * [OAuth2 Client](https://docs.spring.io/spring-boot/3.4.5/reference/web/spring-security.html#web.security.oauth2.client)
-* [Spring Data JDBC](https://docs.spring.io/spring-boot/3.4.5/reference/data/sql.html#data.sql.jdbc)
+* [Spring Data JPA](https://docs.spring.io/spring-boot/3.4.5/reference/data/sql.html#data.sql.jpa-and-spring-data)
 * [Spring Data Redis (Access+Driver)](https://docs.spring.io/spring-boot/3.4.5/reference/data/nosql.html#data.nosql.redis)
 
 ### Guides
@@ -21,7 +21,7 @@ The following guides illustrate how to use some features concretely:
 * [Securing a Web Application](https://spring.io/guides/gs/securing-web/)
 * [Spring Boot and OAuth2](https://spring.io/guides/tutorials/spring-boot-oauth2/)
 * [Authenticating a User with LDAP](https://spring.io/guides/gs/authenticating-ldap/)
-* [Using Spring Data JDBC](https://github.com/spring-projects/spring-data-examples/tree/master/jdbc/basics)
+* [Accessing Data with JPA](https://spring.io/guides/gs/accessing-data-jpa/)
 * [Accessing data with MySQL](https://spring.io/guides/gs/accessing-data-mysql/)
 * [Messaging with Redis](https://spring.io/guides/gs/messaging-redis/)
 
