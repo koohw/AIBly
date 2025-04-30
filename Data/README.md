@@ -1,3 +1,9 @@
+# 250430
+데이터 전처리
+- 회전교차로 완료 -> GPU 서버 업로드
+- 직선도로 처음부터 140909까지 완료
+- 사거리교차로(신호등없음) - 미서
+
 # 250429
 데이터 전처리
 - T자형교차로 완료
@@ -96,10 +102,21 @@ play store/app store 신청해서 누구나 다운받을 수 있도록
 .exe 파일로 허용된 사람들만 내려받도록 하기
 ```
 
-
-
-
 # 2025-04-21
+1. wsl 다운로드
+
+1.1 윈도우 버전 확인 : 실행창(Ctrl + R) 입력 후, winver 입력
+1.2 Linux용 Windows 하위 시스템 기능이 켜져 있는지 확인한다.
+```
+wsl --install
+wsl --set-default-version 2
+```
+1.3 재부팅
+1.4 username, password 설정
+1.5 wsl 터미널 관리자모드로 실행
+
+2. 
+
 1. Ubuntu에서 환경설정
 ```
 cd /mnt/c/Users/SSAFY/Downloads
@@ -116,10 +133,11 @@ unzip TL_차대보행자_이미지_육교및지하도부근.zip
 cd /aihubshell/095.교통사고_영상_데이터/01.데이터/1.Training/원천데이터_231108_add
 unzip TS_차대보행자_이미지_육교및지하도부근.zip
 ```
+
 2. 가상환경 설치
 ```
-sudo apt install update
-sudo apt install upgrade
+sudo apt update
+sudo apt upgrade
 sudo apt install python3-pip
 sudo apt install python3.12-venv
 python3 -m venv venv
