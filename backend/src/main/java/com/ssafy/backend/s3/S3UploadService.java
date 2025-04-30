@@ -1,12 +1,9 @@
-package com.ssafy.ABLRI.infra.s3;
+package com.ssafy.backend.s3;
 
-import com.ssafy.ABLRI.config.S3Config;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.io.IOException;
 import java.util.UUID;
@@ -20,27 +17,27 @@ public class S3UploadService {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
-    @Value("${cloud.aws.region.static}") // region 직접 주입
-    private String region;
+    public String saveFile(MultipartFile file) {
+        try {
+            String originalFilename = file.getOriginalFilename();
+            String uniqueFileName = UUID.randomUUID() + "_" + originalFilename;
 
-    public String saveFile(MultipartFile multipartFile) throws IOException {
-        String originalFilename = multipartFile.getOriginalFilename();
-        String uniqueFileName = UUID.randomUUID() + "_" + originalFilename;
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(uniqueFileName)
+                    .contentType(file.getContentType())
+                    .build();
 
-        S3Client s3Client = s3Config.getS3Client();  // 주입된 Config에서 가져옴
+            s3Config.getS3Client().putObject(putObjectRequest,
+                    software.amazon.awssdk.core.sync.RequestBody.fromInputStream(
+                            file.getInputStream(), file.getSize()
+                    ));
 
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(uniqueFileName)
-                .contentType(multipartFile.getContentType())
-                .build();
+            // 정적인 S3 URL 생성
+            return "https://" + bucket + ".s3." + s3Config.getRegion() + ".amazonaws.com/" + uniqueFileName;
 
-        s3Client.putObject(putObjectRequest,
-                software.amazon.awssdk.core.sync.RequestBody.fromInputStream(
-                        multipartFile.getInputStream(),
-                        multipartFile.getSize()
-                ));
-
-        return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + uniqueFileName;
+        } catch (IOException e) {
+            throw new RuntimeException("S3 파일 업로드 실패", e);
+        }
     }
 }
