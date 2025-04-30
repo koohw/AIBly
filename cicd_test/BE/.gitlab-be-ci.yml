@@ -14,43 +14,58 @@ be-jenkins-trigger:
   script: |
     set -euo pipefail
 
-    echo "🚀 Jenkins BE Job 트리거 중…"
+    # 인증 정보 제거한 repo URL 생성
+    REPO_URL_CLEAN=$(echo $CI_REPOSITORY_URL | sed -E 's#https://[^@]+@#https://#')
+
+    # Jenkins 잡 트리거
     RESPONSE_HEADERS=$(curl -siS -X POST "$TRIGGER_URL" \
       --user "$JENKINS_USER:$JENKINS_API_TOKEN" \
       --data-urlencode "token=$TOKEN" \
       --data-urlencode "BRANCH_NAME=$CI_COMMIT_REF_NAME" \
-      --data-urlencode "GIT_REPO_URL=$(echo $CI_REPOSITORY_URL | sed -E 's#https://[^@]+@#https://#')") # 인증 정보만 제거하고 https:// 유지
+      --data-urlencode "GIT_REPO_URL=$REPO_URL_CLEAN")
 
-    # jenkins 빌드 번호 추출
-    # Location 헤더에서 "/queue/item/123/" 추출
+    # Location 헤더에서 queue path 추출 (HTTPS 지원)
     QUEUE_PATH=$(echo "$RESPONSE_HEADERS" \
       | grep -i '^Location:' \
       | awk '{print $2}' \
-      | sed -E 's#https?://[^/]+(/queue/item/[0-9]+/)#\1#' \
+      | sed -E 's#https?://[^/]+(/jenkins)?(/queue/item/[0-9]+/)#\2#' \
       | tr -d '\r')
-    echo "📋 Queue Path: $QUEUE_PATH"
 
-    echo "📡 빌드 번호 대기 중…"
+    # queue path가 슬래시로 시작하는지 확인하고 API URL 구성
+    if [[ "$QUEUE_PATH" == */ ]]; then
+      QUEUE_API_URL="$JENKINS_URL$QUEUE_PATH"api/json
+    else
+      QUEUE_API_URL="$JENKINS_URL$QUEUE_PATH/api/json"
+    fi
+
+    # 빌드 번호 대기
     BUILD_NUMBER=""
     for i in $(seq 1 30); do
       INFO=$(curl -sS \
         --user "$JENKINS_USER:$JENKINS_API_TOKEN" \
-        "$JENKINS_URL${QUEUE_PATH}api/json")
+        "$QUEUE_API_URL" || echo '{}')
+      
+      # JSON 유효성 검사
+      if ! echo "$INFO" | jq empty 2>/dev/null; then
+        echo "❌ Jenkins 응답이 JSON 형식이 아님"
+        exit 1
+      fi
+      
       BUILD_NUMBER=$(echo "$INFO" | jq -r '.executable.number // empty')
       if [ -n "$BUILD_NUMBER" ]; then
-        echo "✅ 실제 빌드 번호: $BUILD_NUMBER"
+        echo "✅ 빌드 번호: $BUILD_NUMBER"
         break
       fi
-      echo "⏳ 아직 큐 대기 중 ($i)…"
+      echo "⏳ 큐 대기 중 ($i)…"
       sleep 2
     done
+    
     if [ -z "$BUILD_NUMBER" ]; then
-      echo "❌ 빌드 번호를 가져오지 못했습니다."
+      echo "❌ 빌드 번호를 가져오지 못했습니다"
       exit 1
     fi
 
     # 빌드 상태 추적
-    echo "🔎 빌드 상태 추적 시작: #$BUILD_NUMBER"
     JOB_API="$JENKINS_URL/job/$JOB_NAME/$BUILD_NUMBER/api/json"
     elapsed=0
     while [ $elapsed -lt 300 ]; do
