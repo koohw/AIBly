@@ -23,6 +23,7 @@ public class Video {
     @GeneratedValue // 자동 생성
     private Long id;
 
+    @Column(length = 1000) //presigned URL 길이가 길어서 추가 또는 text로 바꾸기
     private String videoUrl;
 
     @Enumerated(EnumType.STRING) //enum 타입 string로 db저장
