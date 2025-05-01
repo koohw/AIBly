@@ -31,4 +31,3 @@ public class VideoService {
         return new VideoUploadResponse(video.getId(), videoUrl); // 결과 리턴
     }
 }
-
