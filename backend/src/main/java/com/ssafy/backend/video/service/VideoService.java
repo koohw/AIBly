@@ -18,7 +18,7 @@ public class VideoService {
     private final VideoRepository videoRepository;
 
     public VideoUploadResponse autoUpload(MultipartFile file) {
-        String videoUrl = s3UploadService.saveFile(file); //s3에 영상 업로드
+        String videoUrl = s3UploadService.uploadAndGetPresignedUrl(file); //s3에 영상 업로드
 
         Video video = Video.builder()
                 .videoUrl(videoUrl)
