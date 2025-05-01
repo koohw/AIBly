@@ -19,8 +19,11 @@ public class S3UploadService {
 
     private final S3Config s3Config;
 
-    @Value("${cloud.aws.s3.bucket}")
+    @Value("${aws.bucketName}")
     private String bucket;
+
+    @Value("${aws.s3.presigned-url.expiration}")
+    private Long presignedUrlExpiration;
 
     public String uploadAndGetPresignedUrl(MultipartFile file) {
         try {
@@ -44,7 +47,7 @@ public class S3UploadService {
                     .build();
 
             GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofMinutes(10)) //URL 유효 시간 설정, 10분동안 접근 가능, 사용자가 영상 업로드 → S3에 저장되고 10분짜리 presigned URL 생성하고 만료 후엔 다시 백에서 발급해줌
+                    .signatureDuration(Duration.ofSeconds(presignedUrlExpiration)) //URL 유효 시간 설정, 10분동안 접근 가능, 사용자가 영상 업로드 → S3에 저장되고 10분짜리 presigned URL 생성하고 만료 후엔 다시 백에서 발급해줌
                     .getObjectRequest(getObjectRequest)
                     .build();
 
