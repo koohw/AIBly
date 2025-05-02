@@ -18,7 +18,7 @@ transfer-model:
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /home/ubuntu/ai-server/ai/src/app/resources/"
     
     # 완전한 동기화 (로컬에 없는 파일은 원격에서도 삭제)
-    - rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./src/app/resources/ "$DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/ai-server/ai/src/app/resources/"
+    - rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ai/src/app/resources/ "$DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/ai-server/ai/src/app/resources/"
     
     # 백업 생성 (날짜와 시간을 포함한 디렉토리에 저장)
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /home/ubuntu/ai-server/backups/resources-\$(date +%Y%m%d-%H%M%S) && cp -r /home/ubuntu/ai-server/ai/src/app/resources/* /home/ubuntu/ai-server/backups/resources-\$(date +%Y%m%d-%H%M%S)/"
