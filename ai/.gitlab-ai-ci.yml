@@ -9,7 +9,8 @@ transfer-model:
 
   before_script:
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" | base64 --decode > ~/.ssh/id_rsa
+    # SSH 개인 키를 base64로 인코딩된 환경 변수에서 디코딩하여 저장
+    - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
 
   script:
