@@ -1,159 +1,5 @@
 stages:
-  - trigger-jenkins
-  - file-check-test
   - file-check
-
-trigger-jenkins:
-  stage: trigger-jenkins
-  image: badouralix/curl-jq
-  tags:
-    - "ci / cd"
-
-  variables:
-    JOB_NAME: "git-lab-trigger-test"
-    JENKINS_MAIN_URL: "${JENKINS_MAIN_URL%/}"
-    TRIGGER_URL: "$JENKINS_MAIN_URL/job/$JOB_NAME/buildWithParameters"
-    TOKEN: "$JENKINS_KEY_NAME"
-    PARAM_BRANCH: "$CI_COMMIT_REF_NAME"
-    PARAM_REPO_CLEAN: ""
-
-  script: |
-    set -euo pipefail
-
-    # 인증 정보 제거한 repo URL
-    PARAM_REPO_CLEAN=$(echo "$CI_REPOSITORY_URL" | sed -E 's#https://[^@]+@#https://#')
-
-    echo "🚀 Triggering Jenkins job: $JOB_NAME"
-
-    RESPONSE_HEADERS=$(curl -sS -i -X POST "$TRIGGER_URL" \
-      --user "$JENKINS_USER:$JENKINS_KEY_VALUE" \
-      --data-urlencode "token=$TOKEN" \
-      --data-urlencode "BRANCH_NAME=$PARAM_BRANCH" \
-      --data-urlencode "GIT_REPO_URL=$PARAM_REPO_CLEAN")
-
-    echo "$RESPONSE_HEADERS"
-
-    QUEUE_PATH=$(echo "$RESPONSE_HEADERS" \
-      | grep -i '^Location:' \
-      | awk '{print $2}' \
-      | sed -E 's#https?://[^/]+(/jenkins)?(/queue/item/[0-9]+/)#\2#' \
-      | tr -d '\r')
-
-    echo "📋 Queue Path: $QUEUE_PATH"
-    
-    # 슬래시로 끝나는지 확인하고 API URL 구성
-    if [[ "$QUEUE_PATH" == */ ]]; then
-      QUEUE_API_URL="$JENKINS_MAIN_URL$QUEUE_PATH"api/json
-    else
-      QUEUE_API_URL="$JENKINS_MAIN_URL$QUEUE_PATH/api/json"
-    fi
-    
-    echo "🔗 API URL: $QUEUE_API_URL"
-    echo "📡 빌드 번호 대기 중…"
-
-    BUILD_NUMBER=""
-    for i in $(seq 1 30); do
-      INFO=$(curl -sSLf \
-        --user "$JENKINS_USER:$JENKINS_KEY_VALUE" \
-        "$QUEUE_API_URL" || echo '{}')
-
-      echo "💬 Jenkins API 응답 (빌드 대기 상태 확인):"
-      echo "$INFO"
-
-      # JSON 유효성 검사
-      if ! echo "$INFO" | jq empty 2>/dev/null; then
-        echo "❌ Jenkins 응답이 JSON 형식이 아님 (프록시 오류, 인증 오류 가능성)"
-        exit 1
-      fi
-
-      BUILD_NUMBER=$(echo "$INFO" | jq -r '.executable.number // empty')
-      if [ -n "$BUILD_NUMBER" ]; then
-        echo "✅ 실제 빌드 번호: $BUILD_NUMBER"
-        break
-      fi
-      echo "⏳ 아직 큐 대기 중 ($i)…"
-      sleep 2
-    done
-
-    if [ -z "$BUILD_NUMBER" ]; then
-      echo "❌ 빌드 번호를 가져오지 못했습니다."
-      exit 1
-    fi
-
-    echo "🔎 빌드 상태 추적 시작: #$BUILD_NUMBER"
-    JOB_API="$JENKINS_MAIN_URL/job/$JOB_NAME/$BUILD_NUMBER/api/json"
-    elapsed=0
-    while [ $elapsed -lt 300 ]; do
-      BUILD_INFO=$(curl -sSLf \
-        --user "$JENKINS_USER:$JENKINS_KEY_VALUE" \
-        "$JOB_API" || echo '{}')
-
-      if ! echo "$BUILD_INFO" | jq empty 2>/dev/null; then
-        echo "❌ 빌드 상태 응답 JSON 파싱 실패"
-        echo "$BUILD_INFO"
-        exit 1
-      fi
-
-      RESULT=$(echo "$BUILD_INFO" | jq -r '.result // "BUILDING"')
-      if [ "$RESULT" != "BUILDING" ]; then
-        if [ "$RESULT" = "SUCCESS" ]; then
-          echo "✅ Jenkins build #$BUILD_NUMBER SUCCESS"
-          exit 0
-        else
-          echo "❌ Jenkins build #$BUILD_NUMBER FAILED: $RESULT"
-          echo "=== Jenkins Console (last 100 lines) ==="
-          curl -sSLf \
-            --user "$JENKINS_USER:$JENKINS_KEY_VALUE" \
-            "$JENKINS_MAIN_URL/job/$JOB_NAME/$BUILD_NUMBER/consoleText" \
-            | tail -n 100
-          exit 1
-        fi
-      fi
-      echo "⏳ 빌드 진행 중… (${elapsed}s)"
-      sleep 10
-      elapsed=$((elapsed + 10))
-    done
-
-    echo "❌ Jenkins 빌드 대기 시간 초과"
-    exit 1
-
-
-
-trigger-ai:
-  stage: file-check-test
-  trigger:
-    include: cicd_test/AI/.gitlab-ai-ci.yml
-    strategy: depend
-  rules:
-    - if: '$CI_COMMIT_BRANCH'
-      changes:
-        - cicd_test/AI/**/*
-      exists:
-        - cicd_test/AI/Dockerfile
-
-trigger-be:
-  stage: file-check-test
-  trigger:
-    include: cicd_test/BE/.gitlab-be-ci.yml
-    strategy: depend
-  rules:
-    - if: '$CI_COMMIT_BRANCH'
-      changes:
-        - cicd_test/BE/**/*
-      exists:
-        - cicd_test/BE/Dockerfile
-
-trigger-fe:
-  stage: file-check-test
-  trigger:
-    include: cicd_test/FE/.gitlab-fe-ci.yml
-    strategy: depend
-  rules:
-    - if: '$CI_COMMIT_BRANCH'
-      changes:
-        - cicd_test/FE/**/*
-      exists:
-        - cicd_test/FE/Dockerfile
 
 
 ai-file-check:
@@ -177,3 +23,16 @@ fe-file-check:
         - frontend/**/*
       exists:
         - frontend/Dockerfile
+
+
+be-file-check:
+  stage: file-check
+  trigger:
+    include: backend/.gitlab-be-ci.yml
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - backend/**/*
+      exists:
+        - backend/Dockerfile

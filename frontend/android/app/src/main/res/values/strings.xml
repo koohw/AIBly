@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AI블리</string>
+    <string name="title_activity_main">AI블리</string>
+    <string name="package_name">com.crush.aiblackboxreview</string>
+    <string name="custom_url_scheme">com.crush.aiblackboxreview</string>
+</resources>
