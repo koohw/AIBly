@@ -1,3 +1,29 @@
+# 250503
+환경설정, 데이터 다운로드
+```
+1) 호스트 쪽 넉넉한 공간을 VM에 바인드하여 병합하기
+호스트에 충분 공간이 있는 폴더(예: ~/aihubshell_work)를 미리 만듭니다:
+
+bash
+코드 복사
+mkdir -p ~/aihubshell_work
+호스트 폴더를 VM 내부로 마운트:
+
+bash
+코드 복사
+multipass mount ~/aihubshell_work wslish:/data
+VM 셸 접속 후, 다운로드·병합을 /data 경로에서 실행:
+
+bash
+코드 복사
+multipass shell wslish
+cd /data
+# aihubshell 바이너리도 /data로 옮기거나 curl로 다시 받아 주세요
+./aihubshell -mode d -datasetkey 597 -filekey … -aihubapikey '…'
+→ 이러면 병합 중인 TS_…zip.part* 들과 최종 .zip 이 모두 macOS 호스트의 ~/aihubshell_work 위에서 처리되므로, VM 파티션 한계를 벗어나 호스트 여유 공간(166 GiB)을 그대로 사용합니다.
+```
+
+
 # 250502 
 데이터 전처리
 - 직선도로 bb_1_170613_vehicle_211_55226 까지 함
