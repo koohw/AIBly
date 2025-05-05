@@ -1,0 +1,27 @@
+{
+    "info": {
+        "name": "accident",
+        "description": "",
+        "url": ""
+    },
+    "video": {
+        "video_name": "bb_1_190626_vehicle_126_204",
+        "video_date": "190626",
+        "filming_way": "bb",
+        "video_point_of_view": 1,
+        "accident_negligence_rateA": 100,
+        "accident_negligence_rateB": 0,
+        "accident_object": 0,
+        "accident_place": 0,
+        "accident_place_feature": 6,
+        "vehicle_a_progress_info": 11,
+        "vehicle_b_progress_info": 12,
+        "damage_location": "4",
+        "related_laws": "",
+        "violation_of_law": "",
+        "additional_elements": "",
+        "violation_factor": "",
+        "weather": "",
+        "accident_type": 13
+    }
+}

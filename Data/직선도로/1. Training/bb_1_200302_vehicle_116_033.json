@@ -1,0 +1,27 @@
+{
+    "info": {
+        "name": "accident",
+        "description": "",
+        "url": ""
+    },
+    "video": {
+        "video_name": "bb_1_200302_vehicle_116_033",
+        "video_date": "200302",
+        "filming_way": "bb",
+        "video_point_of_view": 1,
+        "accident_negligence_rateA": 20,
+        "accident_negligence_rateB": 80,
+        "traffic_accident_type": 4,
+        "accident_object": 0,
+        "accident_place": 0,
+        "accident_place_feature": 2,
+        "vehicle_a_progress_info": 9,
+        "vehicle_b_progress_info": 4,
+        "damage_location": "1",
+        "related_laws": "",
+        "violation_of_law": "",
+        "additional_elements": "",
+        "violation_factor": "",
+        "weather": ""
+    }
+}

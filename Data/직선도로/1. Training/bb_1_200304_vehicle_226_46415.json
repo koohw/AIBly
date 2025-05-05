@@ -1,0 +1,26 @@
+{
+    "info": {
+        "name": "accident",
+        "description": "",
+        "url": ""
+    },
+    "video": {
+        "video_name": "bb_1_200304_vehicle_226_46415",
+        "video_date": "200304",
+        "filming_way": "bb",
+        "video_point_of_view": 1,
+        "accident_negligence_rate": 50,
+        "traffic_accident_type": 65,
+        "accident_object": 0,
+        "accident_place": 0,
+        "accident_place_feature": 18,
+        "vehicle_a_progress_info": 51,
+        "vehicle_b_progress_info": 52,
+        "damage_location": "3",
+        "related_laws": "",
+        "violation_of_law": "",
+        "additional_elements": "",
+        "violation_factor": "",
+        "weather": ""
+    }
+}
