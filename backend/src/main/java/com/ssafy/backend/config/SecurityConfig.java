@@ -14,7 +14,7 @@ public class SecurityConfig {
                 .cors().and()
                 .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/**").permitAll() // 일단 api로 다 허용하는 걸로 만듦
+                        .requestMatchers("/api/**", "/favicon.ico").permitAll() // 일단 api로 다 허용하는 걸로 만듦
                         .anyRequest().authenticated()
                 );
         return http.build();
