@@ -1,0 +1,26 @@
+{
+    "info": {
+        "name": "accident",
+        "description": "",
+        "url": ""
+    },
+    "video": {
+        "video_name": "bb_1_210409_vehicle_218_45495",
+        "video_date": "210409",
+        "filming_way": "bb",
+        "video_point_of_view": 1,
+        "accident_negligence_rate": 80,
+        "traffic_accident_type": 16,
+        "accident_object": 0,
+        "accident_place": 0,
+        "accident_place_feature": 8,
+        "vehicle_a_progress_info": 14,
+        "vehicle_b_progress_info": 13,
+        "damage_location": "1",
+        "related_laws": "",
+        "violation_of_law": "",
+        "additional_elements": "",
+        "violation_factor": "",
+        "weather": ""
+    }
+}
