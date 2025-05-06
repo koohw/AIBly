@@ -1,0 +1,26 @@
+{
+    "info": {
+        "name": "accident",
+        "description": "",
+        "url": ""
+    },
+    "video": {
+        "video_name": "bb_1_210203_vehicle_08_003",
+        "video_date": "210203",
+        "filming_way": "bb",
+        "video_point_of_view": 1,
+        "accident_negligence_rate": 80,
+        "traffic_accident_type": 0,
+        "accident_object": 0,
+        "accident_place": 0,
+        "accident_place_feature": 0,
+        "vehicle_a_progress_info": 0,
+        "vehicle_b_progress_info": 0,
+        "damage_location": "3",
+        "related_laws": "",
+        "violation_of_law": "",
+        "additional_elements": "",
+        "violation_factor": "",
+        "weather": ""
+    }
+}
