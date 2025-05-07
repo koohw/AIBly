@@ -1,6 +1,6 @@
 package com.ssafy.backend.video.entity;
 
-import com.ssafy.backend.member.entity.User;
+import com.ssafy.backend.domain.user.User;
 import com.ssafy.backend.video.entity.enums.VideoSource;
 import com.ssafy.backend.video.entity.enums.VideoStatus;
 import jakarta.persistence.*;
