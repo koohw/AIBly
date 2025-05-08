@@ -1,16 +1,12 @@
 package com.ssafy.backend.report.service;
 
+import com.opencsv.CSVReader;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
-
-import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Component
 public class AccidentInfoResolver {
@@ -19,29 +15,22 @@ public class AccidentInfoResolver {
 
     @PostConstruct
     public void init() {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                Objects.requireNonNull(getClass().getResourceAsStream("/static/case_data.csv")),
-                StandardCharsets.UTF_8
-        ))) {
-            reader.readLine(); // 헤더 스킵
+        try (CSVReader reader = new CSVReader(
+                new InputStreamReader(
+                        Objects.requireNonNull(getClass().getResourceAsStream("/static/case_data.csv")),
+                        StandardCharsets.UTF_8
+                )
+        )) {
+            List<String[]> lines = reader.readAll();
+            lines.remove(0); // 헤더 제거
 
-            reader.lines().forEach(line -> {
-                String[] parts = line.split(",");
+            for (String[] parts : lines) {
                 try {
                     int accidentType = Integer.parseInt(parts[7].trim());
 
                     AccidentInfo info = new AccidentInfo(
-                            parts[0], // 사고 번호
-                            parts[1], // 사고 장소
-                            parts[2], // 사고 장소 특징
-                            parts[3], // A 진행 방향
-                            parts[4], // B 진행 방향
-                            parts[5], // 과실 비율 A
-                            parts[6], // 과실 비율 B
-                            accidentType,
-                            parts[8], // 차번호/사고유형
-                            parts[9], // 관련 법규
-                            parts[10] // 판례·조정사례
+                            parts[0], parts[1], parts[2], parts[3], parts[4],
+                            parts[5], parts[6], accidentType, parts[8], parts[9], parts[10]
                     );
 
                     accidentTypeMap.put(accidentType, info);
@@ -49,8 +38,7 @@ public class AccidentInfoResolver {
                 } catch (Exception e) {
                     System.err.println("CSV 파싱 오류: " + Arrays.toString(parts));
                 }
-            });
-
+            }
         } catch (Exception e) {
             throw new RuntimeException("CSV 파일 로딩 실패", e);
         }
