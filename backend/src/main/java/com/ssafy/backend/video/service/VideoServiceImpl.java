@@ -3,8 +3,8 @@ package com.ssafy.backend.video.service;
 import com.ssafy.backend.domain.file.*;
 import com.ssafy.backend.domain.user.User;
 import com.ssafy.backend.domain.user.UserRepository;
-import com.ssafy.backend.video.dto.AutoUploadRequestDto;
-import com.ssafy.backend.video.dto.AutoUploadResponseDto;
+import com.ssafy.backend.video.dto.request.UploadNotifyRequestDto;
+import com.ssafy.backend.video.dto.UploadNotifyResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     @Transactional
-    public AutoUploadResponseDto saveAutoUploadedVideo(AutoUploadRequestDto dto, Long userId) {
+    public UploadNotifyResponseDto registerUploadedVideo(UploadNotifyRequestDto dto, Long userId) {
 
         // 중복 업로드 방지
         videoFileRepository.findByS3Key(dto.getS3Key()).ifPresent(existing -> {
@@ -34,7 +34,7 @@ public class VideoServiceImpl implements VideoService {
 
         // 저장
         VideoFile file = VideoFile.builder()
-                .FileName(dto.getFileName())
+                .fileName(dto.getFileName())
                 .s3Key(dto.getS3Key())
                 .contentType(dto.getContentType())
                 .size(dto.getSize())
@@ -47,6 +47,6 @@ public class VideoServiceImpl implements VideoService {
         videoFileRepository.save(file);
 
         // 5. 저장된 정보를 응답 DTO로 반환
-        return new AutoUploadResponseDto(file.getId(), file.getFileType(), file.getAnalysisStatus());
+        return new UploadNotifyResponseDto(file.getId(), file.getFileType(), file.getAnalysisStatus());
     }
 }
