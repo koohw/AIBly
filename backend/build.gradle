@@ -24,22 +24,7 @@ repositories {
 }
 
 dependencies {
-//	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
-//	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-//	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-//	implementation 'org.springframework.boot:spring-boot-starter-security'
-//	implementation 'org.springframework.boot:spring-boot-starter-web'
-//	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-//	// AWS SDK S3 (v2)
-//	implementation platform('software.amazon.awssdk:bom:2.25.3')
-//	implementation 'software.amazon.awssdk:s3'
-//	implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.0.2'
-//	compileOnly 'org.projectlombok:lombok'
-//	runtimeOnly 'com.mysql:mysql-connector-j'
-//	annotationProcessor 'org.projectlombok:lombok'
-//	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-//	testImplementation 'org.springframework.security:spring-security-test'
-//	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
@@ -89,6 +74,10 @@ dependencies {
 	/* OAuth START */
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 	/* OAuth END */
+
+	/* OpenCSV START */
+	implementation 'com.opencsv:opencsv:5.9'
+    /* OpenCSV END */
 
 	/* Testing START */
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

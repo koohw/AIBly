@@ -1,4 +1,4 @@
-package com.ssafy.backend.video.dto;
+package com.ssafy.backend.video.dto.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class AutoUploadRequestDto {
+public class UploadNotifyRequestDto {
 
     private String FileName; // 사용자가 업로드한 원래 파일명
     private String s3Key;            // presigned로 S3에 저장된 키

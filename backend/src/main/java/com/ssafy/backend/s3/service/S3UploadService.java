@@ -10,6 +10,12 @@ public interface S3UploadService {
 
     // presigned URL 생성, PresignedUrlRequestDto에 있던 것들 가져옴
     String generatePresignedUrl(String s3Key, String contentType);
+
+    // presinged URL 생성, 다운로드 용도
+    String getDownloadURL(Long userId, String fileName);
+
+    // s3 파일 삭제 요청
+    void deleteS3File(Long userId, String fileName);
 }
 
 //Presigned URL API는 아직 DB에 저장할 게 없어서 Repository를 안 씀

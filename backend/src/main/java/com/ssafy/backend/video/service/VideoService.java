@@ -1,8 +1,8 @@
 package com.ssafy.backend.video.service;
 
-import com.ssafy.backend.video.dto.AutoUploadRequestDto;
-import com.ssafy.backend.video.dto.AutoUploadResponseDto;
+import com.ssafy.backend.video.dto.request.UploadNotifyRequestDto;
+import com.ssafy.backend.video.dto.UploadNotifyResponseDto;
 
 public interface VideoService {
-    AutoUploadResponseDto saveAutoUploadedVideo(AutoUploadRequestDto dto, Long userId); // 사용자 정보 연동 가능
+    UploadNotifyResponseDto registerUploadedVideo(UploadNotifyRequestDto dto, Long userId); // 업로드가 완료된 영상을 등록하고 분석
 }

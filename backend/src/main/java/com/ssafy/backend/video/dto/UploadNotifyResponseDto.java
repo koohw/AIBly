@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class AutoUploadResponseDto {
+public class UploadNotifyResponseDto {
     private Long fileId;
     private FileType fileType;
     private AnalysisStatus analysisStatus;
