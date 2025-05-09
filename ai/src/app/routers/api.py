@@ -46,20 +46,19 @@ async def analyze_video(request: AnalysisRequest):
     프리사인드 URL과 사용자 ID를 받아서 영상을 분석하는 엔드포인트
     파일 다운로드 후 완료되면 OK 반환
     """
-    logger.info(f"분석 요청 받음: user_id={request.user_id}")
+    logger.info(f"분석 요청 받음: userId={request.userId}")
     
     try:
         # 사용자별 폴더 생성
-        user_dir = os.path.join(UPLOAD_DIR, request.user_id)
+        user_dir = os.path.join(UPLOAD_DIR, str(request.userId))
         os.makedirs(user_dir, exist_ok=True)
         
-        # 파일명 생성 (metadata에 file_name이 있으면 사용, 없으면 기본값)
-        file_name = request.metadata.get("file_name", "video.mp4") if request.metadata else "video.mp4"
-        file_path = os.path.join(user_dir, file_name)
+        # 파일명 사용
+        file_path = os.path.join(user_dir, request.fileName)
         
         # 프리사인드 URL에서 파일 다운로드
-        logger.info(f"파일 다운로드 시작: {request.presigned_url}")
-        response = requests.get(request.presigned_url, stream=True)
+        logger.info(f"파일 다운로드 시작: {request.presignedUrl}")
+        response = requests.get(request.presignedUrl, stream=True)
         
         if response.status_code != 200:
             logger.error(f"파일 다운로드 실패: {response.status_code}")
@@ -95,15 +94,16 @@ async def analyze_video_test(request: AnalysisRequest):
     """
     테스트용 엔드포인트 - 다운로드 없이 받은 JSON을 그대로 반환
     """
-    logger.info(f"테스트 분석 요청 받음: user_id={request.user_id}")
+    logger.info(f"테스트 분석 요청 받음: userId={request.userId}")
     
     try:
         # 다운로드 작업 없이 받은 JSON 데이터를 그대로 반환
         response_data = {
             "received_data": {
-                "user_id": request.user_id,
-                "presigned_url": str(request.presigned_url),
-                "metadata": request.metadata
+                "userId": request.userId,
+                "videoId": request.videoId,
+                "fileName": request.fileName,
+                "presignedUrl": str(request.presignedUrl)
             }
         }
         
