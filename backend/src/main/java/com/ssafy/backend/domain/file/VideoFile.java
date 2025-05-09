@@ -1,6 +1,7 @@
 package com.ssafy.backend.domain.file;
 
-import com.ssafy.backend.domain.user.User;
+
+import com.ssafy.backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 

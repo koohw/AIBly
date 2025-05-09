@@ -85,23 +85,29 @@ export default function AuthScreen() {
     router.push("/dashboard")
   }
 
-  const handleKakaoLogin = async () => {
+  // const handleKakaoLogin = async () => {
+  //   setIsLoading(true)
+  //   try {
+  //     // 실제 구현에서는 카카오 SDK를 사용하여 로그인 처리
+  //     // 여기서는 예시로 setTimeout을 사용하여 로딩 상태 표시
+  //     await new Promise((resolve) => setTimeout(resolve, 1500))
+
+  //     // 로그인 성공 시 로컬 스토리지에 토큰 저장 (실제로는 서버에서 받은 토큰 저장)
+  //     localStorage.setItem("auth_token", "kakao_token_example")
+
+  //     // 메인 페이지로 이동
+  //     router.push("/dashboard")
+  //   } catch (error) {
+  //     console.error("카카오 로그인 실패:", error)
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }
+
+  const handleKakaoLogin = () => {
     setIsLoading(true)
-    try {
-      // 실제 구현에서는 카카오 SDK를 사용하여 로그인 처리
-      // 여기서는 예시로 setTimeout을 사용하여 로딩 상태 표시
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // 로그인 성공 시 로컬 스토리지에 토큰 저장 (실제로는 서버에서 받은 토큰 저장)
-      localStorage.setItem("auth_token", "kakao_token_example")
-
-      // 메인 페이지로 이동
-      router.push("/dashboard")
-    } catch (error) {
-      console.error("카카오 로그인 실패:", error)
-    } finally {
-      setIsLoading(false)
-    }
+    // 프론트는 단순히 이 엔드포인트로 이동만 시켜주면 됩니다.
+    window.location.href = "http://localhost:8001/api/auth/kakao"
   }
 
   return (
