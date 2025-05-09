@@ -1,6 +1,6 @@
 package com.ssafy.backend.video.repository;
 
-import com.ssafy.backend.domain.user.User;
+import com.ssafy.backend.user.entity.User;
 import com.ssafy.backend.video.entity.Video;
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -3,9 +3,10 @@ const path = require("path");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // output: 'export',
-  
+  output: 'export',
+
   images: {
+    unoptimized: true,
     dangerouslyAllowSVG: true, // SVG 허용 (주의: CSP 설정 필요)
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [

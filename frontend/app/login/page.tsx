@@ -17,11 +17,11 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-     // .env.local 에 NEXT_PUBLIC_KAKAO_JS_KEY=your_web_app_key 를 설정해야 합니다.
-     KakaoLogin.initForWeb(process.env.NEXT_PUBLIC_KAKAO_JS_KEY!)
-     .catch((err) => console.error("Kakao SDK init 실패:", err))
- }, [])
+//   useEffect(() => {
+//      // .env.local 에 NEXT_PUBLIC_KAKAO_JS_KEY=your_web_app_key 를 설정해야 합니다.
+//      KakaoLogin.initForWeb(process.env.NEXT_PUBLIC_KAKAO_JS_KEY!)
+//      .catch((err) => console.error("Kakao SDK init 실패:", err))
+//  }, [])
   
 
   // const handleKakaoLogin = async () => {
@@ -53,39 +53,45 @@ export default function LoginPage() {
   //     }
   //   }
 
-  const handleKakaoLogin = async () => {
+  // const handleKakaoLogin = async () => {
+  //   setIsLoading(true)
+  //   try {
+  //     // 1) 카톡 앱이 있으면 앱, 없으면 웹뷰로 로그인
+  //     const result = await goLogin()
+  //     const kakaoToken = result.accessToken
+
+  //     // 2) 백엔드 로그인 엔드포인트 주소를 정확히: 
+  //     //    - 개발 서버: http://localhost:8001
+  //     //    - 그리고 우리가 만든 컨트롤러가 /api/auth/kakao/login 인지 확인
+  //     const res = await fetch("http://localhost:8001/api/auth/kakao/login", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ accessToken: kakaoToken }),
+  //     })
+  //     if (!res.ok) throw new Error("서버 로그인 실패")
+
+  //     // 3) 백엔드에서 내려준 JWT 토큰 꺼내기
+  //     const { token /*, expiresIn */ } = await res.json()
+
+  //     // ⭐️ 웹뷰만 쓴다면 localStorage 도 가능하지만,
+  //     //    모바일 앱이라면 Capacitor Storage 권장
+  //     localStorage.setItem("auth_token", token)
+  //     // await Storage.set({ key: "auth_token", value: token })
+
+  //     // 4) 로그인 후 화면 이동
+  //     router.push("/dashboard")
+  //   } catch (error) {
+  //     console.error("카카오 로그인 실패:", error)
+  //     // TODO: 사용자에게 실패 알림 띄우기
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }
+
+  const handleKakaoLogin = () => {
     setIsLoading(true)
-    try {
-      // 1) 카톡 앱이 있으면 앱, 없으면 웹뷰로 로그인
-      const result = await goLogin()
-      const kakaoToken = result.accessToken
-
-      // 2) 백엔드 로그인 엔드포인트 주소를 정확히: 
-      //    - 개발 서버: http://localhost:8001
-      //    - 그리고 우리가 만든 컨트롤러가 /api/auth/kakao/login 인지 확인
-      const res = await fetch("http://localhost:8001/api/auth/kakao/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken: kakaoToken }),
-      })
-      if (!res.ok) throw new Error("서버 로그인 실패")
-
-      // 3) 백엔드에서 내려준 JWT 토큰 꺼내기
-      const { token /*, expiresIn */ } = await res.json()
-
-      // ⭐️ 웹뷰만 쓴다면 localStorage 도 가능하지만,
-      //    모바일 앱이라면 Capacitor Storage 권장
-      localStorage.setItem("auth_token", token)
-      // await Storage.set({ key: "auth_token", value: token })
-
-      // 4) 로그인 후 화면 이동
-      router.push("/dashboard")
-    } catch (error) {
-      console.error("카카오 로그인 실패:", error)
-      // TODO: 사용자에게 실패 알림 띄우기
-    } finally {
-      setIsLoading(false)
-    }
+    // 프론트는 단순히 이 엔드포인트로 이동만 시켜주면 됩니다.
+    window.location.href = "http://localhost:8001/api/auth/kakao"
   }
 
   const handleBack = () => {

@@ -38,8 +38,10 @@ dependencies {
 
 	/* DB START */
 	implementation 'com.zaxxer:HikariCP'
+	implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	/* DB END */
+
 
 	/* SQL logging START */
 	implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
@@ -51,9 +53,14 @@ dependencies {
 	/* JPA END */
 
 	/* JWT START */
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
+	/*implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+	implementation   'io.jsonwebtoken:jjwt-impl:0.12.3'
+	implementation   'io.jsonwebtoken:jjwt-jackson:0.12.3'*/
+	implementation   'io.jsonwebtoken:jjwt-api:0.11.5'
+	implementation   'io.jsonwebtoken:jjwt-impl:0.11.5'
+	implementation   'io.jsonwebtoken:jjwt-jackson:0.11.5'
 	/* JWT END */
 
 	/* Dotenv START */

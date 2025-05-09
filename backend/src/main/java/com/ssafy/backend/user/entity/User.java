@@ -1,7 +1,7 @@
-package com.ssafy.backend.domain.user;
+package com.ssafy.backend.user.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.*;    // 또는 import lombok.* (버전에 따라 jakarta)
 
 @Entity
 @Table(name = "users",
@@ -33,3 +33,4 @@ public class User {
     private String providerId; // 카카오 user id
 
 }
+
