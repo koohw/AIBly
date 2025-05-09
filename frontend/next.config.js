@@ -3,7 +3,8 @@ const path = require("path");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-
+  // output: 'export',
+  
   images: {
     dangerouslyAllowSVG: true, // SVG 허용 (주의: CSP 설정 필요)
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
@@ -13,6 +14,7 @@ const nextConfig = {
       { protocol: "https", hostname: "static.megamart.com" },
       { protocol: "https", hostname: "example.com" },
     ],
+    unoptimized: true,
   },
 
   webpack: (config) => {
