@@ -1,10 +1,11 @@
 package com.ssafy.backend.video.service;
 
+import com.ssafy.backend.ai.service.AiService;
 import com.ssafy.backend.domain.file.*;
 import com.ssafy.backend.domain.user.User;
 import com.ssafy.backend.domain.user.UserRepository;
 import com.ssafy.backend.video.dto.request.UploadNotifyRequestDto;
-import com.ssafy.backend.video.dto.UploadNotifyResponseDto;
+import com.ssafy.backend.video.dto.response.UploadNotifyResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ public class VideoServiceImpl implements VideoService {
 
     private final VideoFileRepository videoFileRepository;
     private final UserRepository userRepository;
+    private final AiService aiService;
 
     @Override
     @Transactional
@@ -45,6 +47,11 @@ public class VideoServiceImpl implements VideoService {
                 .build();
 
         videoFileRepository.save(file);
+
+        //AI 분석 요청
+        if (fileType == FileType.VIDEO) {
+            aiService.requestAnalysis(file);
+        }
 
         // 5. 저장된 정보를 응답 DTO로 반환
         return new UploadNotifyResponseDto(file.getId(), file.getFileType(), file.getAnalysisStatus());

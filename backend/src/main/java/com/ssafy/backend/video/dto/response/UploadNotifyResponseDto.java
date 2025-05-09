@@ -1,4 +1,4 @@
-package com.ssafy.backend.video.dto;
+package com.ssafy.backend.video.dto.response;
 
 import com.ssafy.backend.domain.file.AnalysisStatus;
 import com.ssafy.backend.domain.file.FileType;

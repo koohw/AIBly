@@ -18,8 +18,8 @@ public class S3Controller {
     @PostMapping("/presigned")
     public ResponseEntity<PresignedUrlResponseDto> getPresignedUrl(@RequestBody PresignedUrlRequestDto request) {
         String s3Key = s3UploadService.generateS3Key(request.getFileName());
-        String url = s3UploadService.generatePresignedUrl(s3Key, request.getContentType());
+        String presignedUrl = s3UploadService.generatePresignedUrl(s3Key, request.getContentType());
 
-        return ResponseEntity.ok(new PresignedUrlResponseDto(url, s3Key));
+        return ResponseEntity.ok(new PresignedUrlResponseDto(presignedUrl, s3Key));
     }
 }
