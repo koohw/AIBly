@@ -2,10 +2,14 @@ package com.ssafy.backend.video.service;
 
 import com.ssafy.backend.ai.service.AiService;
 import com.ssafy.backend.domain.file.*;
+<<<<<<< HEAD
 import com.ssafy.backend.domain.user.User;
 import com.ssafy.backend.domain.user.UserRepository;
 import com.ssafy.backend.video.dto.request.UploadNotifyRequestDto;
-import com.ssafy.backend.video.dto.response.UploadNotifyResponseDto;
+=======
+
+import com.ssafy.backend.video.dto.UploadNotifyResponseDto;
+>>>>>>> origin/develop
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,7 +40,7 @@ public class VideoServiceImpl implements VideoService {
 
         // 저장
         VideoFile file = VideoFile.builder()
-                .FileName(dto.getFileName())
+                .fileName(dto.getFileName())
                 .s3Key(dto.getS3Key())
                 .contentType(dto.getContentType())
                 .size(dto.getSize())

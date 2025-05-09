@@ -18,27 +18,59 @@ export default function Dashboard() {
 
   // 인증 상태 확인
   useEffect(() => {
-    const token = localStorage.getItem("auth_token")
-    const guestToken = localStorage.getItem("guest_token")
+    // const token = localStorage.getItem("auth_token")
+    // const guestToken = localStorage.getItem("guest_token")
 
-    if (!token && !guestToken) {
-      router.push("/")
-    } else {
-      setIsLoading(false)
-      setIsGuest(!token && !!guestToken)
+    // if (!token && !guestToken) {
+    //   router.push("/")
+    // } else {
+    //   setIsLoading(false)
+    //   setIsGuest(!token && !!guestToken)
 
-      // 로그인 사용자는 예시 분석 결과 표시
-      if (token) {
-        setHasAnalysis(true)
-      }
+    //   // 로그인 사용자는 예시 분석 결과 표시
+    //   if (token) {
+    //     setHasAnalysis(true)
+    //   }
 
-      // localStorage에서 자동 감지 설정 불러오기
-      const savedAutoDetect = localStorage.getItem("auto_detect")
-      if (savedAutoDetect !== null) {
-        setAutoDetectEnabled(savedAutoDetect === "true")
-      }
-    }
-  }, [router])
+    //   // localStorage에서 자동 감지 설정 불러오기
+    //   const savedAutoDetect = localStorage.getItem("auto_detect")
+    //   if (savedAutoDetect !== null) {
+    //     setAutoDetectEnabled(savedAutoDetect === "true")
+    //   }
+    // }
+     // 1) 로딩 상태 켜고
+     setIsLoading(true)
+
+     fetch("http://localhost:8001/api/user/me", {
+       method: "GET",
+       credentials: "include",   // ★ HTTP-Only 쿠키 포함
+     })
+       .then(res => {
+         if (!res.ok) {
+           // 401 Unauthorized 등
+           throw new Error("인증 필요")
+         }
+         return res.json()
+       })
+       .then(userInfo => {
+         // 로그인된 사용자
+         setIsGuest(false)
+         setHasAnalysis(true)
+         // (필요하면 userInfo를 state에 저장)
+       })
+       .catch(() => {
+         // 인증 실패 시 게스트 모드
+         setIsGuest(true)
+       })
+       .finally(() => {
+         // 자동 감지 설정은 기존대로 로컬스토리지에서
+         const savedAutoDetect = localStorage.getItem("auto_detect")
+         if (savedAutoDetect !== null) {
+           setAutoDetectEnabled(savedAutoDetect === "true")
+         }
+         setIsLoading(false)
+       })
+   }, [router])
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token")
@@ -71,8 +103,12 @@ export default function Dashboard() {
   }
 
   const handleViewAnalysis = () => {
-    router.push("/analysis/1") // 예시 분석 결과 페이지로 이동
+    // /analysis?id=1 형태로 push
+    router.push(`/analysis?id=1`)
+    // 나중에 API에서 받아온 동적 ID로 바꿀땐 아래와 같이 쓰면 됨됨
+    //router.push(`/analysis?id=${reportId}`)
   }
+  
 
   const handleAutoDetectSettings = () => {
     router.push("/profile")

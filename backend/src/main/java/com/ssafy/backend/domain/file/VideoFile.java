@@ -1,6 +1,7 @@
 package com.ssafy.backend.domain.file;
 
-import com.ssafy.backend.domain.user.User;
+
+import com.ssafy.backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,7 +20,7 @@ public class VideoFile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String FileName;
+    private String fileName;
 
     @Column(nullable = false, unique = true)
     private String s3Key;
@@ -52,4 +53,5 @@ public class VideoFile {
     public void setUploadTime() {
         this.uploadedAt = LocalDateTime.now();
     }
+
 }

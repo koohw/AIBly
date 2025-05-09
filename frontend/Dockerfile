@@ -14,13 +14,13 @@ COPY . .
 # 빌드 실행
 RUN npm run build
 
-# curl 설치 (헬스체크용)
-RUN apk add --no-cache curl
+# serve 패키지 설치 및 curl 설치 (헬스체크용)
+RUN npm install -g serve && apk add --no-cache curl
 
 # 포트 설정
 EXPOSE 8002
 
-# Next.js 프로덕션 서버 실행
+# 정적 파일 서빙 실행
 ENV PORT=8002
 ENV NODE_ENV=production
-CMD ["npm", "run", "start"]
+CMD ["serve", "-s", "out", "-p", "8002"]

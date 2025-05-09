@@ -1,7 +1,7 @@
 package com.ssafy.backend.video.controller;
 
 import com.ssafy.backend.video.dto.request.UploadNotifyRequestDto;
-import com.ssafy.backend.video.dto.response.UploadNotifyResponseDto;
+
 import com.ssafy.backend.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
