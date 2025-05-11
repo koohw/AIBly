@@ -1,12 +1,25 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 android {
     namespace "com.crush.aiblackboxreview"
-    compileSdk rootProject.ext.compileSdkVersion
+    compileSdk 35
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        // Kotlin으로 작성하셨다면 추가
+        jvmTarget = "17"
+    }
+    buildFeatures {
+        buildConfig true
+    }
     defaultConfig {
+
         applicationId "com.crush.aiblackboxreview"
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        targetSdkVersion 35
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -15,6 +28,8 @@ android {
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+        buildConfigField "String", "KAKAO_NATIVE_APP_KEY",
+                "\"${project.property("KAKAO_NATIVE_APP_KEY")}\""
     }
     buildTypes {
         release {
@@ -40,6 +55,8 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation "com.kakao.sdk:v2-user:2.12.1"
+    implementation "com.squareup.okhttp3:okhttp:4.10.0"
 }
 
 apply from: 'capacitor.build.gradle'

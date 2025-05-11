@@ -1,0 +1,328 @@
+[33mcommit 69c95f586dc6bc137e081e8a52ae2050b22a10ec[m
+Author: 홍해지 <hongs9595@naver.com>
+Date:   Fri May 2 17:20:58 2025 +0900
+
+    fix: 멀ì¹티 파일 대신 파일명으로 수정하기
+
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/S3Config.java b/backend/src/main/java/com/ssafy/backend/config/S3Config.java[m
+[1msimilarity index 97%[m
+[1mrename from backend/src/main/java/com/ssafy/backend/s3/S3Config.java[m
+[1mrename to backend/src/main/java/com/ssafy/backend/config/S3Config.java[m
+[1mindex 21b4cd0..94672b9 100644[m
+[1m--- a/backend/src/main/java/com/ssafy/backend/s3/S3Config.java[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/config/S3Config.java[m
+[36m@@ -1,4 +1,4 @@[m
+[31m-package com.ssafy.backend.s3;[m
+[32m+[m[32mpackage com.ssafy.backend.config;[m
+ [m
+ import jakarta.annotation.PostConstruct;[m
+ import lombok.Getter;[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/healthcheck/controller/HealthCheckController.java b/backend/src/main/java/com/ssafy/backend/healthcheck/controller/HealthCheckController.java[m
+[1mdeleted file mode 100644[m
+[1mindex e234e01..0000000[m
+[1m--- a/backend/src/main/java/com/ssafy/backend/healthcheck/controller/HealthCheckController.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,20 +0,0 @@[m
+[31m-package com.ssafy.backend.healthcheck.controller;[m
+[31m-[m
+[31m-import lombok.RequiredArgsConstructor;[m
+[31m-import lombok.extern.slf4j.Slf4j;[m
+[31m-import org.springframework.http.ResponseEntity;[m
+[31m-import org.springframework.web.bind.annotation.GetMapping;[m
+[31m-import org.springframework.web.bind.annotation.RequestMapping;[m
+[31m-import org.springframework.web.bind.annotation.RestController;[m
+[31m-[m
+[31m-@Slf4j[m
+[31m-@RestController[m
+[31m-@RequiredArgsConstructor[m
+[31m-@RequestMapping("/api/test")[m
+[31m-public class HealthCheckController {[m
+[31m-[m
+[31m-    @GetMapping("")[m
+[31m-    public ResponseEntity<?> healthCheck() {[m
+[31m-        return ResponseEntity.ok("OK");[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/S3UploadService.java b/backend/src/main/java/com/ssafy/backend/s3/S3UploadService.java[m
+[1mindex 19b18fe..a53a276 100644[m
+[1m--- a/backend/src/main/java/com/ssafy/backend/s3/S3UploadService.java[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/S3UploadService.java[m
+[36m@@ -1,5 +1,6 @@[m
+ package com.ssafy.backend.s3;[m
+ [m
+[32m+[m[32mimport com.ssafy.backend.config.S3Config;[m
+ import lombok.RequiredArgsConstructor;[m
+ import org.springframework.beans.factory.annotation.Value;[m
+ import org.springframework.stereotype.Service;[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/controller/S3Controller.java b/backend/src/main/java/com/ssafy/backend/s3/controller/S3Controller.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..3fc8388[m
+[1m--- /dev/null[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/controller/S3Controller.java[m
+[36m@@ -0,0 +1,31 @@[m
+[32m+[m[32mpackage com.ssafy.backend.s3.controller;[m
+[32m+[m
+[32m+[m[32mimport com.ssafy.backend.s3.model.dto.PresignedUrlRequest;[m
+[32m+[m[32mimport com.ssafy.backend.s3.model.dto.PresignedUrlResponse;[m
+[32m+[m[32mimport com.ssafy.backend.s3.service.S3Service;[m
+[32m+[m[32mimport lombok.RequiredArgsConstructor;[m
+[32m+[m[32mimport org.springframework.http.ResponseEntity;[m
+[32m+[m[32mimport org.springframework.web.bind.annotation.*;[m
+[32m+[m
+[32m+[m[32m@RestController[m
+[32m+[m[32m@RequestMapping("/api/s3")[m
+[32m+[m[32m@RequiredArgsConstructor[m
+[32m+[m[32mpublic class S3Controller {[m
+[32m+[m
+[32m+[m[32m    private final S3Service s3Service;[m
+[32m+[m
+[32m+[m[32m    // 프론트에서 파일명을 보내면 presigned URL 발급[m
+[32m+[m[32m    @PostMapping("/presigned-url")[m
+[32m+[m[32m    public ResponseEntity<PresignedUrlResponse> generatePresignedUrl(@RequestBody PresignedUrlRequest request) {[m
+[32m+[m[32m        return ResponseEntity.ok(s3Service.generatePresignedUrl(request));[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // S3 업로드가 끝나면, 백엔드에 업로드 완료 알림 요청[m
+[32m+[m[32m    @PostMapping("/confirm-upload")[m
+[32m+[m[32m    public ResponseEntity<Void> confirmUpload(@RequestParam String fileName,[m
+[32m+[m[32m                                              @RequestParam String originalFileName,[m
+[32m+[m[32m                                              @RequestParam Long size) {[m
+[32m+[m[32m        s3Service.confirmUpload(fileName, originalFileName, size);[m
+[32m+[m[32m        return ResponseEntity.ok().build();[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/model/dto/PresignedUrlRequest.java b/backend/src/main/java/com/ssafy/backend/s3/model/dto/PresignedUrlRequest.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..485b793[m
+[1m--- /dev/null[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/model/dto/PresignedUrlRequest.java[m
+[36m@@ -0,0 +1,12 @@[m
+[32m+[m[32mpackage com.ssafy.backend.s3.model.dto;[m
+[32m+[m
+[32m+[m[32mimport lombok.Getter;[m
+[32m+[m[32mimport lombok.Setter;[m
+[32m+[m
+[32m+[m[32m@Getter[m
+[32m+[m[32m@Setter[m
+[32m+[m[32mpublic class PresignedUrlRequest {[m
+[32m+[m[32m    private String fileName;        // 원본 파일명[m
+[32m+[m[32m    private FileType fileType;      // 예: VIDEO, REPORT_PDF[m
+[32m+[m[32m}[m
+[32m+[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/model/dto/PresignedUrlResponse.java b/backend/src/main/java/com/ssafy/backend/s3/model/dto/PresignedUrlResponse.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..d63f063[m
+[1m--- /dev/null[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/model/dto/PresignedUrlResponse.java[m
+[36m@@ -0,0 +1,11 @@[m
+[32m+[m[32mpackage com.ssafy.backend.s3.model.dto;[m
+[32m+[m
+[32m+[m[32mimport lombok.AllArgsConstructor;[m
+[32m+[m[32mimport lombok.Getter;[m
+[32m+[m
+[32m+[m[32m@Getter[m
+[32m+[m[32m@AllArgsConstructor[m
+[32m+[m[32mpublic class PresignedUrlResponse {[m
+[32m+[m[32m    private String url;  // PUT으로 업로드할 presigned URL. 프론트가 직접 put으로 s3에 업로드함.[m
+[32m+[m[32m    private String key;  // S3에 저장된 파일의 경로(key)[m
+[32m+[m[32m}[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/model/entity/S3File.java b/backend/src/main/java/com/ssafy/backend/s3/model/entity/S3File.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..612ff9e[m
+[1m--- /dev/null[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/model/entity/S3File.java[m
+[36m@@ -0,0 +1,69 @@[m
+[32m+[m[32mpackage com.ssafy.backend.s3.model.entity;[m
+[32m+[m
+[32m+[m[32mimport com.ssafy.backend.s3.model.enums.FileType;[m
+[32m+[m[32mimport jakarta.persistence.*;[m
+[32m+[m[32mimport lombok.*;[m
+[32m+[m
+[32m+[m[32mimport java.time.LocalDateTime;[m
+[32m+[m
+[32m+[m[32m@Entity[m
+[32m+[m[32m@Table(name = "s3_file")[m
+[32m+[m[32m@Getter[m
+[32m+[m[32m@NoArgsConstructor(access = AccessLevel.PROTECTED)[m
+[32m+[m[32m@AllArgsConstructor[m
+[32m+[m[32m@Builder[m
+[32m+[m[32mpublic class S3File {[m
+[32m+[m
+[32m+[m[32m    @Id[m
+[32m+[m[32m    @GeneratedValue(strategy = GenerationType.IDENTITY)[m
+[32m+[m[32m    private Long id;[m
+[32m+[m
+[32m+[m[32m    // S3에 저장된 고유 파일명 (UUID포함)[m
+[32m+[m[32m    @Column(nullable = false, unique = true)[m
+[32m+[m[32m    private String fileName;[m
+[32m+[m
+[32m+[m[32m    // 원본 파일명[m
+[32m+[m[32m    @Column(nullable = false)[m
+[32m+[m[32m    private String originalFileName;[m
+[32m+[m
+[32m+[m[32m    // S3 파일 접근 URL[m
+[32m+[m[32m    @Column(nullable = false, length = 1000)[m
+[32m+[m[32m    private String url;[m
+[32m+[m
+[32m+[m[32m    // MIME 타입 (ex: video/mp4, image/png)[m
+[32m+[m[32m    @Column(nullable = false)[m
+[32m+[m[32m    private String contentType;[m
+[32m+[m
+[32m+[m[32m    // enum: VIDEO, THUMBNAIL, PDF 등[m
+[32m+[m[32m    @Enumerated(EnumType.STRING)[m
+[32m+[m[32m    @Column(nullable = false)[m
+[32m+[m[32m    private FileType fileType;[m
+[32m+[m
+[32m+[m[32m    @Column(nullable = false)[m
+[32m+[m[32m    private Long size;[m
+[32m+[m
+[32m+[m[32m    // 비디오 전용 필드[m
+[32m+[m[32m    private Integer duration;[m
+[32m+[m
+[32m+[m[32m    @Column(nullable = false)[m
+[32m+[m[32m    private LocalDateTime uploadedAt;[m
+[32m+[m
+[32m+[m[32m    @PrePersist[m
+[32m+[m[32m    public void prePersist() {[m
+[32m+[m[32m        this.uploadedAt = LocalDateTime.now();[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // 생성 편의 메서드[m
+[32m+[m[32m    public static S3File of(String fileName, String originalFileName, String url, String contentType, FileType fileType, Long size, Integer duration) {[m
+[32m+[m[32m        return S3File.builder()[m
+[32m+[m[32m                .fileName(fileName)[m
+[32m+[m[32m                .originalFileName(originalFileName)[m
+[32m+[m[32m                .url(url)[m
+[32m+[m[32m                .contentType(contentType)[m
+[32m+[m[32m                .fileType(fileType)[m
+[32m+[m[32m                .size(size)[m
+[32m+[m[32m                .duration(duration)[m
+[32m+[m[32m                .uploadedAt(LocalDateTime.now())[m
+[32m+[m[32m                .build();[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/model/enums/FileType.java b/backend/src/main/java/com/ssafy/backend/s3/model/enums/FileType.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..3ed1cd8[m
+[1m--- /dev/null[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/model/enums/FileType.java[m
+[36m@@ -0,0 +1,11 @@[m
+[32m+[m[32mpackage com.ssafy.backend.s3.model.enums;[m
+[32m+[m
+[32m+[m[32mimport java.awt.*;[m
+[32m+[m
+[32m+[m[32mpublic enum FileType {[m
+[32m+[m[32m    Video,[m
+[32m+[m[32m    Report_PDF,[m
+[32m+[m[32m    Image,[m
+[32m+[m[32m    Thumbnail[m
+[32m+[m[32m}[m
+[32m+[m[32m//파일 종류[m
+\ No newline at end of file[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/repository/S3FileRepository.java b/backend/src/main/java/com/ssafy/backend/s3/repository/S3FileRepository.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..a886218[m
+[1m--- /dev/null[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/repository/S3FileRepository.java[m
+[36m@@ -0,0 +1,17 @@[m
+[32m+[m[32mpackage com.ssafy.backend.s3.repository;[m
+[32m+[m
+[32m+[m[32mimport com.ssafy.backend.s3.model.entity.S3File;[m
+[32m+[m[32mimport com.ssafy.backend.s3.model.enums.FileType;[m
+[32m+[m
+[32m+[m[32mimport java.util.List;[m
+[32m+[m[32mimport java.util.Optional;[m
+[32m+[m
+[32m+[m[32mpublic interface S3FileRepository {[m
+[32m+[m[32m    // 파일 이름으로 중복 업로드 방지 or 조회[m
+[32m+[m[32m    Optional<S3File> findByFileName(String fileName);[m
+[32m+[m
+[32m+[m[32m    //IMAGE, VIDEO, THUMBNAIL, PDF 등 파일 종류별로 구분해서 필터링하기 위한 메서드인데 필요할지 모르겠음.[m
+[32m+[m[32m    //일단 지금은 필요없음.[m
+[32m+[m[32m    List<S3File> findByFileType(FileType fileType);[m
+[32m+[m[32m}[m
+[32m+[m[32m// 업로드 완료 후 DB에 파일 정보를 저장할 때 사용[m
+\ No newline at end of file[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/service/S3Service.java b/backend/src/main/java/com/ssafy/backend/s3/service/S3Service.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..a2c51ca[m
+[1m--- /dev/null[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/service/S3Service.java[m
+[36m@@ -0,0 +1,9 @@[m
+[32m+[m[32mpackage com.ssafy.backend.s3.service;[m
+[32m+[m
+[32m+[m[32mimport com.ssafy.backend.s3.model.dto.PresignedUrlRequest;[m
+[32m+[m[32mimport com.ssafy.backend.s3.model.dto.PresignedUrlResponse;[m
+[32m+[m
+[32m+[m[32mpublic interface S3Service {[m
+[32m+[m[32m    PresignedUrlResponse generatePresignedUrl(PresignedUrlRequest request);[m
+[32m+[m[32m    void confirmUpload(String fileName, String originalFileName, long size);[m
+[32m+[m[32m}[m
+[1mdiff --git a/backend/src/main/java/com/ssafy/backend/s3/service/S3ServiceImpl.java b/backend/src/main/java/com/ssafy/backend/s3/service/S3ServiceImpl.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..78cb1cf[m
+[1m--- /dev/null[m
+[1m+++ b/backend/src/main/java/com/ssafy/backend/s3/service/S3ServiceImpl.java[m
+[36m@@ -0,0 +1,59 @@[m
+[32m+[m[32mpackage com.ssafy.backend.s3.service;[m
+[32m+[m
+[32m+[m[32mimport lombok.RequiredArgsConstructor;[m
+[32m+[m[32mimport org.springframework.beans.factory.annotation.Value;[m
+[32m+[m[32mimport org.springframework.stereotype.Service;[m
+[32m+[m[32mimport software.amazon.awssdk.auth.credentials.AwsBasicCredentials;[m
+[32m+[m[32mimport software.amazon.awssdk.regions.Region;[m
+[32m+[m[32mimport software.amazon.awssdk.services.s3.model.PutObjectRequest;[m
+[32m+[m[32mimport software.amazon.awssdk.services.s3.presigner.S3Presigner;[m
+[32m+[m[32mimport software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;[m
+[32m+[m
+[32m+[m[32mimport java.net.URL;[m
+[32m+[m[32mimport java.time.Duration;[m
+[32m+[m[32mimport java.util.UUID;[m
+[32m+[m
+[32m+[m[32m@Service[m
+[32m+[m[32m@RequiredArgsConstructor[m
+[32m+[m[32mpublic class S3ServiceImpl implements S3Service {[m
+[32m+[m
+[32m+[m[32m    @Value("${cloud.aws.s3.bucket}")[m
+[32m+[m[32m    private String bucket;[m
+[32m+[m
+[32m+[m[32m    @Value("${cloud.aws.region.static}")[m
+[32m+[m[32m    private String region;[m
+[32m+[m
+[32m+[m[32m    @Value("${aws.accessKeyId}")[m
+[32m+[m[32m    private String accessKey;[m
+[32m+[m
+[32m+[m[32m    @Value("${aws.secretKey}")[m
+[32m+[m[32m    private String secretKey;[m
+[32m+[m
+[32m+[m[32m    @Override[m
+[32m+[m[32m    public PresignedUrlResponse generatePresignedUrl(PresignedUrlRequest request) {[m
+[32m+[m[32m        String key = request.getFileType().name().toLowerCase() + "/" + UUID.randomUUID() + "_" + request.getFileName();[m
+[32m+[m
+[32m+[m[32m        S3Presigner presigner = S3Presigner.builder()[m
+[32m+[m[32m                .region(Region.of(region))[m
+[32m+[m[32m                .credentialsProvider(() -> AwsBasicCredentials.create(accessKey, secretKey))[m
+[32m+[m[32m                .build();[m
+[32m+[m
+[32m+[m[32m        PutObjectRequest objectRequest = PutObjectRequest.builder()[m
+[32m+[m[32m                .bucket(bucket)[m
+[32m+[m[32m                .key(key)[m
+[32m+[m[32m                .build();[m
+[32m+[m
+[32m+[m[32m        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()[m
+[32m+[m[32m                .putObjectRequest(objectRequest)[m
+[32m+[m[32m                .signatureDuration(Duration.ofMinutes(2))[m
+[32m+[m[32m                .build();[m
+[32m+[m
+[32m+[m[32m        URL url = presigner.presignPutObject(presignRequest).url();[m
+[32m+[m[32m        return new PresignedUrlResponse(url.toString(), key);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    @Override[m
+[32m+[m[32m    public void confirmUpload(String fileName, String originalFileName, long size) {[m
+[32m+[m[32m        // DB 저장 처리 (선택)[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+\ No newline at end of file[m

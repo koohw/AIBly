@@ -14,14 +14,13 @@ COPY . .
 # 빌드 실행
 RUN npm run build
 
-# 서빙을 위한 간단한 서버 설치
-RUN npm install -g serve
+# serve 패키지 설치 및 curl 설치 (헬스체크용)
+RUN npm install -g serve && apk add --no-cache curl
 
-# curl 설치 (헬스체크용)
-RUN apk add --no-cache curl
-
-# 포트 설정 (Nginx 프록시 설정과 일치)
+# 포트 설정
 EXPOSE 8002
 
-# 정적 파일 서빙 (포트 8002로)
-CMD ["serve", "-s", "out", "-l", "8002"]
+# 정적 파일 서빙 실행
+ENV PORT=8002
+ENV NODE_ENV=production
+CMD ["serve", "-s", "out", "-p", "8002"]
