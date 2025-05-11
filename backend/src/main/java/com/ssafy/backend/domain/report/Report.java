@@ -2,13 +2,18 @@ package com.ssafy.backend.domain.report;
 
 import com.ssafy.backend.domain.video.VideoFile;
 import jakarta.persistence.*;
-import lombok.Builder;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 //AI 분석 결과 + CSV 설명을 합쳐 사용자에게 보여줄 사고 보고서를 저장
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 public class Report {
     @Id
@@ -45,6 +50,11 @@ public class Report {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    //PDF 저장 후 S3에 업로드할 때, 파일의 S3 key를 저장
+    //나중에 다운로드 URL 발급 시 이 key로 presigned URL을 생성
+    @Column(length = 500)
+    private String pdfKey;
 
     @Builder
     public Report(VideoFile videoFile, String title, String accidentCode,

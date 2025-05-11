@@ -13,6 +13,9 @@ public interface S3UploadService {
 
     // s3 파일 삭제 요청
     void deleteS3File(Long userId, String s3Key);
+
+    void uploadPdf(byte[] fileBytes, String s3Key, String contentType);
+
 }
 
 //Presigned URL API는 아직 DB에 저장할 게 없어서 Repository를 안 씀

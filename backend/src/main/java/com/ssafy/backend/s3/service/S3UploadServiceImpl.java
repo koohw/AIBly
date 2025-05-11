@@ -5,6 +5,7 @@ import com.ssafy.backend.domain.video.VideoFileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -14,6 +15,9 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.time.Duration;
 import java.util.UUID;
@@ -104,5 +108,16 @@ public class S3UploadServiceImpl implements S3UploadService {
     private VideoFile getVideoFile(Long userId, String s3Key) {
         return videoFileRepository.findByUserIdAndS3Key(userId, s3Key)
                 .orElseThrow(() -> new RuntimeException("File not found"));
+    }
+
+    @Override
+    public void uploadPdf(byte[] fileBytes, String s3Key, String contentType) {
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(s3Key)
+                .contentType(contentType)
+                .build();
+
+        s3Client.putObject(request, RequestBody.fromBytes(fileBytes));
     }
 }
