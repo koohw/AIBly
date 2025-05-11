@@ -11,7 +11,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "video_files")
+@Table(name = "video_files", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_user_s3key", columnNames = {"user_id", "s3key"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
