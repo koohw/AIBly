@@ -2,14 +2,12 @@ package com.ssafy.backend.video.service;
 
 import com.ssafy.backend.ai.service.AiService;
 import com.ssafy.backend.domain.file.*;
-<<<<<<< HEAD
-import com.ssafy.backend.domain.user.User;
-import com.ssafy.backend.domain.user.UserRepository;
-import com.ssafy.backend.video.dto.request.UploadNotifyRequestDto;
-=======
+import com.ssafy.backend.user.entity.User;
+import com.ssafy.backend.user.repository.UserRepository;
 
-import com.ssafy.backend.video.dto.UploadNotifyResponseDto;
->>>>>>> origin/develop
+
+import com.ssafy.backend.video.dto.request.UploadNotifyRequestDto;
+import com.ssafy.backend.video.dto.response.UploadNotifyResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
