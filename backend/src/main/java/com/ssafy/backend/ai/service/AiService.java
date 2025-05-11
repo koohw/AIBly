@@ -1,7 +1,7 @@
 package com.ssafy.backend.ai.service;
 
 import com.ssafy.backend.ai.dto.request.AiRequestDto;
-import com.ssafy.backend.domain.file.VideoFile;
+import com.ssafy.backend.domain.video.VideoFile;
 import com.ssafy.backend.s3.service.S3UploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

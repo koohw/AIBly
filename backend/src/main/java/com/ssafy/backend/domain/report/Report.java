@@ -1,11 +1,14 @@
 package com.ssafy.backend.domain.report;
 
-import com.ssafy.backend.domain.file.VideoFile;
+import com.ssafy.backend.domain.video.VideoFile;
 import jakarta.persistence.*;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+//AI 분석 결과 + CSV 설명을 합쳐 사용자에게 보여줄 사고 보고서를 저장
 @Entity
 public class Report {
     @Id
@@ -16,11 +19,11 @@ public class Report {
     @JoinColumn(name = "file_id", nullable = false)
     private VideoFile videoFile;
 
-    @Column(length = 300, nullable = false)
-    private String title;
-
     @Column(length = 100, nullable = false)
     private String accidentCode;
+
+    @Column(length = 300, nullable = false)
+    private String title;
 
     @Column(columnDefinition = "TEXT")
     private String accidentType;
@@ -60,4 +63,8 @@ public class Report {
         this.createdAt = createdAt;
     }
 
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

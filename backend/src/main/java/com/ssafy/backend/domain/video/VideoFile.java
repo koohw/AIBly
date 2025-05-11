@@ -1,6 +1,9 @@
-package com.ssafy.backend.domain.file;
+package com.ssafy.backend.domain.video;
 
 
+import com.ssafy.backend.domain.file.AnalysisStatus;
+import com.ssafy.backend.domain.file.FileType;
+import com.ssafy.backend.domain.file.UploadType;
 import com.ssafy.backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -35,8 +38,10 @@ public class VideoFile {
     @Enumerated(EnumType.STRING)
     private FileType fileType;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    private AnalysisStatus analysisStatus;
+    private AnalysisStatus analysisStatus = AnalysisStatus.ANALYZING;
+    //업로드 완료 시점에 자동으로 "ANALYZING" 상태를 만듦
 
     private String analysisError;
 

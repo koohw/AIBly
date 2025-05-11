@@ -1,4 +1,4 @@
-package com.ssafy.backend.s3.model.dto;
+package com.ssafy.backend.s3.dto.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class PresignedUrlRequestDto {
-    private String FileName; // 사용자가 업로드한 원본 파일명
+    private String fileName; // 사용자가 업로드한 원본 파일명
     private String contentType;      // MIME 타입 (video/mp4)
 }
 

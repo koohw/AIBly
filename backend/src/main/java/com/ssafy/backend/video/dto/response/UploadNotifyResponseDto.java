@@ -8,7 +8,9 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class UploadNotifyResponseDto {
-    private Long fileId;
-    private FileType fileType;
-    private AnalysisStatus analysisStatus;
+    private Long fileId; //저장된 VideoFile ID
+    private FileType fileType; //VIDEO, PDF
+    private AnalysisStatus analysisStatus; //ANALYZING, COMPLETED, FAILED
 }
+
+//프론트에서 지금 어떤 영상이 등록되어 있고, 분석 중인지 아닌지 확인

@@ -1,21 +1,18 @@
 package com.ssafy.backend.s3.service;
 
-import com.ssafy.backend.s3.model.dto.PresignedUrlRequestDto;
-import com.ssafy.backend.s3.model.dto.PresignedUrlResponseDto;
-
 public interface S3UploadService {
 
     //파일 이름에서 UUID로 s3Key 생성
-    String generateS3Key(String FileName);
+    String generateS3Key(String fileName);
 
     // presigned URL 생성, PresignedUrlRequestDto에 있던 것들 가져옴
     String generatePresignedUrl(String s3Key, String contentType);
 
     // presinged URL 생성, 다운로드 용도
-    String getDownloadURL(Long userId, String fileName);
+    String getDownloadURL(Long userId, String s3Key);
 
     // s3 파일 삭제 요청
-    void deleteS3File(Long userId, String fileName);
+    void deleteS3File(Long userId, String s3Key);
 }
 
 //Presigned URL API는 아직 DB에 저장할 게 없어서 Repository를 안 씀

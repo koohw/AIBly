@@ -1,7 +1,7 @@
 package com.ssafy.backend.report.controller;
 
-import com.ssafy.backend.report.dto.AIAnalysisResultRequestDto;
-import com.ssafy.backend.report.service.ReportService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.ssafy.backend.ai.service.AiAnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,14 +11,14 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ReportController {
 
-    private final ReportService reportService;
+    private final AiAnalysisService aiAnalysisService;
 
     @PostMapping("/ai-callback")
     public ResponseEntity<Void> handleAICallback(
-            @RequestBody AIAnalysisResultRequestDto request,
+            @RequestBody JsonNode json,
             @RequestParam("videoId") Long videoId
     ) {
-        reportService.generateReport(request, videoId);
+        aiAnalysisService.handleAiCallback(json, videoId);
         return ResponseEntity.ok().build();
     }
 }

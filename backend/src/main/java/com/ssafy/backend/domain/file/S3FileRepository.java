@@ -1,7 +1,4 @@
-package com.ssafy.backend.s3.repository;
-
-import com.ssafy.backend.domain.file.FileType;
-import com.ssafy.backend.s3.model.entity.S3File;
+package com.ssafy.backend.domain.file;
 
 import java.util.List;
 import java.util.Optional;

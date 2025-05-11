@@ -1,6 +1,5 @@
-package com.ssafy.backend.s3.model.entity;
+package com.ssafy.backend.domain.file;
 
-import com.ssafy.backend.domain.file.FileType;
 import jakarta.persistence.*;
 import lombok.*;
 
