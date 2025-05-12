@@ -1,13 +1,14 @@
 package com.ssafy.backend.user.controller;
 
 import com.ssafy.backend.user.dto.response.UserInfoDto;
+import com.ssafy.backend.config.JwtTokenProvider;
+import com.ssafy.backend.user.service.UserService;
 import com.ssafy.backend.user.entity.User;
 import com.ssafy.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 import java.security.Principal;
 
 @RestController
@@ -16,6 +17,10 @@ import java.security.Principal;
 public class UserController {
 
     private final UserRepository userRepository;
+
+    private final JwtTokenProvider jwtProvider;
+
+    private final UserService userService;
 
     @GetMapping("/me")
     public ResponseEntity<UserInfoDto> getCurrentUser(Principal principal) {
@@ -33,4 +38,16 @@ public class UserController {
         UserInfoDto dto = new UserInfoDto(user.getId(), user.getName(), user.getEmail());
         return ResponseEntity.ok(dto);
     }
+
+    // DELETE /api/user/delete
+    @DeleteMapping("/delete")
+    public ResponseEntity<Void> deleteUser(@RequestHeader("Authorization") String authorizationHeader) {
+        // "Bearer {token}" 형태일 때 토큰만 분리
+        String token = authorizationHeader.replaceFirst("^Bearer\\s+", "");
+        Long userId = jwtProvider.getUserIdFromToken(token);
+
+        userService.deleteUserById(userId);
+        return ResponseEntity.noContent().build();
+    }
+
 }

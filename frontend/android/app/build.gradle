@@ -57,6 +57,8 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
     implementation "com.kakao.sdk:v2-user:2.12.1"
     implementation "com.squareup.okhttp3:okhttp:4.10.0"
+    implementation project(path: ':capacitor-browser')
+    implementation project(path: ':capacitor-app')
 }
 
 apply from: 'capacitor.build.gradle'

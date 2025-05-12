@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, User, Shield, Bell, Moon, Sun, LogOut } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useTheme } from "../contexts/theme-context"
+import { Preferences } from '@capacitor/preferences'
+import WhithdrawButton from "@/components/profile/whithdraw"
+
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -17,24 +20,27 @@ export default function ProfilePage() {
 
   // 인증 상태 확인
   useEffect(() => {
-    const token = localStorage.getItem("auth_token")
+    const init = async () => {
+      const { value: token } = await Preferences.get({ key: 'AUTH_TOKEN' })
     if (!token) {
       router.push("/login")
     } else {
       setIsLoading(false)
 
-      // localStorage에서 자동 감지 설정 불러오기
-      const savedAutoDetect = localStorage.getItem("auto_detect")
+      // Preferences에서 자동 감지 설정 불러오기
+      const { value: savedAutoDetect } = await Preferences.get({ key: 'AUTO_DETECT' })
       if (savedAutoDetect !== null) {
         setAutoDetect(savedAutoDetect === "true")
       }
 
-      // localStorage에서 알림 설정 불러오기
-      const savedNotifications = localStorage.getItem("notifications")
+      // Preferences에서 알림 설정 불러오기
+      const { value: savedNotifications } = await Preferences.get({ key: 'NOTIFICATIONS' })
       if (savedNotifications !== null) {
         setNotifications(savedNotifications === "true")
       }
     }
+  }
+    init()
   }, [router])
 
   const handleBack = () => {
@@ -42,7 +48,7 @@ export default function ProfilePage() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("auth_token")
+    Preferences.remove({ key: 'AUTH_TOKEN' })
     router.push("/")
   }
 
@@ -53,13 +59,13 @@ export default function ProfilePage() {
   // 자동 감지 설정 변경 시 localStorage에 저장
   const handleAutoDetectChange = (checked: boolean) => {
     setAutoDetect(checked)
-    localStorage.setItem("auto_detect", checked.toString())
+    Preferences.set({ key: 'AUTO_DETECT', value: checked.toString() })
   }
 
   // 알림 설정 변경 시 localStorage에 저장
   const handleNotificationsChange = (checked: boolean) => {
     setNotifications(checked)
-    localStorage.setItem("notifications", checked.toString())
+    Preferences.set({ key: 'NOTIFICATIONS', value: checked.toString() })
   }
 
   if (isLoading) {
@@ -211,6 +217,7 @@ export default function ProfilePage() {
 
               <div className="app-card p-4">
                 <h3 className="font-medium mb-4">계정</h3>
+              </div>
                 <Button
                   variant="destructive"
                   className="w-full flex items-center justify-center"
@@ -219,7 +226,7 @@ export default function ProfilePage() {
                   <LogOut size={16} className="mr-2" />
                   로그아웃
                 </Button>
-              </div>
+                <WhithdrawButton />
             </div>
           </TabsContent>
         </Tabs>

@@ -25,18 +25,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-        </activity>
-        <!-- 2-1. 카카오 AuthCodeHandlerActivity 추가 -->
-        <activity
-            android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
-            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <!-- YOUR_NATIVE_APP_KEY 부분에 네이티브 앱 키를 넣으세요 -->
-                <data android:scheme="kakaob89f880c8784d7bd0779323ad91191af" android:host="oauth"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="kakaob89f880c8784d7bd0779323ad91191af"
+                    android:host="oauth"
+                    android:pathPrefix="/kakao"/>
             </intent-filter>
+
+
         </activity>
 
         <provider

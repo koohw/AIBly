@@ -50,7 +50,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         // 프론트 개발 서버 주소
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+//        config.setAllowedOrigins(List.of(
+//                "http://localhost:3000",
+//                "https://localhost",
+//                "capacitor://localhost"));
+        config.addAllowedOriginPattern("*");
         // 허용할 HTTP 메서드
         config.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
         // 모든 헤더 허용

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Upload, Camera, Clock, FileText, AlertCircle, User, ChevronRight } from "lucide-react"
 import LoginRequiredModal from "../components/login-required-modal"
 import { useTheme } from "../contexts/theme-context"
+import { Preferences } from '@capacitor/preferences'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -18,7 +19,59 @@ export default function Dashboard() {
 
   // 인증 상태 확인
   useEffect(() => {
-    // const token = localStorage.getItem("auth_token")
+    async function checkAuth() {
+        setIsLoading(true)
+
+        // 1) Preferences에서 JWT 꺼내기
+        const { value: authToken } = await Preferences.get({ key: 'AUTH_TOKEN' })
+
+        if (authToken) {
+          // 로그인된 사용자
+          setIsGuest(false)
+          setHasAnalysis(true)
+
+          // (선택) 유효성 재검증이 필요하면 여기에 API 호출…
+          // await fetch(`${API_URL}/user/me`, { headers: { Authorization: `Bearer ${authToken}` } })
+        } else {
+          // 게스트 모드
+          setIsGuest(true)
+        }
+
+        // 2) 자동 감지 설정도 Preferences에서 꺼내기
+        const { value: autoDetect } = await Preferences.get({ key: 'AUTO_DETECT' })
+        if (autoDetect !== null) {
+          setAutoDetectEnabled(autoDetect === 'true')
+        }
+
+        setIsLoading(false)
+      }
+      checkAuth()
+   }, [router])
+
+  const handleLogout = () => {
+    Preferences.remove({ key: 'AUTH_TOKEN' })
+    router.push("/")
+  }
+
+  const handleLogin = () => {
+    // 로그인 페이지로 이동
+    router.push("/login/login")
+  }
+
+  const handleProfileClick = () => {
+    if (isGuest) {
+      router.push("/login/")
+    } else {
+      // 로그인된 사용자는 프로필 페이지로 이동
+      router.push("/profile")
+    }
+  }
+
+  const handleUpload = () => {
+    if (isGuest) {
+      // 게스트 사용자는 로그인 필요 모달 표시
+      setShowLoginModal(true)
+    } else {// const token = localStorage.getItem("auth_token")
     // const guestToken = localStorage.getItem("guest_token")
 
     // if (!token && !guestToken) {
@@ -31,72 +84,6 @@ export default function Dashboard() {
     //   if (token) {
     //     setHasAnalysis(true)
     //   }
-
-    //   // localStorage에서 자동 감지 설정 불러오기
-    //   const savedAutoDetect = localStorage.getItem("auto_detect")
-    //   if (savedAutoDetect !== null) {
-    //     setAutoDetectEnabled(savedAutoDetect === "true")
-    //   }
-    // }
-     // 1) 로딩 상태 켜고
-     setIsLoading(true)
-
-     fetch("http://localhost:8001/api/user/me", {
-       method: "GET",
-       credentials: "include",   // ★ HTTP-Only 쿠키 포함
-     })
-       .then(res => {
-         if (!res.ok) {
-           // 401 Unauthorized 등
-           throw new Error("인증 필요")
-         }
-         return res.json()
-       })
-       .then(userInfo => {
-         // 로그인된 사용자
-         setIsGuest(false)
-         setHasAnalysis(true)
-         // (필요하면 userInfo를 state에 저장)
-       })
-       .catch(() => {
-         // 인증 실패 시 게스트 모드
-         setIsGuest(true)
-       })
-       .finally(() => {
-         // 자동 감지 설정은 기존대로 로컬스토리지에서
-         const savedAutoDetect = localStorage.getItem("auto_detect")
-         if (savedAutoDetect !== null) {
-           setAutoDetectEnabled(savedAutoDetect === "true")
-         }
-         setIsLoading(false)
-       })
-   }, [router])
-
-  const handleLogout = () => {
-    localStorage.removeItem("auth_token")
-    localStorage.removeItem("guest_token")
-    router.push("/")
-  }
-
-  const handleLogin = () => {
-    // 로그인 페이지로 이동
-    router.push("/login")
-  }
-
-  const handleProfileClick = () => {
-    if (isGuest) {
-      router.push("/login")
-    } else {
-      // 로그인된 사용자는 프로필 페이지로 이동
-      router.push("/profile")
-    }
-  }
-
-  const handleUpload = () => {
-    if (isGuest) {
-      // 게스트 사용자는 로그인 필요 모달 표시
-      setShowLoginModal(true)
-    } else {
       // 로그인 사용자는 업로드 페이지로 이동
       router.push("/upload")
     }
