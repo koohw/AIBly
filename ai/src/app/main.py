@@ -1,34 +1,12 @@
 from fastapi import FastAPI
 from .routers.endpoints.health_check import router as health_check_router
 from .routers.endpoints.report import router as report_router
-from fastapi.openapi.utils import get_openapi
 
 app = FastAPI(
     title="AI API",
     description="AI 서비스 API",
-    version="0.1.0",
-    openapi_url="/openapi.json",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    version="0.1.0"
 )
-
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-    
-    openapi_schema = get_openapi(
-        title="AI API",
-        version="0.1.0",
-        description="AI 서비스 API",
-        routes=app.routes,
-    )
-    
-    openapi_schema["openapi"] = "3.0.2"
-    
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-app.openapi = custom_openapi
 
 @app.get("/")
 async def root():
