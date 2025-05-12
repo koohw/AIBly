@@ -2,7 +2,14 @@ from fastapi import FastAPI
 from .routers.endpoints.health_check import router as health_check_router
 from .routers.endpoints.report import router as report_router
 
-app = FastAPI()
+app = FastAPI(
+    title="AI API",
+    description="AI 서비스 API",
+    version="0.1.0",
+    openapi_url="/api/openapi.json",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+)
 
 @app.get("/")
 async def root():
