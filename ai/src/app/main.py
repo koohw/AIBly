@@ -7,14 +7,6 @@ app = FastAPI(
     title="사고분석 AI API",
     description="""
     AI를 활용한 자동차 사고 분석 서비스 API
-    
-    ## 기능
-    - 자동차 사고 영상 분석
-    - GPU 및 시스템 상태 확인
-    
-    ## 개발자 정보
-    - Email: example@example.com
-    - 버전: 0.1.0
     """,
     version="0.1.0",
     root_path="/ai",
