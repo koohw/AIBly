@@ -1,8 +1,8 @@
 stages:
-  - transfer-model
+  - deploy-ai-server
 
-transfer-model:
-  stage: transfer-model
+deploy-ai-server:
+  stage: deploy-ai-server
   image: jonz94/rsync-ssh-alpine:3.1.3-6
   tags:
     - "ci / cd"
@@ -14,13 +14,16 @@ transfer-model:
     - chmod 600 ~/.ssh/id_rsa
 
   script:
-    # SSH 연결 설정 및 디렉토리 생성
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /home/ubuntu/ai-server/ai/src/app/resources/"
+    # .venv 디렉토리를 제외한 모든 파일 삭제
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "find /home/ubuntu/ai-server/ai -mindepth 1 -not -path '*/\.venv*' -delete"
     
-    # 완전한 동기화 (로컬에 없는 파일은 원격에서도 삭제)
-    - rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ai/src/app/resources/ "$DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/ai-server/ai/src/app/resources/"
+    # 로컬 ai 디렉토리의 모든 파일을 .venv를 제외하고 전송
+    - rsync -avz --exclude='.venv' -e "ssh -o StrictHostKeyChecking=no" ./ai/ "$DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/ai-server/ai/"
     
-    # 백업 생성 (날짜와 시간을 포함한 디렉토리에 저장)
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /home/ubuntu/ai-server/backups/resources-\$(date +%Y%m%d-%H%M%S) && cp -r /home/ubuntu/ai-server/ai/src/app/resources/* /home/ubuntu/ai-server/backups/resources-\$(date +%Y%m%d-%H%M%S)/"
+    # 가상환경 활성화 및 의존성 설치 (환경 변수 설정 포함)
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/ubuntu/ai-server/ai && source .venv/bin/activate && export PATH=$PATH:/home/ubuntu/.local/bin && uv pip install -e ."
     
-    - echo "✅ 모델 파일 전송 및 동기화 완료"
+    # AI 서버 재시작
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "sudo systemctl restart ai-server"
+    
+    - echo "✅ AI 서버 배포 완료"
