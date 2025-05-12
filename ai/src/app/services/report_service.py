@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from .report import video_downloader, video_analyzer, report_generator
 from ..models.request_models import AnalysisRequest
 from ..models.response_models import AnalysisResponse
-from ..resources.models import AccidentAnalysisModel
+from .models import AccidentAnalysisModel
 import os
 
 class ReportService:

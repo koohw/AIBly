@@ -9,7 +9,7 @@ ai-file-check:
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master"'
       changes:
-        - ai/src/app/resources/*
+        - ai/*
 
 
 fe-file-check:

@@ -29,3 +29,40 @@ async def test_libraries():
         "installed_packages": installed_packages,
         "system_info": system_info
     }
+
+@router.get("/gpu")
+async def check_gpu():
+    """
+    GPU 사용 가능 여부를 확인하는 엔드포인트
+    """
+    gpu_info = {
+        "available": False,
+        "count": 0,
+        "devices": []
+    }
+    
+    try:
+        # PyTorch를 사용하여 GPU 확인
+        import torch
+        gpu_info["available"] = torch.cuda.is_available()
+        if gpu_info["available"]:
+            gpu_info["count"] = torch.cuda.device_count()
+            gpu_info["devices"] = [
+                {
+                    "name": torch.cuda.get_device_name(i),
+                    "memory": {
+                        "total": torch.cuda.get_device_properties(i).total_memory,
+                        "reserved": torch.cuda.memory_reserved(i),
+                        "allocated": torch.cuda.memory_allocated(i)
+                    }
+                }
+                for i in range(torch.cuda.device_count())
+            ]
+        logger.info(f"PyTorch GPU 확인: {gpu_info['available']}")
+    except ImportError:
+        logger.warning("PyTorch가 설치되어 있지 않습니다.")
+            
+    return {
+        "status": "200 OK",
+        "gpu_info": gpu_info
+    }

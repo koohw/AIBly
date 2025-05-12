@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from typing import Dict
 import os
-from ...resources.models import AccidentAnalysisModel
+from ..models import AccidentAnalysisModel
 
 def analyze_video(path: str, file_name: str, model: AccidentAnalysisModel, 
                  user_id: int = 0, video_id: int = 0, file_name_orig: str = "") -> Dict:
