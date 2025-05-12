@@ -3,15 +3,52 @@ import pkg_resources
 import sys
 import platform
 import logging
+from typing import List, Dict
+from pydantic import BaseModel
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="")
+# 응답 모델 정의
+class SystemInfo(BaseModel):
+    python_version: str
+    platform: str
+    python_path: str
 
-@router.get("/test")
+class TestResponse(BaseModel):
+    status: str
+    message: str
+    installed_packages: List[str]
+    system_info: SystemInfo
+
+class GPUDevice(BaseModel):
+    name: str
+    memory: Dict[str, int]
+
+class GPUInfo(BaseModel):
+    available: bool
+    count: int
+    devices: List[GPUDevice]
+
+class GPUResponse(BaseModel):
+    status: str
+    gpu_info: GPUInfo
+
+router = APIRouter(
+    prefix="",
+    tags=["상태 확인"],
+    responses={404: {"description": "Not found"}},
+)
+
+@router.get("/test", response_model=TestResponse, summary="시스템 상태 테스트")
 async def test_libraries():
+    """
+    시스템 상태와 설치된 라이브러리 정보를 확인합니다.
+    
+    Returns:
+        TestResponse: 시스템 정보와 설치된 라이브러리 목록을 포함한 응답
+    """
     # 설치된 라이브러리 목록 가져오기
     installed_packages = sorted([f"{pkg.key}=={pkg.version}" 
                               for pkg in pkg_resources.working_set])
@@ -30,10 +67,15 @@ async def test_libraries():
         "system_info": system_info
     }
 
-@router.get("/gpu")
+@router.get("/gpu", response_model=GPUResponse, summary="GPU 상태 확인")
 async def check_gpu():
     """
-    GPU 사용 가능 여부를 확인하는 엔드포인트
+    GPU 사용 가능 여부와 관련 정보를 확인합니다.
+    
+    PyTorch를 사용하여 시스템에서 사용 가능한 GPU 장치 수와 메모리 정보를 제공합니다.
+    
+    Returns:
+        GPUResponse: GPU 사용 가능 여부와 상세 정보를 포함한 응답
     """
     gpu_info = {
         "available": False,
