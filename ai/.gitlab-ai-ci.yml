@@ -20,8 +20,8 @@ deploy-ai-server:
     # 로컬 ai 디렉토리의 모든 파일을 .venv를 제외하고 전송
     - rsync -avz --exclude='.venv' -e "ssh -o StrictHostKeyChecking=no" ./ai/ "$DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/ai-server/ai/"
     
-    # 가상환경 활성화 및 의존성 설치
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/ubuntu/ai-server/ai && source .venv/bin/activate && uv pip install -e ."
+    # 가상환경 활성화 및 의존성 설치 (환경 변수 설정 포함)
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/ubuntu/ai-server/ai && source .venv/bin/activate && export PATH=$PATH:/home/ubuntu/.local/bin && uv pip install -e ."
     
     # AI 서버 재시작
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "sudo systemctl restart ai-server"
