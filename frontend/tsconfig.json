@@ -22,7 +22,7 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "**/*.d.ts" ],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "**/*.d.ts", "global.d.ts" ],
   "exclude": ["node_modules"],
   "typeRoots": ["./types", "./node_modules/@types"]
 }

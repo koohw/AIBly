@@ -30,12 +30,13 @@ public class JwtTokenProvider {
     private long validityInMilliseconds;
 
     // provider + providerId 로 토큰 생성
-    public String generateToken(String provider, String providerId) {
+    public String generateToken(String provider, String providerId, Long userId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + validityInMilliseconds);
 
         return Jwts.builder()
                 .setSubject(provider + ":" + providerId)
+                .claim("userId", userId)
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -80,6 +81,22 @@ public class JwtTokenProvider {
         // secretKey 는 Base64 인코딩된 문자열이라 가정
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public Long getUserIdFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        Object userIdObj = claims.get("userId");
+        if (userIdObj instanceof Number) {
+            return ((Number) userIdObj).longValue();
+        } else if (userIdObj instanceof String) {
+            return Long.parseLong((String) userIdObj);
+        }
+        throw new IllegalArgumentException("토큰에 userId 클레임이 없습니다.");
     }
 }
 

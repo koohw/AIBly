@@ -10,9 +10,15 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
+import android.webkit.ConsoleMessage;
+import android.webkit.WebChromeClient;
+import android.webkit.WebView;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import com.capacitorjs.plugins.browser.BrowserPlugin;
+import com.capacitorjs.plugins.app.AppPlugin;
 
 import com.crush.aiblackboxreview.services.VideoMonitoringService;
 import com.getcapacitor.BridgeActivity;
@@ -20,6 +26,9 @@ import com.getcapacitor.BridgeActivity;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+//개발때만 실서비스에선 지우기기
+import android.webkit.WebSettings;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
@@ -29,8 +38,36 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // deep link 콜백
+        this.registerPlugin(BrowserPlugin.class);
+        this.registerPlugin(AppPlugin.class);
+
         // Capacitor UI 초기화 이후 권한 확인을 안전하게
         getWindow().getDecorView().post(this::checkAndRequestPermissions);
+
+        // 2) WebView 디버깅 활성화
+        WebView.setWebContentsDebuggingEnabled(true);
+        WebView webView = (WebView) this.getBridge().getWebView();
+
+        //이부분 지워야함 개발에서만 사용
+        // 개발 중에만 사용 → 출시 빌드에선 꼭 제거하세요!
+        webView.getSettings().setMixedContentMode(
+            WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        );
+
+        webView.setWebChromeClient(new WebChromeClient() {
+        @Override
+        public boolean onConsoleMessage(ConsoleMessage cm) {
+            Log.d(TAG, "[WebView] " + cm.message()
+                + " (" + cm.sourceId() + ":" + cm.lineNumber() + ")");
+            return super.onConsoleMessage(cm);
+        }
+    });
+
+        // 3) 앱이 처음 실행될 때 받은 Intent 데이터 로그
+        Uri initData = getIntent().getData();
+        Log.e(TAG, "onCreate Intent data: " + initData);
     }
 
     private void checkAndRequestPermissions() {
@@ -185,6 +222,18 @@ public class MainActivity extends BridgeActivity {
 
         } catch (Exception e) {
             Log.e(TAG, "서비스 시작 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        Uri data = intent.getData();
+        if (data != null) {
+        Log.e(TAG, "onNewIntent, 딥링크 URL: " + data.toString());
+        } else {
+        Log.e(TAG, "onNewIntent, data 가 null 입니다");
         }
     }
 }
