@@ -1,0 +1,60 @@
+from fastapi import APIRouter
+from ...models.request_models import AnalysisRequest
+from ...models.response_models import AnalysisResponse
+from ...services.report_service import ReportService
+import logging
+from fastapi.responses import JSONResponse
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+router = APIRouter(prefix="")
+
+report_service = ReportService()
+@router.post("/analyze")
+async def analyze_video(request: AnalysisRequest):
+    """
+    프리사인드 URL과 사용자 ID를 받아서 영상을 분석하는 엔드포인트
+    파일 다운로드 후 완료되면 OK 반환
+    """
+    logger.info(f"분석 요청 받음: userId={request.userId}")
+    
+    response = report_service.analyze_report(request)
+    return response
+
+
+@router.post("/analyze-test")
+async def analyze_video_test(request: AnalysisRequest):
+    """
+    테스트용 엔드포인트 - 다운로드 없이 테스트 데이터 반환
+    """
+    logger.info(f"테스트 분석 요청 받음: userId={request.userId}")
+    
+    try:
+        # 테스트용 더미 데이터 반환
+        response_data = AnalysisResponse(
+            userId=request.userId,
+            videoId=request.videoId,
+            fileName=request.fileName,
+            accidentPlace="테스트 서울시 강남구 테헤란로",
+            accidentFeature="테스트 4차선 도로, 신호등 있음",
+            carAProgress="테스트 직진",
+            carBProgress="테스트 우회전",
+            faultA=80,
+            faultB=20,
+            title="테스트 신호 위반 측면 충돌 사고",
+            laws="테스트 도로교통법 제5조, 제25조",
+            precedents="테스트 대법원 2020다12345 판결"
+        )
+        
+        logger.info(f"테스트 응답 반환: {response_data}")
+        return response_data
+        
+    except Exception as e:
+        logger.error(f"테스트 중 오류 발생: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": f"테스트 처리 중 오류: {str(e)}"}
+        )
