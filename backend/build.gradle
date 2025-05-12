@@ -86,6 +86,11 @@ dependencies {
 	implementation 'com.opencsv:opencsv:5.9'
     /* OpenCSV END */
 
+	/* HTML을 PDF로 변환 START */
+	implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
+	implementation 'com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10'
+    /* HTML을 PDF로 변환 END */
+
 	/* Testing START */
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'

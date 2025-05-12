@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <style type="text/css">
+        body { font-family: "Malgun Gothic", "Noto Sans CJK KR", "Nanum Gothic", sans-serif; margin: 40px; }
+        h1 { text-align: center; font-size: 24px; }
+        .section { margin-top: 20px; }
+        .section-title { font-weight: bold; font-size: 16px; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        .text-block { margin-top: 5px; font-size: 14px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+<h1>${title}</h1>
+
+<div class="section">
+    <div class="section-title">사고 유형</div>
+    <div class="text-block">${accidentType}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">차량 정보</div>
+    <div class="text-block"><strong>A 차량:</strong> ${carA}</div>
+    <div class="text-block"><strong>B 차량:</strong> ${carB}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">주요 정황 (AI 타임라인)</div>
+    <div class="text-block">${mainEvidence}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">적용 법조문</div>
+    <div class="text-block">${laws}</div>
+</div>
+
+<div class="section" style="text-align: right; margin-top: 40px;">
+    <div class="text-block">보고서 생성일: ${createdAt}</div>
+</div>
+</body>
+</html>
+
+<!--title, accidentType, carA / carB, mainEvidence, laws, createdAt	-->

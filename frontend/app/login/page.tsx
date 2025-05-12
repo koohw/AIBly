@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button"
 // import KakaoLogin from "capacitor-kakao-login-plugin"
 // - import KakaoLogin from "capacitor-kakao-login-plugin"
 // import { initForWeb, goLogin } from "capacitor-kakao-login-plugin"
-import  { KakaoLogin } from "@/lib/kakao"
-import { initForWeb, goLogin } from "capacitor-kakao-login-plugin"
-import { registerPlugin } from '@capacitor/core'
+// import  { KakaoLogin } from "@/lib/kakao"
+// import { initForWeb, goLogin } from "capacitor-kakao-login-plugin"
+// import { registerPlugin } from '@capacitor/core'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)

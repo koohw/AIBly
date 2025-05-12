@@ -1,5 +1,6 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+
 buildscript {
      ext {
         kotlin_version = '1.8.21'     // 쓰시려는 Kotlin 버전
@@ -63,7 +64,7 @@ gradle.projectsEvaluated {
         project.tasks.withType(JavaCompile).configureEach {
             sourceCompatibility = JavaVersion.VERSION_17
             targetCompatibility = JavaVersion.VERSION_17
-            // options.release = 17   // 필요 없으면 주석 처리
+            options.release = 17   // 필요 없으면 주석 처리
         }
 
         // KotlinCompile 작업을 전부 JVM 17 모드로

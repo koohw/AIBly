@@ -1,8 +1,8 @@
 package com.ssafy.backend.s3.controller;
 
-import com.ssafy.backend.s3.model.dto.PresignedUrlRequestDto;
-import com.ssafy.backend.s3.model.dto.PresignedUrlResponseDto;
-import com.ssafy.backend.s3.model.dto.FileNameRequestDto;
+import com.ssafy.backend.s3.dto.request.PresignedUrlRequestDto;
+import com.ssafy.backend.s3.dto.response.PresignedUrlResponseDto;
+import com.ssafy.backend.s3.dto.request.PresignedDownloadRequestDto;
 import com.ssafy.backend.s3.service.S3UploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +21,9 @@ public class S3Controller {
     @PostMapping("/presigned")
     public ResponseEntity<PresignedUrlResponseDto> getPresignedUrl(@RequestBody PresignedUrlRequestDto request) {
         String s3Key = s3UploadService.generateS3Key(request.getFileName());
-        String url = s3UploadService.generatePresignedUrl(s3Key, request.getContentType());
+        String presignedUrl = s3UploadService.generatePresignedUrl(s3Key, request.getContentType());
 
-        return ResponseEntity.ok(new PresignedUrlResponseDto(url, s3Key));
+        return ResponseEntity.ok(new PresignedUrlResponseDto(presignedUrl, s3Key));
     }
 
     // presigned URL 을 생성 (다운로드 용도, FE용도...)
@@ -31,11 +31,11 @@ public class S3Controller {
     @PostMapping("/downloadURL")
     public ResponseEntity<?> getDownloadURL(
             @RequestHeader String accessToken,
-            @RequestBody FileNameRequestDto request
+            @RequestBody PresignedDownloadRequestDto request
     ) {
 //        Long userId = jwt.Util.getUserId(accessToken);
         Long userId = 1L;
-        String url = s3UploadService.getDownloadURL(userId, request.getFileName());
+        String url = s3UploadService.getDownloadURL(userId, request.getS3Key());
         return ResponseEntity.ok(url);
     }
 
@@ -43,11 +43,11 @@ public class S3Controller {
     @PostMapping("/deleteFile")
     public ResponseEntity<?> deleteFile(
             @RequestHeader String accessToken,
-            @RequestBody FileNameRequestDto request
+            @RequestBody PresignedDownloadRequestDto request
     ){
 //        Long userId = jwt.Util.getUserId(accessToken);
         Long userId = 1L;
-        s3UploadService.deleteS3File(userId, request.getFileName());
+        s3UploadService.deleteS3File(userId, request.getS3Key());
         return ResponseEntity.noContent().build();
     }
 }
