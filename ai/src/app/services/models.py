@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Any
-from .services.preprocessor import preprocess_video
-from .services.analyzer import analyze_accident
+from .predict.preprocessor import preprocess_video
+from .predict.analyzer import analyze_accident
 import logging
 
 MODEL_NAME = "dummy.model"
