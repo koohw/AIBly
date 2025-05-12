@@ -5,7 +5,8 @@ from .routers.endpoints.report import router as report_router
 app = FastAPI(
     title="AI API",
     description="AI 서비스 API",
-    version="0.1.0"
+    version="0.1.0",
+    root_path="/ai"
 )
 
 @app.get("/")
