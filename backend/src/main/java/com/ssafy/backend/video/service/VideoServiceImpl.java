@@ -1,6 +1,8 @@
 package com.ssafy.backend.video.service;
 
 import com.ssafy.backend.ai.service.AiService;
+import com.ssafy.backend.common.exception.CustomException;
+import com.ssafy.backend.common.exception.ErrorCode;
 import com.ssafy.backend.domain.file.*;
 import com.ssafy.backend.domain.video.VideoFile;
 import com.ssafy.backend.domain.video.VideoFileRepository;
@@ -28,13 +30,14 @@ public class VideoServiceImpl implements VideoService {
 
         // 중복 업로드 방지
         videoFileRepository.findByUserIdAndS3Key(userId, dto.getS3Key()).ifPresent(existing -> {
-            throw new IllegalStateException("이미 업로드된 파일입니다.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         });
 
 
         // 실제 User 엔티티 조회
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
 
         // 업로드된 파일이 VIDEO인지 PDF인지 자동 분류
         FileType fileType = determineFileType(dto.getContentType());
