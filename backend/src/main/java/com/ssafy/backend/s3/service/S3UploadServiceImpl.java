@@ -114,14 +114,13 @@ public class S3UploadServiceImpl implements S3UploadService {
     }
 
     @Override
-    public void uploadPdf(byte[] fileBytes, String s3Key, String contentType) {
-        PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(s3Key)
-                .contentType(contentType)
-                .build();
-
-        s3Client.putObject(request, RequestBody.fromBytes(fileBytes));
+    public void uploadPdf(byte[] pdfBytes, String s3Key, String contentType) {
+        s3Client.putObject(PutObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(s3Key)
+                        .contentType(contentType)
+                        .build(),
+                RequestBody.fromBytes(pdfBytes));
     }
 
     //사용자 PDF 다운로드용
