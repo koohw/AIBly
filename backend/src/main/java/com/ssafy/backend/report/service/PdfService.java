@@ -99,11 +99,16 @@ public class PdfService {
     private byte[] generatePdfFromHtml(String processedHtml) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.withHtmlContent(processedHtml, null);
 
-            // ✅ 서버 리소스에서 한글 폰트 임베딩
-            String fontPath = new ClassPathResource("fonts/NotoSansKR-Regular.ttf").getFile().getAbsolutePath();
-            builder.useFont(new File(fontPath), "Noto Sans KR");
+            // 1. 폰트 경로 확보 (절대경로)
+            File fontFile = new ClassPathResource("fonts/NotoSansKR-Regular.ttf").getFile();
+            String fontDir = fontFile.getParentFile().toURI().toString(); // 폰트가 있는 디렉토리 기준
+
+            // 2. HTML 컨텐츠 + base URL을 폰트 디렉토리로 명시
+            builder.withHtmlContent(processedHtml, fontDir);
+
+            // 3. useFont + embed
+            builder.useFont(fontFile, "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
 
             builder.toStream(outputStream);
             builder.run();
@@ -113,4 +118,5 @@ public class PdfService {
             throw new RuntimeException("PDF 생성 실패 (한글 깨짐 가능)", e);
         }
     }
+
 }

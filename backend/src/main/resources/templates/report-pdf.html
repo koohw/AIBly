@@ -4,13 +4,23 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <style type="text/css">
-        body { font-family: "Malgun Gothic", "Noto Sans CJK KR", "Nanum Gothic", sans-serif; margin: 40px; }
+        /* 폰트 직접 선언 (PDF 생성 시 이 선언이 사용됨) */
+        @font-face {
+            font-family: 'Noto Sans KR';
+            src: url('NotoSansKR-Regular.ttf');
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 40px;
+        }
         h1 { text-align: center; font-size: 24px; }
         .section { margin-top: 20px; }
         .section-title { font-weight: bold; font-size: 16px; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
         .text-block { margin-top: 5px; font-size: 14px; white-space: pre-wrap; }
     </style>
 </head>
+
 <body>
 <h1>${title}</h1>
 
