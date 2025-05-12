@@ -6,9 +6,9 @@ app = FastAPI(
     title="AI API",
     description="AI 서비스 API",
     version="0.1.0",
-    openapi_url="/api/openapi.json",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 @app.get("/")
