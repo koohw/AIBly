@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from .routers import api_router
+from .routers.endpoints.health_check import router as health_check_router
+from .routers.endpoints.report import router as report_router
 
 app = FastAPI()
 
@@ -8,7 +9,8 @@ async def root():
     return {"message": "서버 작동중입니다"}
 
 # 라우터 등록
-app.include_router(api_router)
+app.include_router(health_check_router)
+app.include_router(report_router)
 
 if __name__ == "__main__":
     import uvicorn
