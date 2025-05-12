@@ -57,6 +57,14 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
     implementation "com.kakao.sdk:v2-user:2.12.1"
     implementation "com.squareup.okhttp3:okhttp:4.10.0"
+
+    // Retrofit - API 호출용
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.1'
+
+    // Coroutines - 비동기 처리용
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
     implementation project(path: ':capacitor-browser')
     implementation project(path: ':capacitor-app')
 }

@@ -27,6 +27,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import androidx.core.app.NotificationCompat;
+
 //개발때만 실서비스에선 지우기기
 import android.webkit.WebSettings;
 
@@ -208,6 +213,9 @@ public class MainActivity extends BridgeActivity {
         try {
             Log.d(TAG, "비디오 모니터링 서비스 시작 시도");
 
+            // 테스트 알림 표시
+            testNotification();
+
             Intent serviceIntent = new Intent(this, VideoMonitoringService.class);
 
             // UI가 완전히 올라온 뒤 실행되도록 postDelayed
@@ -224,7 +232,45 @@ public class MainActivity extends BridgeActivity {
             Log.e(TAG, "서비스 시작 실패: " + e.getMessage(), e);
         }
     }
+    private void testNotification() {
+        try {
+            // 알림 채널 생성
+            String channelId = "test_channel";
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(
+                        channelId,
+                        "테스트 알림 채널",
+                        NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("테스트용 알림 채널입니다");
+                NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                notificationManager.createNotificationChannel(channel);
+            }
 
+            // 알림 생성
+            Intent intent = new Intent(this, MainActivity.class);
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                    this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentTitle("테스트 알림")
+                    .setContentText("이 알림이 보이면 알림 기능이 정상 작동합니다.")
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setContentIntent(pendingIntent)
+                    .setAutoCancel(true)
+                    .setVibrate(new long[]{0, 500, 250, 500});
+
+            // 알림 표시
+            NotificationManager notificationManager =
+                    (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            notificationManager.notify(9999, builder.build());
+
+            Log.d(TAG, "테스트 알림이 표시되었습니다.");
+        } catch (Exception e) {
+            Log.e(TAG, "테스트 알림 표시 중 오류 발생", e);
+        }
+    }
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
