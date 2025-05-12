@@ -1,5 +1,8 @@
 package com.ssafy.backend.s3.service;
 
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
 public interface S3UploadService {
 
     //파일 이름에서 UUID로 s3Key 생성
@@ -11,10 +14,14 @@ public interface S3UploadService {
     // presinged URL 생성, 다운로드 용도
     String getDownloadURL(Long userId, String s3Key);
 
+    //유저가 pdf파일 다운받을 때
+    String generateDownloadPresignedUrl(String s3Key);
+
     // s3 파일 삭제 요청
     void deleteS3File(Long userId, String s3Key);
 
-    void uploadPdf(byte[] fileBytes, String s3Key, String contentType);
+    // 한글 PDF 업로드 기능
+    void uploadPdf(byte[] pdfBytes, String s3Key, String contentType);
 
 }
 
