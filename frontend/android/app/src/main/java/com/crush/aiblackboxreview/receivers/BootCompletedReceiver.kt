@@ -32,7 +32,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
     private fun ensureTargetDirectoryExists() {
         try {
-            val directory = File("/storage/emulated/0/DCIM/finevu_cloud")
+            val directory = File("/storage/emulated/0/DCIM")
             if (!directory.exists()) {
                 val created = directory.mkdirs()
                 Log.d(TAG, "타겟 디렉토리 생성 결과: $created")
