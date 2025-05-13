@@ -17,7 +17,7 @@ export default function KakaoOAuthCallbackPage() {
 
     // 1) 백엔드로 code 보내서 토큰 받고…
     fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/oauth/kakao/callback?code=${code}`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/oauth/kakao/callback?code=${code}`,
       { credentials: 'include' }
     )
       .then(() => router.replace('/dashboard'))

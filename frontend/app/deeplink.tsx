@@ -35,7 +35,7 @@ export default function DeepLink() {
 
       try {
         // 1) 인가 코드 교환
-        const api = process.env.NEXT_PUBLIC_API_URL
+        const api = process.env.NEXT_PUBLIC_BACKEND_URL
         const res = await fetch(`${api}/oauth/kakao/callback`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
