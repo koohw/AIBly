@@ -1,7 +1,7 @@
 package com.ssafy.backend.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ssafy.backend.ai.dto.AccidentDefinitionDto;
+import com.ssafy.backend.ai.dto.response.AccidentDefinitionDto;
 import com.ssafy.backend.domain.file.AnalysisStatus;
 import com.ssafy.backend.domain.report.Report;
 import com.ssafy.backend.domain.report.ReportRepository;

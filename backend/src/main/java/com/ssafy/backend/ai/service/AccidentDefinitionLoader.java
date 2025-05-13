@@ -2,7 +2,7 @@ package com.ssafy.backend.ai.service;
 
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvException;
-import com.ssafy.backend.ai.dto.AccidentDefinitionDto;
+import com.ssafy.backend.ai.dto.response.AccidentDefinitionDto;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

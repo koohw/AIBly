@@ -1,4 +1,4 @@
-package com.ssafy.backend.ai.dto;
+package com.ssafy.backend.ai.dto.response;
 
 import lombok.*;
 
@@ -21,3 +21,5 @@ public class AccidentDefinitionDto {
 }
 
 //CSV의 한 줄을 표현하는 단순한 데이터 구조 (DB와 무관)
+//AI 서버가 생성한 CSV의 각 Row를 담기 위한 구조
+//AI → 백엔드 → 사용자에게 전달될 '정적 데이터 구조'
