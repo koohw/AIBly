@@ -29,20 +29,6 @@ VS_차대차_이미지_T자형교차로.zip
 2.Validation/라벨링데이터_231108_add/	
 VL_차대차_이미지_T자형교차로.zip
 --------------------------
-최종 파일구조
-/home/j-k12e203/traffic_data/
-├── images/                 # (현재는 YOLO용만 정리되어 있음)
-/videos/
-│   ├── TL/
-│   │   ├── t_junction/
-│   │   │   ├── videos/      # mp4 영상
-│   │   │   └── json/        # 각 영상별 사고 정보 json
-│   ├── TS/
-│   │   └── (동일)
-/vtn_sequences/              # bbox tracklet 기반 VTN 입력 (accident type 없음)
-/vtn_sequences_labeled/      # bbox + accident type 매핑 완료된 VTN 입력
-/vtn_accident_project/       # VTN 모델, Dataset, config 파일들
---------------------------------
 다운로드 후 압축풀기
 import zipfile
 import os
@@ -712,5 +698,93 @@ class SimpleVTN(nn.Module):
 - 타임라인 로그 생성 → 충돌, 등장, 이탈 자동 감지
 
 ---
-## 차량이 아닌 장소에 대한 YOLO 진행중
-## UFLD에 필요한 것 진행중
+# 🧠 Traffic Data AI Project (2025.05 기준)
+
+본 프로젝트는 교통사고 인식 및 예측을 위한 YOLO, UFLD, VTN 모델 기반의 복합 AI 시스템입니다.  
+다양한 프레임워크가 통합되어 있으며, 디렉토리는 기능 중심으로 정리되어 있습니다.
+
+---
+
+## 🗂️ 1. 이미지 및 YOLO 라벨 관련
+
+| 경로 | 설명 | 확장자 |
+|------|------|--------|
+| `/home/j-k12e203/traffic_data/train/images/t_junction/` | 학습용 이미지 | `.png` |
+| `/home/j-k12e203/traffic_data/train/labels/t_junction/` | 학습용 YOLO 라벨 | `.txt` |
+| `/home/j-k12e203/traffic_data/val/images/t_junction/` | 검증용 이미지 | `.png` |
+| `/home/j-k12e203/traffic_data/val/labels/t_junction/` | 검증용 YOLO 라벨 | `.txt` |
+| `/home/j-k12e203/traffic_data/yolo_outputs/t_junction/` | YOLO 추론 결과 (이미지 + 라벨) | `.jpg`, `.txt` |
+
+---
+
+## 🗂️ 2. UFLD 추론 결과 (현재 사용 안 함)
+
+| 경로 | 설명 |
+|------|------|
+| `/home/j-k12e203/traffic_data/ufld_jsons/` | UFLD 추론 결과 JSON (`lanes`, `h_samples` 포함) |
+| `/home/j-k12e203/traffic_data/Ultra-Fast-Lane-Detection/weights/culane_18.pth` | UFLD 사전학습 가중치 |
+
+---
+
+## 🗂️ 3. VTN 관련 핵심 데이터
+
+| 경로 | 설명 |
+|------|------|
+| `/home/j-k12e203/traffic_data/merged_analysis/visualized/` | YOLO + UFLD 시각화 결과 |
+| `/home/j-k12e203/traffic_data/merged_analysis/timeline_logs/` | VTN timeline log (future용) |
+| `/home/j-k12e203/traffic_data/merged_analysis/vtn_inputs/` | 최종 VTN 학습용 `.jsonl` 파일 |
+
+---
+
+## 🗂️ 4. VTN 시퀀스 라벨 데이터
+
+| 경로 | 설명 |
+|------|------|
+| `/home/j-k12e203/traffic_data/VTN/t_junction/video_jsons/Training/` | 영상 통합 json (훈련) |
+| `/home/j-k12e203/traffic_data/VTN/t_junction/video_jsons/Validation/` | 영상 통합 json (검증) |
+| `/home/j-k12e203/traffic_data/VTN/t_junction/image_jsons/` | 시퀀스별 프레임 YOLO bbox 중심 JSON |
+
+---
+
+## 🗂️ 5. vehicle_B 관련 주요 생성 데이터
+
+| 경로 | 파일명 | 설명 |
+|------|--------|------|
+| `/home/j-k12e203/traffic_data/VTN/t_junction/Scripts/` | `vehicleB_trajectories.json` | bbox 궤적 (frame_idx, cx, cy, w, h, x, y 포함) |
+| | `vehicleB_directions.json` | polyfit 기반 방향 분류 결과 |
+| | `vehicleB_direction_hod.json` | HOD 기반 방향 추정 결과 |
+| | `compare_directions_with_progress_info.py` | 방향 정확도 검증 스크립트 |
+
+---
+
+## 🗂️ 6. vehicle_B 궤적 기반 학습 데이터 (MLP/LSTM)
+
+| 경로 | 파일명 | 설명 |
+|------|--------|------|
+| `/home/j-k12e203/traffic_data/VTN/t_junction/Scripts/vehicleB_features/` | `vehicleB_feature_dataset.jsonl` | 원본 feature 학습 데이터 (851개) |
+| | `vehicleB_augmented_dataset.jsonl` | from_right 중심 증강 (125개) |
+| | `vehicleB_combined_dataset.jsonl` | 병합된 최종 데이터셋 (976개) |
+| | `missing_label_report.txt` | GT 없는 시퀀스 리포트 |
+| | `analyze_feature_label_distribution.py` | label 비율 통계 출력 |
+| | `train_mlp_classifier.py` | MLP 학습 스크립트 (GPU 2번 제한 포함) |
+| | `generate_feature_dataset.py` | feature 추출 jsonl 생성 |
+| | `generate_augmented_features.py` | 증강용 jsonl 생성 |
+| | `merge_feature_datasets.py` | jsonl 병합 스크립트 |
+
+---
+
+## 🗂️ 7. 시각화 관련
+
+| 경로 | 설명 |
+|------|------|
+| `/home/j-k12e203/traffic_data/VTN/t_junction/plots/` | vehicle_B 궤적 시각화 이미지 저장 경로 |
+| *.png 예시 | `00_bb_1_130317_vehicle_35_061.png` → HOD/trajectory 기반 시각화 결과 |
+
+---
+
+## ✅ 참고
+- 모든 경로는 **절대경로** 기준 `/home/j-k12e203/traffic_data/` 아래 구성되어 있습니다.
+- UFLD는 현재 사용하지 않고 있으며, 추후 필요 시 재사용 가능하도록 결과만 보존되어 있습니다.
+- 학습 및 추론 시 GPU 2번만 사용하도록 모든 스크립트에 명시적 제한이 포함되어 있습니다.
+
+
