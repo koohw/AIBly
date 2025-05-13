@@ -21,6 +21,7 @@ import com.capacitorjs.plugins.browser.BrowserPlugin;
 import com.capacitorjs.plugins.app.AppPlugin;
 
 import com.crush.aiblackboxreview.services.VideoMonitoringService;
+import com.crush.aiblackboxreview.plugins.AutoDetectPlugin;
 import com.getcapacitor.BridgeActivity;
 
 import java.io.File;
@@ -32,7 +33,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import androidx.core.app.NotificationCompat;
 
-//개발때만 실서비스에선 지우기기
+//개발때만 실서비스에선 지우기
 import android.webkit.WebSettings;
 
 public class MainActivity extends BridgeActivity {
@@ -47,6 +48,9 @@ public class MainActivity extends BridgeActivity {
         // deep link 콜백
         this.registerPlugin(BrowserPlugin.class);
         this.registerPlugin(AppPlugin.class);
+
+        // 자동 감지 설정 플러그인 등록
+        this.registerPlugin(AutoDetectPlugin.class);
 
         // Capacitor UI 초기화 이후 권한 확인을 안전하게
         getWindow().getDecorView().post(this::checkAndRequestPermissions);
