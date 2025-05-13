@@ -1,102 +1,114 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import { ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-// pages/login.tsx 혹은 해당 파일
-// import KakaoLogin from "capacitor-kakao-login-plugin"
-// - import KakaoLogin from "capacitor-kakao-login-plugin"
-// import { initForWeb, goLogin } from "capacitor-kakao-login-plugin"
-// import  { KakaoLogin } from "@/lib/kakao"
-// import { initForWeb, goLogin } from "capacitor-kakao-login-plugin"
-// import { registerPlugin } from '@capacitor/core'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Browser } from '@capacitor/browser';
+import { CapacitorKakaoLogin } from '@team-lepisode/capacitor-kakao-login'
+import { Preferences } from '@capacitor/preferences'
+import { App } from '@capacitor/app'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-//   useEffect(() => {
-//      // .env.local 에 NEXT_PUBLIC_KAKAO_JS_KEY=your_web_app_key 를 설정해야 합니다.
-//      KakaoLogin.initForWeb(process.env.NEXT_PUBLIC_KAKAO_JS_KEY!)
-//      .catch((err) => console.error("Kakao SDK init 실패:", err))
-//  }, [])
+ // 1) SDK 초기화
+  useEffect(() => {
+    CapacitorKakaoLogin.initialize({
+      appKey: process.env.NEXT_PUBLIC_KAKAO_NATIVE_APP_KEY!,  // "네이티브 앱 키"
+    }).catch(e => console.error('SDK init 에러', e))
+  }, [])
+
+  // 앱 상태 변경 리스너 추가
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    
+    const setupListener = async () => {
+      try {
+        const listener = await App.addListener('appStateChange', ({ isActive }) => {
+          console.log('[LoginPage] 앱 상태 변경:', isActive ? '활성화' : '비활성화');
+          if (isActive) {
+            // 앱이 다시 활성화될 때 필요한 로직 추가
+            console.log('[LoginPage] 앱이 다시 활성화됨, 로그인 상태 확인');
+            
+            // 로그인 프로세스를 계속하거나 상태를 확인하는 로직을 여기에 추가할 수 있습니다
+            Preferences.get({ key: 'kakao_access_token' }).then(({ value }) => {
+              if (value) {
+                console.log('[LoginPage] 저장된 카카오 토큰 발견:', value);
+              }
+            });
+          }
+        });
+        
+        cleanup = () => {
+          listener.remove();
+        };
+      } catch (error) {
+        console.error('[LoginPage] 앱 상태 리스너 등록 실패:', error);
+      }
+    };
+    
+    setupListener();
+    
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, []);
+
+  const handleKakaoLogin = async () => {
+    console.log('[LoginPage] 🔥 handleKakaoLogin 호출됨');
+    setIsLoading(true);
+
+      try {
+    // 1️⃣ 플러그인으로 카카오 로그인 → accessToken, refreshToken 획득
+    const { accessToken, refreshToken } = await CapacitorKakaoLogin.login();
+    console.log('[LoginPage] 🎉 Kakao accessToken:', accessToken);
+
+    await Preferences.set({
+      key: "kakao_access_token",
+      value: accessToken,
+    });
+    console.log('[LoginPage] 🎉 저장성공', accessToken);
+
+    // 2️⃣ 우리 서비스 백엔드에 POST 요청 (authToken 발급)
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/oauth/kakao/callback`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken,
+          // refreshToken: refreshToken  // 필요한 경우
+        }),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(`백엔드 에러 ${res.status}`);
+    }
+    const { authToken } = await res.json();
+    console.log('[LoginPage] 🔑 서비스 JWT(authToken):', authToken);
+
+    // 3️⃣ 로컬 스토리지 대신 Capacitor Preferences 에 저장
+    await Preferences.set({ key: 'AUTH_TOKEN', value: authToken });
+
+    // 4️⃣ 대시보드 페이지로 이동
+    router.replace('/dashboard');
+  } catch (e) {
+    console.error('[LoginPage] 로그인 처리 중 에러', e);
+    // TODO: 사용자에게 오류 UI 띄우기
+  } finally {
+    setIsLoading(false);
+  }
+};
   
 
-  // const handleKakaoLogin = async () => {
-  //   setIsLoading(true)
-  //   try {
-  //     // 앱이 설치돼 있으면 카톡 앱, 없으면 웹뷰 창으로 로그인
-  //     const result = await KakaoLogin.goLogin()
-
-  //     // 받은 AccessToken을 백엔드에 전달
-  //     const res = await fetch("/api/auth/kakao/mobile", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ accessToken: result.accessToken }),
-  //     })
-  //     if (!res.ok) throw new Error("서버 로그인 실패")
-
-  //     // 백엔드에서 내려준 JWT 등을 저장
-  //     const { token } = await res.json()
-  //     localStorage.setItem("auth_token", token)
-  //     localStorage.removeItem("guest_token") // 게스트 토큰 제거
-
-  //      // 로그인 후 대시보드로 이동
-  //      router.push("/dashboard")
-  //     } catch (error) {
-  //       console.error("카카오 로그인 실패:", error)
-  //       // TODO: 사용자에게 실패 알림 UI 추가
-  //     } finally {
-  //       setIsLoading(false)
-  //     }
-  //   }
-
-  // const handleKakaoLogin = async () => {
-  //   setIsLoading(true)
-  //   try {
-  //     // 1) 카톡 앱이 있으면 앱, 없으면 웹뷰로 로그인
-  //     const result = await goLogin()
-  //     const kakaoToken = result.accessToken
-
-  //     // 2) 백엔드 로그인 엔드포인트 주소를 정확히: 
-  //     //    - 개발 서버: http://localhost:8001
-  //     //    - 그리고 우리가 만든 컨트롤러가 /api/auth/kakao/login 인지 확인
-  //     const res = await fetch("http://localhost:8001/api/auth/kakao/login", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ accessToken: kakaoToken }),
-  //     })
-  //     if (!res.ok) throw new Error("서버 로그인 실패")
-
-  //     // 3) 백엔드에서 내려준 JWT 토큰 꺼내기
-  //     const { token /*, expiresIn */ } = await res.json()
-
-  //     // ⭐️ 웹뷰만 쓴다면 localStorage 도 가능하지만,
-  //     //    모바일 앱이라면 Capacitor Storage 권장
-  //     localStorage.setItem("auth_token", token)
-  //     // await Storage.set({ key: "auth_token", value: token })
-
-  //     // 4) 로그인 후 화면 이동
-  //     router.push("/dashboard")
-  //   } catch (error) {
-  //     console.error("카카오 로그인 실패:", error)
-  //     // TODO: 사용자에게 실패 알림 띄우기
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }
-
-  const handleKakaoLogin = () => {
-    setIsLoading(true)
-    // 프론트는 단순히 이 엔드포인트로 이동만 시켜주면 됩니다.
-    window.location.href = "https://k12e203.p.ssafy.io/api/auth/kakao"
-  }
-
-  const handleBack = () => {
-    router.back()
-  }
+  const handleBack = () => router.back()
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
