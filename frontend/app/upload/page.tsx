@@ -2,38 +2,45 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Upload, X, Play } from "lucide-react"
-import { Progress } from "@/components/ui/progress"
+import { ArrowLeft, X } from "lucide-react"
+import VideoSelect from "@/components/upload/video-select"
+import { Preferences } from "@capacitor/preferences"
 
 export default function UploadPage() {
   const router = useRouter()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analyzeProgress, setAnalyzeProgress] = useState(0)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 인증 상태 확인
+  // 인증 상태 확인 - Capacitor Preferences 사용
   useEffect(() => {
-    const token = localStorage.getItem("auth_token")
-    const guestToken = localStorage.getItem("guest_token")
+    const checkAuth = async () => {
+      try {
+        const { value: token } = await Preferences.get({ key: "AUTH_TOKEN" })
+        const { value: guestToken } = await Preferences.get({ key: "guest_token" })
 
-    if (!token && !guestToken) {
-      router.push("/")
-    } else if (!token && guestToken) {
-      // 게스트 사용자는 대시보드로 리다이렉트
-      router.push("/dashboard")
-    } else {
-      setIsLoading(false)
+        if (!token && !guestToken) {
+          router.push("/")
+        } else if (!token && guestToken) {
+          // 게스트 사용자는 대시보드로 리다이렉트
+          router.push("/dashboard")
+        } else {
+          setIsLoading(false)
+        }
+      } catch (error) {
+        console.error("인증 상태 확인 중 오류 발생:", error)
+        router.push("/")
+      }
     }
+
+    checkAuth()
   }, [router])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,17 +52,6 @@ export default function UploadPage() {
 
       // 이전 미리보기 URL 정리
       return () => URL.revokeObjectURL(objectUrl)
-    }
-  }
-
-  const handlePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause()
-      } else {
-        videoRef.current.play()
-      }
-      setIsPlaying(!isPlaying)
     }
   }
 
@@ -118,15 +114,12 @@ export default function UploadPage() {
   }
 
   const handleSelectFile = () => {
-    fileInputRef.current?.click()
+    // 이 함수는 VideoSelect 컴포넌트 내부에서 처리됩니다
   }
 
   const handleClearSelection = () => {
     setSelectedFile(null)
     setPreview(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
   }
 
   if (isLoading) {
@@ -155,107 +148,19 @@ export default function UploadPage() {
         )}
       </header>
 
-      {/* 메인 콘텐츠 */}
-      <main className="app-container flex-1 flex flex-col">
-        {/* 파일 입력 (숨김) */}
-        <input type="file" accept="video/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
-
-        {isAnalyzing ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="w-full max-w-md">
-              <div className="mb-4 text-center">
-                <h2 className="text-xl font-bold mb-2">AI 분석 중...</h2>
-                <p className="text-muted-foreground text-sm">영상을 분석하여 사고 상황을 파악하고 있습니다.</p>
-              </div>
-
-              <Progress value={analyzeProgress} className="h-2 mb-2 bg-muted" />
-              <p className="text-right text-sm text-muted-foreground">{analyzeProgress}%</p>
-
-              <div className="mt-8 text-center text-sm text-muted-foreground">
-                <p>AI가 영상을 분석하여 과실 비율을 산정하고 있습니다.</p>
-                <p>영상 길이와 복잡도에 따라 분석 시간이 달라질 수 있습니다.</p>
-              </div>
-            </div>
-          </div>
-        ) : isUploading ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="w-full max-w-md">
-              <div className="mb-4 text-center">
-                <h2 className="text-xl font-bold mb-2">업로드 중...</h2>
-                <p className="text-muted-foreground text-sm">영상을 서버에 업로드하고 있습니다.</p>
-              </div>
-
-              <Progress value={uploadProgress} className="h-2 mb-2 bg-muted" />
-              <p className="text-right text-sm text-muted-foreground">{uploadProgress}%</p>
-
-              <div className="mt-8 text-center text-sm text-muted-foreground">
-                <p>업로드가 완료되면 자동으로 분석이 시작됩니다.</p>
-                <p>영상 길이에 따라 분석 시간이 달라질 수 있습니다.</p>
-              </div>
-            </div>
-          </div>
-        ) : preview ? (
-          <div className="flex-1 flex flex-col">
-            {/* 비디오 미리보기 */}
-            <div className="relative rounded-lg overflow-hidden bg-black mb-4 aspect-video">
-              <video
-                ref={videoRef}
-                src={preview}
-                className="w-full h-full object-contain"
-                onEnded={() => setIsPlaying(false)}
-              />
-
-              <div
-                className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                onClick={handlePlayPause}
-              >
-                {!isPlaying && (
-                  <div className="bg-black/50 rounded-full p-4">
-                    <Play size={24} className="text-white" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 파일 정보 */}
-            <div className="app-card p-4 mb-4">
-              <h3 className="font-medium mb-1">파일 정보</h3>
-              <p className="text-sm text-muted-foreground">파일명: {selectedFile?.name}</p>
-              <p className="text-sm text-muted-foreground">
-                크기: {(selectedFile?.size ? selectedFile.size / (1024 * 1024) : 0).toFixed(2)} MB
-              </p>
-            </div>
-
-            {/* 업로드 버튼 */}
-            <div className="mt-auto">
-              <Button className="w-full py-6 app-blue-button" onClick={handleUpload}>
-                <Upload className="mr-2 h-4 w-4" /> 분석 시작하기
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div
-              className="border-2 border-dashed border-border rounded-lg p-8 w-full max-w-md flex flex-col items-center justify-center cursor-pointer hover:border-appblue transition-colors"
-              onClick={handleSelectFile}
-            >
-              <div className="bg-muted rounded-full p-4 mb-4">
-                <Upload size={32} className="text-muted-foreground" />
-              </div>
-              <h2 className="text-xl font-bold mb-2">블랙박스 영상 선택</h2>
-              <p className="text-muted-foreground text-center mb-4">갤러리에서 분석할 블랙박스 영상을 선택해주세요</p>
-              <Button variant="outline" className="border-border">
-                갤러리에서 선택
-              </Button>
-            </div>
-
-            <div className="mt-8 text-center text-sm text-muted-foreground">
-              <p>지원 형식: MP4, AVI, MOV</p>
-              <p>최대 파일 크기: 500MB</p>
-            </div>
-          </div>
-        )}
-      </main>
+      {/* 비디오 선택 컴포넌트 */}
+      <VideoSelect
+        selectedFile={selectedFile}
+        preview={preview}
+        isUploading={isUploading}
+        isAnalyzing={isAnalyzing}
+        uploadProgress={uploadProgress}
+        analyzeProgress={analyzeProgress}
+        onFileChange={handleFileChange}
+        onClearSelection={handleClearSelection}
+        onUpload={handleUpload}
+        // onSelectFile={handleSelectFile}
+      />
     </div>
   )
 }
