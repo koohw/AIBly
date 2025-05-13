@@ -713,3 +713,4 @@ class SimpleVTN(nn.Module):
 
 ---
 ## 차량이 아닌 장소에 대한 YOLO 진행중
+## UFLD에 필요한 것 진행중
