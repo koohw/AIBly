@@ -12,8 +12,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
     private final JwtTokenProvider jwtProvider;
 
     @Override
@@ -22,41 +24,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws IOException, ServletException {
 
-        // 0) 필터 진입 로그
-        System.out.println("[JwtFilter] ▶  URI = " + request.getRequestURI());
+        String token = resolveToken(request);
 
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            System.out.println("[JwtFilter] ▶ no cookie");
-        } else {
-            boolean found = false;
-            for (Cookie cookie : cookies) {
+        if (token != null && jwtProvider.validateToken(token)) {
+            Authentication auth = jwtProvider.getAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        }
+
+        chain.doFilter(request, response);
+    }
+
+    private String resolveToken(HttpServletRequest request) {
+        // 1. Authorization 헤더 → Bearer {token}
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+
+        // 2. Cookie: AUTH_TOKEN
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
                 if ("AUTH_TOKEN".equals(cookie.getName())) {
-                    found = true;
-                    String token = cookie.getValue();
-                    System.out.println("[JwtFilter] ▶ AUTH_TOKEN : " + token);
-
-                    // 2) 토큰 유효성 검사
-                    if (jwtProvider.validateToken(token)) {
-                        System.out.println("[JwtFilter] ▶ token yes");
-                        // 3) 토큰으로부터 Authentication 생성
-                        Authentication auth = jwtProvider.getAuthentication(token);
-                        System.out.println("[JwtFilter] ▶ Authentication principal = " +
-                                auth.getPrincipal());
-                        // 4) SecurityContext 에 등록
-                        SecurityContextHolder.getContext().setAuthentication(auth);
-                    } else {
-                        System.out.println("[JwtFilter] ▶ token no");
-                    }
-                    break;
+                    return cookie.getValue();
                 }
-            }
-            if (!found) {
-                System.out.println("[JwtFilter] ▶ AUTH_TOKEN 쿠키가 존재하지 않습니다");
             }
         }
 
-        // 다음 필터/컨트롤러로 진행
-        chain.doFilter(request, response);
+        return null; // 둘 다 없으면 null
     }
-}
+} //요청에서 토큰 추출. Authorization 헤더 우선 검사 하고 나서 쿠키 검사 없으면 null로 코드 수정.

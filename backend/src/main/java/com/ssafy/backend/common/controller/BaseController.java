@@ -10,21 +10,35 @@ public abstract class BaseController {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    /**
+     * 요청에서 JWT 추출 → 사용자 ID 반환
+     * - Authorization 헤더 > Cookie 순으로 검사
+     */
     protected Long getCurrentUserId(HttpServletRequest request) {
-        String token = extractTokenFromCookie(request);
+        String token = resolveToken(request);
+        if (token == null) {
+            throw new IllegalStateException("인증 토큰이 없습니다.");
+        }
         return jwtTokenProvider.getUserIdFromToken(token);
     }
 
-    private String extractTokenFromCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            throw new IllegalStateException("쿠키가 없습니다.");
+    private String resolveToken(HttpServletRequest request) {
+        // 1. Authorization 헤더 확인
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
         }
-        for (Cookie cookie : cookies) {
-            if ("AUTH_TOKEN".equals(cookie.getName())) {
-                return cookie.getValue();
+
+        // 2. Cookie 확인 (웹 대응)
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("AUTH_TOKEN".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
             }
         }
-        throw new IllegalStateException("AUTH_TOKEN 쿠키가 없습니다.");
+
+        // 3. 둘 다 없으면 null
+        return null;
     }
 }
