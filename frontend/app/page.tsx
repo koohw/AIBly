@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import LoadingAnimation from "./components/loading-animation"
-import AuthScreen from "./components/auth-screen"
+import LoadingAnimation from "@/components/start/loading-animation"
+import AuthScreen from "@/components/start/auth-screen"
 import { useRouter } from "next/navigation"
 import { Preferences } from '@capacitor/preferences'
 

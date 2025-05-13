@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Upload, Camera, Clock, FileText, AlertCircle, User, ChevronRight } from "lucide-react"
-import LoginRequiredModal from "../components/login-required-modal"
+import LoginRequiredModal from "@/components/start/login-required-modal"
 import { useTheme } from "../contexts/theme-context"
 import { Preferences } from '@capacitor/preferences'
 
@@ -50,17 +50,18 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     Preferences.remove({ key: 'AUTH_TOKEN' })
+    localStorage.removeItem('auth_token')
     router.push("/")
   }
 
   const handleLogin = () => {
     // 로그인 페이지로 이동
-    router.push("/login/login")
+    router.push("/login")
   }
 
   const handleProfileClick = () => {
     if (isGuest) {
-      router.push("/login/")
+      router.push("/login")
     } else {
       // 로그인된 사용자는 프로필 페이지로 이동
       router.push("/profile")
