@@ -91,7 +91,7 @@ export default function LoginPage() {
   const handleKakaoLogin = () => {
     setIsLoading(true)
     // 프론트는 단순히 이 엔드포인트로 이동만 시켜주면 됩니다.
-    window.location.href = "http://localhost:8001/api/auth/kakao"
+    window.location.href = "https://k12e203.p.ssafy.io/api/auth/kakao"
   }
 
   const handleBack = () => {

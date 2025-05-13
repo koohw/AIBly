@@ -8,10 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Browser } from '@capacitor/browser';
 import { CapacitorKakaoLogin } from '@team-lepisode/capacitor-kakao-login'
 import { Preferences } from '@capacitor/preferences'
-
-
-
-
+import { App } from '@capacitor/app'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -20,9 +17,47 @@ export default function LoginPage() {
  // 1) SDK 초기화
   useEffect(() => {
     CapacitorKakaoLogin.initialize({
-      appKey: process.env.NEXT_PUBLIC_KAKAO_NATIVE_APP_KEY!,  // “네이티브 앱 키”
+      appKey: process.env.NEXT_PUBLIC_KAKAO_NATIVE_APP_KEY!,  // "네이티브 앱 키"
     }).catch(e => console.error('SDK init 에러', e))
   }, [])
+
+  // 앱 상태 변경 리스너 추가
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    
+    const setupListener = async () => {
+      try {
+        const listener = await App.addListener('appStateChange', ({ isActive }) => {
+          console.log('[LoginPage] 앱 상태 변경:', isActive ? '활성화' : '비활성화');
+          if (isActive) {
+            // 앱이 다시 활성화될 때 필요한 로직 추가
+            console.log('[LoginPage] 앱이 다시 활성화됨, 로그인 상태 확인');
+            
+            // 로그인 프로세스를 계속하거나 상태를 확인하는 로직을 여기에 추가할 수 있습니다
+            Preferences.get({ key: 'kakao_access_token' }).then(({ value }) => {
+              if (value) {
+                console.log('[LoginPage] 저장된 카카오 토큰 발견:', value);
+              }
+            });
+          }
+        });
+        
+        cleanup = () => {
+          listener.remove();
+        };
+      } catch (error) {
+        console.error('[LoginPage] 앱 상태 리스너 등록 실패:', error);
+      }
+    };
+    
+    setupListener();
+    
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, []);
 
   const handleKakaoLogin = async () => {
     console.log('[LoginPage] 🔥 handleKakaoLogin 호출됨');
@@ -41,7 +76,7 @@ export default function LoginPage() {
 
     // 2️⃣ 우리 서비스 백엔드에 POST 요청 (authToken 발급)
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/oauth/kakao/callback`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/oauth/kakao/callback`,
       {
         method: 'POST',
         headers: {
