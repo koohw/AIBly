@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+        <!-- 메인 카드 -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body text-center p-5">
+                <div class="mb-4 position-relative">
+                    <i class="fas fa-cloud-download-alt fa-4x"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                        New
+                    </span>
+                </div>
+                <h3 class="mb-3 fw-bold">앱 배포 서비스에 오신 것을 환영합니다</h3>
+                <p class="lead mb-4">
+                    이 서비스는 개발된 애플리케이션을 간편하게 다운로드하고 테스트할 수 있는 플랫폼입니다.
+                    최신 버전의 앱을 언제 어디서나 접근할 수 있습니다.
+                </p>
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                    <a href="/deploy" class="btn btn-primary btn-lg px-4 gap-3">
+                        <i class="fas fa-download me-2"></i> APK 다운로드
+                    </a>
+                    <a href="/deploy/test" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="fas fa-list me-2"></i> 모든 파일 보기
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 사용 안내 카드 -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2 text-info"></i>사용 안내
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <div class="d-flex">
+                            <div class="step-number me-3">1</div>
+                            <div>
+                                <strong>APK 다운로드</strong>
+                                <p class="mb-0 text-muted">최신 개발 버전의 APK 파일을 다운로드받을 수 있습니다.</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="d-flex">
+                            <div class="step-number me-3">2</div>
+                            <div>
+                                <strong>모든 파일 보기</strong>
+                                <p class="mb-0 text-muted">S3 버킷에 저장된 모든 파일 목록을 확인하고 다운로드할 수 있습니다.</p>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .feature-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .step-number {
+        width: 24px;
+        height: 24px;
+        background: var(--gradient);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+    }
+</style>
+{% endblock %} 

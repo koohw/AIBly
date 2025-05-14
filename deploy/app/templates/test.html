@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- 파일 목록 카드 -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h5 class="card-title m-0">
+                            <i class="fas fa-folder-open me-2 text-primary"></i>모든 파일 목록
+                        </h5>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" id="fileSearch" class="form-control" placeholder="파일 검색...">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-4 d-flex flex-column">
+                    <div class="file-stats mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-6 col-md-3">
+                                <div class="stat-card p-3 bg-light rounded">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon me-3 bg-primary bg-opacity-10 p-2 rounded">
+                                            <i class="fas fa-file text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">파일 개수</h6>
+                                            <h5 class="mb-0">{{ files|length }}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if files %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" width="5%">#</th>
+                                    <th scope="col" width="40%">파일명</th>
+                                    <th scope="col" width="15%">크기</th>
+                                    <th scope="col" width="25%">마지막 수정</th>
+                                    <th scope="col" width="15%" class="text-center">다운로드</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file in files %}
+                                <tr class="file-row">
+                                    <td>{{ loop.index }}</td>
+                                    <td class="file-name">
+                                        <div class="d-flex align-items-center">
+                                            <div class="file-icon me-2">
+                                                <i class="fas fa-file-alt text-secondary"></i>
+                                            </div>
+                                            {{ file.file_name }}
+                                        </div>
+                                    </td>
+                                    <td>{{ (file.size / 1024)|round(1) }} KB</td>
+                                    <td>{{ file.last_modified }}</td>
+                                    <td class="text-center">
+                                        <a href="{{ file.download_url }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-download me-1"></i> 다운로드
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mt-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle me-3 fa-2x"></i>
+                            <div>
+                                <strong>파일이 없습니다</strong>
+                                <p class="mb-0">현재 S3 버킷에 파일이 없습니다. 나중에 다시 확인해 주세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 text-end">
+                        <span class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i> S3 버킷의 <code>apks/</code> 폴더에 있는 모든 파일을 보여줍니다.
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .file-icon i {
+        font-size: 1.1rem;
+    }
+    
+    tbody td {
+        vertical-align: middle;
+    }
+    
+    .stat-card {
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .file-row:hover .btn-primary {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.15);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 검색 기능
+        const searchInput = document.getElementById('fileSearch');
+        const fileRows = document.querySelectorAll('.file-row');
+        const noResultMsg = document.createElement('div');
+        noResultMsg.className = 'alert alert-warning mt-3';
+        noResultMsg.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> 검색 결과가 없습니다.';
+        noResultMsg.style.display = 'none';
+        document.querySelector('.table-responsive').after(noResultMsg);
+
+        searchInput.addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase();
+            let visibleCount = 0;
+            
+            fileRows.forEach(function(row) {
+                const fileName = row.querySelector('.file-name').textContent.toLowerCase();
+                if (fileName.includes(searchText)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // 검색 결과가 없는 경우 메시지 표시
+            if (visibleCount === 0 && searchText !== '') {
+                noResultMsg.style.display = 'block';
+            } else {
+                noResultMsg.style.display = 'none';
+            }
+        });
+        
+        // 파일 타입에 따른 아이콘 설정
+        document.querySelectorAll('.file-row').forEach(row => {
+            const fileName = row.querySelector('.file-name').textContent.trim();
+            const iconElement = row.querySelector('.file-icon i');
+            
+            if (fileName.endsWith('.apk')) {
+                iconElement.className = 'fas fa-file-download text-success';
+            } else if (fileName.endsWith('.zip') || fileName.endsWith('.tar.gz')) {
+                iconElement.className = 'fas fa-file-archive text-warning';
+            } else if (fileName.endsWith('.jpg') || fileName.endsWith('.png') || fileName.endsWith('.gif')) {
+                iconElement.className = 'fas fa-file-image text-info';
+            } else if (fileName.endsWith('.pdf')) {
+                iconElement.className = 'fas fa-file-pdf text-danger';
+            } else if (fileName.endsWith('.mp4') || fileName.endsWith('.avi') || fileName.endsWith('.mov')) {
+                iconElement.className = 'fas fa-file-video text-primary';
+            }
+        });
+    });
+</script>
+{% endblock %} 
