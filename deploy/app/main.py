@@ -65,7 +65,7 @@ async def read_root(request: Request):
     )
 
 # /deploy 경로 제거 (root_path가 대신함)
-@app.get("/download-apk", response_class=HTMLResponse)
+@app.get("/deploy", response_class=HTMLResponse)
 async def deploy_page(request: Request):
     """develop.apk 다운로드 페이지"""
     return templates.TemplateResponse(
@@ -74,7 +74,7 @@ async def deploy_page(request: Request):
     )
 
 # /deploy 경로 제거 (root_path가 대신함)
-@app.get("/download-apk/download")
+@app.get("/deploy/download")
 async def download_develop_apk():
     """S3 버킷에서 develop.apk 파일을 다운로드합니다"""
     try:
@@ -108,7 +108,7 @@ async def download_develop_apk():
         raise HTTPException(status_code=500, detail=f"서버 오류가 발생했습니다: {str(e)}")
 
 # /deploy 경로 제거 (root_path가 대신함)
-@app.get("/test", response_class=HTMLResponse)
+@app.get("/deploy/test", response_class=HTMLResponse)
 async def test_page(request: Request):
     """S3 버킷의 모든 파일 목록 페이지"""
     try:
@@ -139,7 +139,7 @@ async def test_page(request: Request):
                     "file_name": file_name,
                     "size": obj['Size'],
                     "last_modified": obj['LastModified'].isoformat(),
-                    "download_url": f"/test/download?file_name={file_name}"
+                    "download_url": f"/deploy/test/download?file_name={file_name}"
                 })
         
         return templates.TemplateResponse(
@@ -155,7 +155,7 @@ async def test_page(request: Request):
         raise HTTPException(status_code=500, detail=f"서버 오류가 발생했습니다: {str(e)}")
 
 # /deploy 경로 제거 (root_path가 대신함)
-@app.get("/test/download")
+@app.get("/deploy/test/download")
 async def download_file(file_name: str):
     """지정된 파일을 S3 버킷에서 다운로드합니다"""
     try:
