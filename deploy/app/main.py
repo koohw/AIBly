@@ -64,17 +64,17 @@ async def read_root(request: Request):
         {"request": request, "title": "배포 서비스"}
     )
 
-# /deploy 경로 제거 (root_path가 대신함)
-@app.get("/deploy", response_class=HTMLResponse)
+# APK 다운로드 페이지 경로 변경: /deploy -> /apk-download
+@app.get("/apk-download", response_class=HTMLResponse)
 async def deploy_page(request: Request):
     """develop.apk 다운로드 페이지"""
     return templates.TemplateResponse(
-        "deploy.html", 
+        "apk-download.html", 
         {"request": request, "title": "APK 다운로드", "file_name": "develop.apk"}
     )
 
-# /deploy 경로 제거 (root_path가 대신함)
-@app.get("/deploy/download")
+# 다운로드 엔드포인트 경로 변경
+@app.get("/apk-download/download")
 async def download_develop_apk():
     """S3 버킷에서 develop.apk 파일을 다운로드합니다"""
     try:
@@ -107,8 +107,8 @@ async def download_develop_apk():
         logger.error(f"예상치 못한 오류 발생: {e}")
         raise HTTPException(status_code=500, detail=f"서버 오류가 발생했습니다: {str(e)}")
 
-# /deploy 경로 제거 (root_path가 대신함)
-@app.get("/deploy/test", response_class=HTMLResponse)
+# 파일 목록 페이지 경로 변경: /deploy/test -> /files
+@app.get("/files", response_class=HTMLResponse)
 async def test_page(request: Request):
     """S3 버킷의 모든 파일 목록 페이지"""
     try:
@@ -139,11 +139,11 @@ async def test_page(request: Request):
                     "file_name": file_name,
                     "size": obj['Size'],
                     "last_modified": obj['LastModified'].isoformat(),
-                    "download_url": f"/deploy/test/download?file_name={file_name}"
+                    "download_url": f"/files/download?file_name={file_name}"
                 })
         
         return templates.TemplateResponse(
-            "test.html", 
+            "files.html", 
             {
                 "request": request, 
                 "title": "모든 파일 목록", 
@@ -154,8 +154,8 @@ async def test_page(request: Request):
         logger.error(f"S3 파일 목록을 가져오는 중 오류 발생: {e}")
         raise HTTPException(status_code=500, detail=f"서버 오류가 발생했습니다: {str(e)}")
 
-# /deploy 경로 제거 (root_path가 대신함)
-@app.get("/deploy/test/download")
+# 개별 파일 다운로드 경로 변경
+@app.get("/files/download")
 async def download_file(file_name: str):
     """지정된 파일을 S3 버킷에서 다운로드합니다"""
     try:
