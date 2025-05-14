@@ -25,8 +25,8 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+            // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
         buildConfigField "String", "KAKAO_NATIVE_APP_KEY",
@@ -62,18 +62,23 @@ dependencies {
     // Retrofit - API 호출용
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
-    implementation 'com.squareup.okhttp3:okhttp:4.9.1'
 
     // Coroutines - 비동기 처리용
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
     implementation project(path: ':capacitor-browser')
     implementation project(path: ':capacitor-app')
 
+
      // Firebase BoM (버전 관리 편리)
     implementation platform('com.google.firebase:firebase-bom:33.13.0')
 
     // Firebase 메시징 (FCM)
     implementation 'com.google.firebase:firebase-messaging'
+
+    // OkHttp - HTTP 클라이언트 라이브러리 (S3 업로드 등에 사용)
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.10.0'  // 로깅 인터셉터 (디버깅용)
+
+
 }
 
 apply from: 'capacitor.build.gradle'

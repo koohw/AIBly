@@ -54,6 +54,7 @@ export default function UploadPage() {
       return () => URL.revokeObjectURL(objectUrl)
     }
   }
+  
 
   const handleUpload = async () => {
     if (!selectedFile) return
@@ -150,16 +151,10 @@ export default function UploadPage() {
 
       {/* 비디오 선택 컴포넌트 */}
       <VideoSelect
-        selectedFile={selectedFile}
-        preview={preview}
-        isUploading={isUploading}
-        isAnalyzing={isAnalyzing}
-        uploadProgress={uploadProgress}
-        analyzeProgress={analyzeProgress}
-        onFileChange={handleFileChange}
-        onClearSelection={handleClearSelection}
-        onUpload={handleUpload}
-        // onSelectFile={handleSelectFile}
+        selectedFile={selectedFile} 
+        preview={preview} 
+        onFileChange={handleFileChange} 
+        onClearSelection={handleClearSelection} 
       />
     </div>
   )

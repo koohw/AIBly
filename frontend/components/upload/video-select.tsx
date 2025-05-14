@@ -5,35 +5,31 @@ import { Button } from "@/components/ui/button"
 import { Upload, Play, ImageIcon } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { FilePicker } from '@capawesome/capacitor-file-picker'
+import { getPresignedUrl, PresignedUrlResponse, notifyManualUpload } from "@/lib/api/Video"
+import type { AxiosError } from "axios"
 
 interface VideoSelectProps {
   selectedFile: File | null
   preview: string | null
-  isUploading: boolean
-  isAnalyzing: boolean
-  uploadProgress: number
-  analyzeProgress: number
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onClearSelection: () => void
-  onUpload: () => void
 }
 
 export default function VideoSelect({
   selectedFile,
   preview,
-  isUploading,
-  isAnalyzing,
-  uploadProgress,
-  analyzeProgress,
   onFileChange,
   onClearSelection,
-  onUpload,
 }: VideoSelectProps) {
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [analyzeProgress, setAnalyzeProgress] = useState(0)
   const [thumbnail, setThumbnail] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Generate poster thumbnail from first video frame
+  // Generate poster thumbnail
   useEffect(() => {
     if (!preview) {
       setThumbnail(null)
@@ -54,18 +50,105 @@ export default function VideoSelect({
       setThumbnail(canvas.toDataURL('image/png'))
     }
     videoEl.addEventListener('loadedmetadata', handleLoaded)
-    return () => {
-      videoEl.removeEventListener('loadedmetadata', handleLoaded)
-    }
+    return () => videoEl.removeEventListener('loadedmetadata', handleLoaded)
   }, [preview])
 
+  // Upload file to S3
+  const uploadToS3 = (
+    presignedUrl: string,
+    file: File,
+    onProgress: (percent: number) => void
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      console.log(`🕒 S3 업로드 시작: ${file.name}`)
+      const xhr = new XMLHttpRequest()
+      xhr.open("PUT", presignedUrl)
+      xhr.setRequestHeader("Content-Type", file.type)
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100)
+          console.log(`⬆️ 업로드 진행: ${percent}%`)
+          onProgress(percent)
+        }
+      }
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          console.log(`✅ S3 업로드 성공: ${file.name} (200)`)
+          resolve()
+        } else {
+          console.error(`❌ S3 업로드 실패: ${file.name} (status ${xhr.status})`)
+          reject(new Error(`S3 업로드 실패: ${xhr.statusText}`))
+        }
+      }
+      xhr.onerror = () => {
+        console.error(`❌ S3 업로드 에러: ${file.name}`)
+        reject(new Error("S3 업로드 에러"))
+      }
+      xhr.send(file)
+    })
+  }
+
+  // 분석 시작하기
+  const handleAnalyze = async () => {
+    if (!selectedFile) return
+    setIsUploading(true)
+    try {
+      // 1) Presigned URL 요청
+      console.log('🎯 Presigned URL 요청 중...')
+      const { presignedUrl, s3Key }: PresignedUrlResponse = await getPresignedUrl({
+        fileName: selectedFile.name,
+        contentType: selectedFile.type,
+      })
+      console.log(`✅ Presigned URL 발급 성공: key=${s3Key}`)
+      console.log(`🔗 Upload URL: ${presignedUrl}`)
+
+      // 2) S3 업로드
+      await uploadToS3(presignedUrl, selectedFile, setUploadProgress)
+      setIsUploading(false)
+
+       // 3) DB 수동 업로드 알림
+      console.log('📫 DB 수동 업로드 알림 요청 중...')
+      await notifyManualUpload({
+        fileName: selectedFile.name,
+        s3Key,
+        contentType: selectedFile.type,
+        size: selectedFile.size,
+      })
+      console.log('✅ DB 알림 완료, 분석 준비 중')
+
+      
+      // 3) AI 분석 트리거
+      console.log('🎬 AI 분석 시작')
+      setIsAnalyzing(true)
+      // TODO: 실제 분석 API 호출
+      // 예: await analyzeVideo(s3Key, setAnalyzeProgress)
+      // simulate progress
+      const interval = setInterval(() => {
+        setAnalyzeProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval)
+            console.log('🏁 AI 분석 완료')
+            return 100
+          }
+          return prev + 5
+        })
+      }, 300)
+    } catch (error) {
+      const err = error as AxiosError
+      console.error('🚨 처리 중 오류 발생:', err.response?.data || err.message)
+      setIsUploading(false)
+      setIsAnalyzing(false)
+    }
+  }
+
+  // 비디오 재생/일시정지
   const handlePlayPause = () => {
     if (!videoRef.current) return
-    if (isPlaying) videoRef.current.pause()
-    else videoRef.current.play()
+    isPlaying ? videoRef.current.pause() : videoRef.current.play()
     setIsPlaying(!isPlaying)
   }
 
+  // 갤러리에서 선택
   const openGalleryPicker = async () => {
     try {
       const result = await FilePicker.pickFiles({ types: ['video/*'], readData: true })
@@ -101,7 +184,7 @@ export default function VideoSelect({
           <p>{uploadProgress}%</p>
         </div>
       ) : preview ? (
-        <div className="flex-1 flex flex-col">
+        <>
           <div className="relative rounded-lg overflow-hidden bg-black mb-4 aspect-video">
             <video
               ref={videoRef}
@@ -123,10 +206,13 @@ export default function VideoSelect({
             <p>파일명: {selectedFile?.name}</p>
             <p>크기: {((selectedFile?.size ?? 0) / (1024 * 1024)).toFixed(2)} MB</p>
           </div>
-          <Button className="w-full py-4 app-blue-button" onClick={onUpload}>
+          <Button className="w-full py-4 app-blue-button" onClick={handleAnalyze}>
             <Upload className="mr-2" /> 분석 시작하기
           </Button>
-        </div>
+          <Button variant="ghost" onClick={onClearSelection} className="mt-2">
+            선택 취소
+          </Button>
+        </>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center">
           <h2 className="text-xl font-bold mb-2">블랙박스 영상 선택</h2>

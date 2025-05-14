@@ -1,0 +1,135 @@
+pipeline {
+  agent { label 'docker-agent-dood' }
+  options {
+    disableConcurrentBuilds()
+  }
+
+  parameters {
+    string(name: 'BRANCH_NAME', defaultValue: 'develop', description: 'GitLab 브랜치 이름')
+    string(name: 'GIT_REPO_URL', defaultValue: 'https://lab.ssafy.com/s12-final/S12P31E203.git', description: 'GitLab 저장소 URL')
+  }
+
+  environment {
+    DOCKER_IMAGE_NAME     = "deploy-service"
+    DOCKER_TAG            = "deploy-${BUILD_NUMBER}"
+    TEST_CONTAINER_NAME   = "deploy-test-${BUILD_NUMBER}"
+    PROD_CONTAINER_NAME   = "deploy-service"
+    PROD_PORT             = "8003"
+  }
+
+  stages {
+    stage('Prepare & Clone') {
+      steps {
+        script {
+          env.SAFE_REPO = params.GIT_REPO_URL.replaceFirst(/^(https?:\/\/)[^@]+@/, '$1')
+        }
+        withCredentials([usernamePassword(credentialsId: 'gitlab-project-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+          sh """
+            echo "🔧 Cloning from: ${env.SAFE_REPO}"
+            REPO_DOMAIN=\$(echo "${env.SAFE_REPO}" | sed 's|^https://||')
+            git clone -b "${params.BRANCH_NAME}" "https://${GIT_USER}:${GIT_PASS}@\${REPO_DOMAIN}" repo
+          """
+        }
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        dir('repo/deploy') {
+          sh '''
+            echo "🔨 Deploy 서비스 Docker 이미지 빌드 중..."
+            docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} .
+          '''
+        }
+      }
+    }
+
+    stage('Run & Test') {
+      steps {
+        dir('repo/deploy') {
+          withCredentials([file(credentialsId: 'env_file', variable: 'ENV_FILE')]) {
+            sh '''
+              echo "🧪 테스트 컨테이너 실행 중..."
+              docker run -d \
+                --name ${TEST_CONTAINER_NAME} \
+                --env-file ${ENV_FILE} \
+                ${DOCKER_IMAGE_NAME}:${DOCKER_TAG}
+
+              echo "⏳ 헬스체크 대기 중..."
+              timeout=30
+              until docker exec ${TEST_CONTAINER_NAME} curl -sf http://localhost:${PROD_PORT}/; do
+                sleep 1
+                timeout=$((timeout - 1))
+                if [ $timeout -le 0 ]; then
+                  echo "❌ 헬스체크 실패"
+                  docker logs ${TEST_CONTAINER_NAME} || true
+                  docker stop ${TEST_CONTAINER_NAME} || true
+                  docker rm   ${TEST_CONTAINER_NAME} || true
+                  exit 1
+                fi
+              done
+
+              echo "🧹 테스트 컨테이너 정리"
+              docker stop ${TEST_CONTAINER_NAME}
+              docker rm   ${TEST_CONTAINER_NAME}
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Deploy (if develop)') {
+      when {
+        expression { params.BRANCH_NAME == 'develop' }
+      }
+      steps {
+        dir('repo/deploy') {
+          withCredentials([file(credentialsId: 'env_file', variable: 'ENV_FILE')]) {
+            sh '''
+              echo "🚀 develop 브랜치: 서비스 컨테이너 배포 중..."
+              docker stop ${PROD_CONTAINER_NAME} || true
+              docker rm   ${PROD_CONTAINER_NAME} || true
+
+              docker run -d \
+                --name ${PROD_CONTAINER_NAME} \
+                --restart unless-stopped \
+                -p ${PROD_PORT}:${PROD_PORT} \
+                --env-file ${ENV_FILE} \
+                ${DOCKER_IMAGE_NAME}:${DOCKER_TAG}
+
+              echo "✅ 배포 완료"
+            '''
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      script {
+        if (params.BRANCH_NAME != 'develop') {
+          echo "🧹 develop 이외 브랜치: 이미지 삭제"
+          sh 'docker rmi ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} || true'
+        } else {
+          echo "🧹 develop 브랜치: 이전 deploy-* 이미지 정리"
+          sh '''
+            docker images --format "{{.Repository}}:{{.Tag}}" | \
+              grep "^deploy-service:deploy-" | \
+              grep -v "${DOCKER_IMAGE_NAME}:${DOCKER_TAG}" | \
+              xargs -r docker rmi || true
+          '''
+        }
+      }
+    }
+
+    failure {
+      echo "❌ 실패 시 정리"
+      sh '''
+        docker stop ${TEST_CONTAINER_NAME} || true
+        docker rm   ${TEST_CONTAINER_NAME} || true
+        docker rmi  ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} || true
+      '''
+    }
+  }
+} 

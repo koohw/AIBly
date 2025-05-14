@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.crush.aiblackboxreview.MainActivity
 import com.crush.aiblackboxreview.R
 import com.crush.aiblackboxreview.api.OpenAIClient
+import com.crush.aiblackboxreview.managers.UploadManager
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileInputStream
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class AccidentAnalyzer(private val context: Context) {
     private val TAG = "AccidentAnalyzer"
     private val openAIClient = OpenAIClient()
+    private val uploadManager = UploadManager(context)
 
     // 작업 큐 추가
     private val videoQueue = ConcurrentLinkedQueue<File>()
@@ -70,13 +72,15 @@ class AccidentAnalyzer(private val context: Context) {
 
         Log.d(TAG, "큐에서 다음 비디오 처리 시작: ${videoFile.name} (큐 크기: ${videoQueue.size})")
 
-        analyzerScope.launch {
+        // 각 비디오 처리를 위한 작업 생성
+        val videoJob = analyzerScope.launch {
             try {
                 // 파일 상태 확인
                 if (!videoFile.exists() || !videoFile.canRead() || videoFile.length() < 1024) {
                     Log.e(TAG, "파일이 유효하지 않음: ${videoFile.name}, 존재=${videoFile.exists()}, 읽기가능=${videoFile.canRead()}, 크기=${videoFile.length()}bytes")
                     return@launch
                 }
+
                 // 파일 시스템 안정화를 위한 지연 추가 (2초)
                 Log.d(TAG, "파일 시스템 안정화 지연 시작: ${videoFile.name}")
                 delay(2000)
@@ -92,70 +96,16 @@ class AccidentAnalyzer(private val context: Context) {
                 System.gc()
                 delay(500)  // GC에 약간의 시간 제공
 
-                // 비디오에서 프레임 추출 (3번까지 재시도)
-                var frames = listOf<Bitmap>()
-                var extractRetryCount = 0
-
-                while (frames.isEmpty() && extractRetryCount < 3) {
-                    frames = extractKeyFramesWithRetry(videoFile.absolutePath, 5)
-
-                    if (frames.isEmpty()) {
-                        extractRetryCount++
-                        Log.e(TAG, "프레임 추출 실패, 재시도 ${extractRetryCount}/3: ${videoFile.name}")
-                        delay(2000L * extractRetryCount) // 점진적으로 더 긴 지연
-                    }
+                // 타임아웃이 적용된 비디오 처리 작업
+                val processingResult = withTimeoutOrNull(5 * 60 * 1000L) { // 5분 타임아웃
+                    processVideoWithFrames(videoFile)
                 }
 
-                if (frames.isEmpty()) {
-                    Log.e(TAG, "최대 재시도 횟수 초과, 프레임을 추출할 수 없습니다: ${videoFile.name}")
+                if (processingResult == null) {
+                    // 타임아웃이 발생한 경우
+                    Log.e(TAG, "비디오 처리 타임아웃 (3분 초과): ${videoFile.name}")
                 } else {
-                    // 각 프레임 분석 (재시도 로직 포함)
-                    var retryCount = 0
-                    var isAccident = false
-
-                    while (retryCount < 3 && !isAccident) {
-                        try {
-                            // 각 프레임 분석
-                            for (frame in frames) {
-                                Log.d(TAG, "${videoFile.name}의 프레임 분석 중...")
-                                isAccident = openAIClient.analyzeTrafficAccident(frame)
-
-                                // 사고가 감지되면 알림 표시하고 중단
-                                if (isAccident) {
-                                    Log.d(TAG, "교통사고 감지됨!: ${videoFile.name}")
-                                    withContext(Dispatchers.Main) {
-                                        sendAccidentNotification(videoFile)
-                                    }
-                                    break
-                                }
-                            }
-
-                            // 분석 완료 - 재시도 중단
-                            break
-
-                        } catch (e: Exception) {
-                            retryCount++
-                            Log.e(TAG, "${videoFile.name} 분석 중 오류 발생 (재시도 $retryCount/3): ${e.message}")
-
-                            if (retryCount < 3) {
-                                // 지수 백오프로 재시도 간격 증가
-                                delay(1000L * (1 shl retryCount))
-                            }
-                        }
-                    }
-
-                    if (!isAccident) {
-                        Log.d(TAG, "교통사고 미감지: ${videoFile.name}")
-                    }
-
-                    // 메모리 해제 힌트
-                    for (frame in frames) {
-                        if (!frame.isRecycled) {
-                            frame.recycle()
-                        }
-                    }
-                    frames = emptyList()
-                    System.gc()
+                    Log.d(TAG, "비디오 처리 완료: ${videoFile.name}, 사고 감지 여부: $processingResult")
                 }
 
             } catch (e: Exception) {
@@ -163,9 +113,170 @@ class AccidentAnalyzer(private val context: Context) {
             } finally {
                 // 약간의 지연 후 다음 비디오 처리 (시스템 부하 완화)
                 Log.d(TAG, "${videoFile.name} 처리 완료, 다음 비디오 처리 준비 중...")
-                delay(2000) // 2초 지연으로 증가
+                delay(2000) // 2초 지연
                 processNextVideo()
             }
+        }
+
+        // 작업이 지나치게 오래 실행되는 것을 방지하기 위한 추가 보호 장치
+        analyzerScope.launch {
+            delay(5 * 60 * 1000L) // 5분 후 확인
+            if (videoJob.isActive) {
+                // 5분 이상 실행 중인 작업은 강제 종료
+                Log.w(TAG, "비디오 작업이 5분 이상 실행 중, 강제 종료: ${videoFile.name}")
+                videoJob.cancel()
+
+                // 다음 비디오로 이동 (현재 작업이 멈췄을 가능성 고려)
+                if (isProcessing.get()) {
+                    delay(3000) // 3초 기다린 후
+                    if (videoJob.isCancelled || videoJob.isCompleted) {
+                        processNextVideo()
+                    }
+                }
+            }
+        }
+    }
+
+    // 프레임 추출 및 분석 작업을 수행하는 보조 메소드
+    private suspend fun processVideoWithFrames(videoFile: File): Boolean {
+        // 비디오에서 프레임 추출 (3번까지 재시도)
+        var frames = listOf<Bitmap>()
+        var extractRetryCount = 0
+
+        while (frames.isEmpty() && extractRetryCount < 3) {
+            // 프레임 추출 시도에 타임아웃 적용
+            frames = withTimeoutOrNull(60 * 1000L) { // 60초 타임아웃
+                extractKeyFramesWithRetry(videoFile.absolutePath, 10)
+            } ?: listOf() // 타임아웃 시 빈 리스트 반환
+
+            if (frames.isEmpty()) {
+                extractRetryCount++
+                Log.e(TAG, "프레임 추출 실패 또는 타임아웃, 재시도 ${extractRetryCount}/3: ${videoFile.name}")
+                delay(2000L * extractRetryCount) // 점진적으로 더 긴 지연
+            }
+        }
+
+        if (frames.isEmpty()) {
+            Log.e(TAG, "최대 재시도 횟수 초과, 프레임을 추출할 수 없습니다: ${videoFile.name}")
+            return false
+        }
+
+        try {
+            // 중후반부 프레임 우선 분석 전략 적용
+            var isAccident = false
+
+            // 프레임의 분석 순서 설정 (중후반부 우선)
+            val frameIndices = getPriorityFrameIndices(frames.size)
+            Log.d(TAG, "${videoFile.name}의 분석 순서: $frameIndices")
+
+            // 1. 우선순위 프레임 분석
+            for (index in frameIndices) {
+                if (index >= frames.size) continue
+
+                val frame = frames[index]
+                Log.d(TAG, "${videoFile.name}의 우선순위 프레임[${index}] 분석 중...")
+
+                try {
+                    // 프레임 분석에 타임아웃 적용
+                    isAccident = withTimeoutOrNull(45 * 1000L) { // 45초 타임아웃
+                        openAIClient.analyzeTrafficAccident(frame)
+                    } ?: run {
+                        Log.e(TAG, "프레임[${index}] 분석 타임아웃 (45초 초과): ${videoFile.name}")
+                        false // 타임아웃 시 사고 아님으로 처리
+                    }
+
+                    // 사고가 감지되면 알림 표시하고 중단
+                    if (isAccident) {
+                        Log.d(TAG, "교통사고 감지됨! (프레임[${index}]): ${videoFile.name}")
+                        withContext(Dispatchers.Main) {
+                            sendAccidentNotification(videoFile)
+                        }
+                        handleAnalysisResult(true, videoFile)
+                        break
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "프레임[${index}] 분석 중 오류 발생: ${e.message}")
+                }
+            }
+
+            // 2. 우선순위 프레임에서 사고가 감지되지 않은 경우 나머지 프레임 분석
+            if (!isAccident) {
+                val remainingIndices = (0 until frames.size).filter { it !in frameIndices }
+                Log.d(TAG, "우선순위 프레임에서 사고 미감지, 나머지 프레임 분석: $remainingIndices")
+
+                for (index in remainingIndices) {
+                    val frame = frames[index]
+                    Log.d(TAG, "${videoFile.name}의 일반 프레임[${index}] 분석 중...")
+
+                    try {
+                        // 프레임 분석에 타임아웃 적용
+                        isAccident = withTimeoutOrNull(45 * 1000L) { // 45초 타임아웃
+                            openAIClient.analyzeTrafficAccident(frame)
+                        } ?: run {
+                            Log.e(TAG, "프레임[${index}] 분석 타임아웃 (45초 초과): ${videoFile.name}")
+                            false
+                        }
+
+                        // 사고가 감지되면 알림 표시하고 중단
+                        if (isAccident) {
+                            Log.d(TAG, "교통사고 감지됨! (프레임[${index}]): ${videoFile.name}")
+                            withContext(Dispatchers.Main) {
+                                sendAccidentNotification(videoFile)
+                            }
+
+                            handleAnalysisResult(true, videoFile)
+
+                            break
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "프레임[${index}] 분석 중 오류 발생: ${e.message}")
+                    }
+                }
+            }
+
+            if (!isAccident) {
+                Log.d(TAG, "교통사고 미감지: ${videoFile.name}")
+            }
+
+            // 메모리 해제
+            for (frame in frames) {
+                if (!frame.isRecycled) {
+                    frame.recycle()
+                }
+            }
+            frames = emptyList()
+            System.gc()
+
+            return isAccident
+
+        } catch (e: Exception) {
+            Log.e(TAG, "프레임 분석 중 예외 발생: ${e.message}", e)
+
+            // 메모리 해제
+            for (frame in frames) {
+                if (!frame.isRecycled) {
+                    frame.recycle()
+                }
+            }
+            frames = emptyList()
+            System.gc()
+
+            return false
+        }
+    }
+
+    // 우선순위 프레임 인덱스 계산 함수 추가
+    private fun getPriorityFrameIndices(totalFrames: Int): List<Int> {
+        return when {
+            totalFrames <= 3 -> (0 until totalFrames).toList() // 3개 이하면 모두 우선
+
+            else -> listOf(
+                totalFrames - 1,       // 마지막 프레임 (90-100% 지점)
+                totalFrames - 2,       // 뒤에서 두 번째 프레임 (80-90% 지점)
+                totalFrames * 7 / 10,  // 70% 지점 프레임
+                totalFrames * 6 / 10,  // 60% 지점 프레임
+                totalFrames * 5 / 10   // 50% 지점 프레임 (중간)
+            )
         }
     }
 
@@ -400,6 +511,30 @@ class AccidentAnalyzer(private val context: Context) {
         // 알림 표시 (ID를 다르게 해서 기존 알림과 겹치지 않게)
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(2001, builder.build())
+    }
+
+    /**
+     * OpenAI API 분석 결과 처리 메서드
+     * 사고로 판단된 경우 UploadManager를 통해 영상 업로드 처리
+     *
+     * @param isAccident 사고 여부 (true: 사고, false: 정상)
+     * @param videoFile 분석된 영상 파일
+     */
+    private fun handleAnalysisResult(isAccident: Boolean, videoFile: File) {
+        // 분석 결과 로그 출력
+        Log.d(TAG, "사고 여부: $isAccident")
+
+        // 사고로 판단된 경우 업로드 처리
+        if (isAccident) {
+            Log.d(TAG, "사고 영상 감지됨, 업로드 시작: ${videoFile.name}")
+            uploadManager.handleAccidentVideo(videoFile)
+        } else {
+            Log.d(TAG, "정상 영상으로 판단됨, 업로드 없음: ${videoFile.name}")
+        }
+    }
+
+    companion object {
+        private const val TAG = "AccidentAnalyzer"  // 로그 태그
     }
 
     // 클래스 리소스 정리

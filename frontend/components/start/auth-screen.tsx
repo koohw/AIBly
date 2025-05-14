@@ -2,11 +2,15 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { CapacitorKakaoLogin } from '@team-lepisode/capacitor-kakao-login'
+import { Preferences } from '@capacitor/preferences'
+import { App } from '@capacitor/app'
+
 
 export default function AuthScreen() {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -15,6 +19,51 @@ export default function AuthScreen() {
   const [touchEnd, setTouchEnd] = useState(0)
   const sliderRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  // 1) SDK 초기화
+  useEffect(() => {
+    CapacitorKakaoLogin.initialize({
+      appKey: process.env.NEXT_PUBLIC_KAKAO_NATIVE_APP_KEY!,  // "네이티브 앱 키"
+    }).catch(e => console.error('SDK init 에러', e))
+  }, [])
+
+  // 앱 상태 변경 리스너 추가
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    
+    const setupListener = async () => {
+      try {
+        const listener = await App.addListener('appStateChange', ({ isActive }) => {
+          console.log('[LoginPage] 앱 상태 변경:', isActive ? '활성화' : '비활성화');
+          if (isActive) {
+            // 앱이 다시 활성화될 때 필요한 로직 추가
+            console.log('[LoginPage] 앱이 다시 활성화됨, 로그인 상태 확인');
+            
+            // 로그인 프로세스를 계속하거나 상태를 확인하는 로직을 여기에 추가할 수 있습니다
+            Preferences.get({ key: 'kakao_access_token' }).then(({ value }) => {
+              if (value) {
+                console.log('[LoginPage] 저장된 카카오 토큰 발견:', value);
+              }
+            });
+          }
+        });
+        
+        cleanup = () => {
+          listener.remove();
+        };
+      } catch (error) {
+        console.error('[LoginPage] 앱 상태 리스너 등록 실패:', error);
+      }
+    };
+    
+    setupListener();
+    
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, []);
 
   const slides = [
     {
@@ -85,30 +134,64 @@ export default function AuthScreen() {
     router.push("/dashboard")
   }
 
-  // const handleKakaoLogin = async () => {
-  //   setIsLoading(true)
-  //   try {
-  //     // 실제 구현에서는 카카오 SDK를 사용하여 로그인 처리
-  //     // 여기서는 예시로 setTimeout을 사용하여 로딩 상태 표시
-  //     await new Promise((resolve) => setTimeout(resolve, 1500))
+  const handleKakaoLogin = async () => {
+    console.log('[LoginPage] 🔥 handleKakaoLogin 호출됨');
+    setIsLoading(true);
 
-  //     // 로그인 성공 시 로컬 스토리지에 토큰 저장 (실제로는 서버에서 받은 토큰 저장)
-  //     localStorage.setItem("auth_token", "kakao_token_example")
+      try {
+    // 1️⃣ 플러그인으로 카카오 로그인 → accessToken, refreshToken 획득
+    const { accessToken, refreshToken } = await CapacitorKakaoLogin.login();
+    console.log('[LoginPage] 🎉 Kakao accessToken:', accessToken);
 
-  //     // 메인 페이지로 이동
-  //     router.push("/dashboard")
-  //   } catch (error) {
-  //     console.error("카카오 로그인 실패:", error)
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }
+    await Preferences.set({
+      key: "kakao_access_token",
+      value: accessToken,
+    });
+    console.log('[LoginPage] 🎉 저장성공', accessToken);
 
-  const handleKakaoLogin = () => {
-    setIsLoading(true)
-    // 프론트는 단순히 이 엔드포인트로 이동만 시켜주면 됩니다.
-    window.location.href = "http://localhost:8001/api/auth/kakao"
+    // 2️⃣ 우리 서비스 백엔드에 POST 요청 (authToken 발급)
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/oauth/kakao/callback`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken,
+          // refreshToken: refreshToken  // 필요한 경우
+        }),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(`백엔드 에러 ${res.status}`);
+    }
+    const { authToken } = await res.json();
+    console.log('[LoginPage] 🔑 서비스 JWT(authToken):', authToken);
+
+    // 3️⃣ 로컬 스토리지 대신 Capacitor Preferences 에 저장
+    await Preferences.set({ key: 'AUTH_TOKEN', value: authToken });
+
+    // 4️⃣ 대시보드 페이지로 이동
+    router.replace('/dashboard');
+  } catch (e) {
+    console.error('[LoginPage] 로그인 처리 중 에러', e);
+    // TODO: 사용자에게 오류 UI 띄우기
+  } finally {
+    setIsLoading(false);
   }
+};
+  const handleLogin = async () => {
+  // 비로그인 상태로 대시보드 접근을 위해 임시 토큰 저장
+  const token = process.env.NEXT_PUBLIC_JWT // 환경변수는 NEXT_PUBLIC_ 붙여야 클라이언트 접근 가능
+  if (token) {
+    await Preferences.set({ key: 'AUTH_TOKEN', value: token });
+    router.push("/dashboard");
+  } else {
+    console.error("JWT 토큰이 존재하지 않습니다.");
+  }
+};
+
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
@@ -192,6 +275,9 @@ export default function AuthScreen() {
               카카오톡으로 로그인하기
             </>
           )}
+        </button>
+        <button onClick={handleLogin}>
+          임시 로그인
         </button>
 
         <div className="relative flex items-center justify-center">

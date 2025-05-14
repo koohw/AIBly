@@ -3,10 +3,15 @@ package com.crush.aiblackboxreview.api
 import android.graphics.Bitmap
 import android.util.Base64
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.TimeUnit
 
 class OpenAIClient {
     private val TAG = "OpenAIClient"
@@ -16,8 +21,20 @@ class OpenAIClient {
     private val baseUrl = "https://api.openai.com/"
     private val service: OpenAIService
 
+    // 타임아웃 상수
+    private val CONNECTION_TIMEOUT = 10L // 연결 타임아웃: 10초
+    private val READ_TIMEOUT = 30L       // 읽기 타임아웃: 30초
+    private val WRITE_TIMEOUT = 30L      // 쓰기 타임아웃: 30초
+    private val API_TIMEOUT = 60000L     // API 전체 타임아웃: 60초
+
     init {
-        val client = OkHttpClient.Builder().build()
+        // OkHttpClient에 타임아웃 설정 추가
+        val client = OkHttpClient.Builder()
+            .connectTimeout(CONNECTION_TIMEOUT, TimeUnit.SECONDS)
+            .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
+            .writeTimeout(WRITE_TIMEOUT, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
 
         val retrofit = Retrofit.Builder()
             .baseUrl(baseUrl)
@@ -28,18 +45,51 @@ class OpenAIClient {
         service = retrofit.create(OpenAIService::class.java)
     }
 
-    // 비트맵을 Base64로 인코딩
-    private fun bitmapToBase64(bitmap: Bitmap): String {
-        val outputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
-        val bytes = outputStream.toByteArray()
-        return Base64.encodeToString(bytes, Base64.DEFAULT)
+    // 비트맵을 Base64로 효율적으로 인코딩 (IO 디스패처로 이동)
+    private suspend fun bitmapToBase64(bitmap: Bitmap): String = withContext(Dispatchers.IO) {
+        ByteArrayOutputStream().use { outputStream ->
+            // 이미지 크기가 큰 경우 리사이징 고려
+            val resizedBitmap = if (bitmap.width > 1024 || bitmap.height > 1024) {
+                val scale = 1024f / Math.max(bitmap.width, bitmap.height)
+                val newWidth = (bitmap.width * scale).toInt()
+                val newHeight = (bitmap.height * scale).toInt()
+                Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+            } else {
+                bitmap
+            }
+            // 압축률 최적화 (70%는 적절한 값)
+            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
+
+            // 원본과 다른 경우에만 리사이징된 비트맵 해제
+            if (resizedBitmap != bitmap && !resizedBitmap.isRecycled) {
+                resizedBitmap.recycle()
+            }
+
+            val bytes = outputStream.toByteArray()
+            Base64.encodeToString(bytes, Base64.NO_WRAP) // NO_WRAP 플래그로 개행 문자 제거
+        }
     }
 
     // 이미지 분석 함수
     suspend fun analyzeTrafficAccident(frame: Bitmap): Boolean {
         return try {
-            Log.d(TAG, "API 호출 시작 - 이미지 크기: ${frame.width}x${frame.height}")
+            // 전체 API 호출 과정에 타임아웃 적용
+            withTimeout(API_TIMEOUT) {
+                executeAnalysis(frame)
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.e(TAG, "API 호출 타임아웃 발생 (${API_TIMEOUT}ms 초과)")
+            false
+        } catch (e: Exception) {
+            Log.e(TAG, "이미지 분석 과정 에러: ${e.javaClass.simpleName} - ${e.message}")
+            e.printStackTrace()
+            false
+        }
+    }
+    // 실제 API 호출 로직 분리
+    private suspend fun executeAnalysis(frame: Bitmap): Boolean {
+        try {
+            Log.d(TAG, "API 호출 준비 - 이미지 크기: ${frame.width}x${frame.height}")
 
             val base64Image = bitmapToBase64(frame)
             Log.d(TAG, "이미지 Base64 인코딩 완료 (길이: ${base64Image.length})")
@@ -49,30 +99,37 @@ class OpenAIClient {
             val request = ChatCompletionRequest(
                 model = "gpt-4.1",
                 messages = listOf(
-                    // 시스템 역할 메시지 추가
+                    // 시스템 역할 메시지
                     Message(
                         role = "system",
                         content = listOf(
                             Content(
                                 type = "text",
-                                text = "당신은 차량 블랙박스 영상에서 차대차 충돌(교통사고)을 감지하는 AI입니다. 오직 사고 발생 여부만을 true 또는 false로 판단합니다."
+                                text = "You are an AI specialized in detecting car crashes from dashcam footage. Be liberal in your detection - if you see any sign that might indicate a collision, classify it as a crash (true). Respond only with 'true' or 'false'."
                             )
                         )
                     ),
-                    // 사용자 역할 메시지 (개선된 프롬프트)
+                    // 사용자 역할 메시지
                     Message(
                         role = "user",
                         content = listOf(
                             Content(
                                 type = "text",
-                                text = "다음 영상은 차량 블랙박스 또는 제3자의 카메라로 촬영된 교통 장면입니다.\n" +
-                                        "이 영상이 **차량과 차량 사이의 충돌(교통사고)** 장면을 포함하는 경우, 다음 기준을 바탕으로 true/false로만 명확하게 판단해 주세요.\n" +
-                                        "- 충돌은 앞, 뒤, 옆, 또는 모서리 등 어떤 각도에서든 발생할 수 있습니다.\n" +
-                                        "- 근접 통과, 주행만 있는 장면은 false로 판단하세요.\n" +
-                                        "- 차량 외의 대상(사람, 자전거, 구조물 등)과의 충돌은 false로 판단하세요.\n" +
-                                        "- 제3자 관찰 시점의 영상도 포함됩니다.\n" +
-                                        "- 차대차 충돌이 명확히 시각적으로 나타나는 경우에만 true로 응답해 주세요.\n" +
-                                        "**답변은 오직 아래 중 하나로 해주세요:**\n" +
+                                text = "Analyze this dashcam frame and determine if it shows evidence of a car crash (vehicle-to-vehicle collision).\n\n" +
+                                        "Consider these as signs of a crash (respond with 'true'):\n" +
+                                        "• Any sudden camera movement, shaking, or jerking motion\n" +
+                                        "• Visible impact with another vehicle\n" +
+                                        "• Debris, broken parts, or glass on the road\n" +
+                                        "• Airbag deployment\n" +
+                                        "• Abnormal vehicle positioning or orientation\n" +
+                                        "• Sudden stops or unexpected vehicle movements\n" +
+                                        "• Any visible damage to vehicles\n\n" +
+
+                                        "IMPORTANT: Due to dashcam limitations, you may not always see the other vehicle involved in the crash. Focus on indirect evidence such as camera shake, sudden motion changes, or impact reactions.\n\n" +
+
+                                        "If you're unsure, err on the side of detecting a crash rather than missing one.\n\n" +
+
+                                        "Respond with ONLY one of these answers:\n" +
                                         "- true\n" +
                                         "- false"
                             ),
@@ -85,37 +142,56 @@ class OpenAIClient {
                 )
             )
 
-            // API 호출 시작 로그
+
             Log.d(TAG, "API 요청 생성 완료")
             val startTime = System.currentTimeMillis()
-            Log.d(TAG, "API 요청 시작 시간: $startTime")
 
+            // API 호출 부분
+            val response = withContext(Dispatchers.IO) {
+                service.analyzeImage("Bearer $apiKey", request)
+            }
+
+            val endTime = System.currentTimeMillis()
+            val elapsedTime = endTime - startTime
+            Log.d(TAG, "API 응답 완료 (소요 시간: ${elapsedTime}ms)")
+
+            // 메모리 정리 힌트
+            Runtime.getRuntime().gc()
+
+            // 응답 처리
+            val result = response.choices.firstOrNull()?.message?.content ?: "false"
+            Log.d(TAG, "OpenAI 응답: $result")
+
+            // 결과가 "true"를 포함하는지 확인
+            return result.lowercase().contains("true")
+
+        } catch (e: retrofit2.HttpException) {
+            // HTTP 에러 자세히 로깅
+            val code = e.code()
+            Log.e(TAG, "HTTP 에러 발생 (코드: $code)")
 
             try {
-                val response = service.analyzeImage("Bearer $apiKey", request)
-                val endTime = System.currentTimeMillis()
-                Log.d(TAG, "API 응답 완료 (소요 시간: ${endTime - startTime}ms)")
+                val errorBody = e.response()?.errorBody()?.string()
+                Log.e(TAG, "에러 응답 내용: $errorBody")
 
-                val result = response.choices.firstOrNull()?.message?.content ?: "false"
-                Log.d(TAG, "OpenAI 응답: $result")
-
-                result.lowercase().contains("true")
-            } catch (e: Exception) {
-                Log.e(TAG, "API 호출 실패: ${e.javaClass.simpleName} - ${e.message}")
-                if (e is retrofit2.HttpException) {
-                    Log.e(TAG, "HTTP 에러 코드: ${e.code()}")
-                    try {
-                        Log.e(TAG, "에러 응답: ${e.response()?.errorBody()?.string()}")
-                    } catch (e2: Exception) {
-                        Log.e(TAG, "에러 응답 파싱 실패")
-                    }
+                // 특정 에러 코드에 따른 처리
+                when (code) {
+                    429 -> Log.e(TAG, "비율 제한 초과 (Rate limit exceeded)")
+                    500, 502, 503, 504 -> Log.e(TAG, "서버 오류 발생")
                 }
-                throw e
+            } catch (e2: Exception) {
+                Log.e(TAG, "에러 응답 파싱 실패")
             }
+            throw e
+        } catch (e: java.net.SocketTimeoutException) {
+            Log.e(TAG, "네트워크 타임아웃 발생")
+            throw e
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "네트워크 I/O 에러 발생: ${e.message}")
+            throw e
         } catch (e: Exception) {
-            Log.e(TAG, "이미지 분석 과정 에러: ${e.javaClass.simpleName} - ${e.message}")
-            e.printStackTrace()
-            false
+            Log.e(TAG, "예상치 못한 에러 발생: ${e.javaClass.simpleName} - ${e.message}")
+            throw e
         }
     }
 }

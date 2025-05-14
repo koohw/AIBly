@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import LoadingAnimation from "./components/loading-animation"
-import AuthScreen from "./components/auth-screen"
+import LoadingAnimation from "@/components/start/loading-animation"
+import AuthScreen from "@/components/start/auth-screen"
 import { useRouter } from "next/navigation"
+import { Preferences } from '@capacitor/preferences'
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true)
@@ -24,13 +25,21 @@ export default function Home() {
   useEffect(() => {
     // 로딩이 끝난 후에만 확인
     if (!isLoading) {
-      // 예시: 로컬 스토리지에서 토큰 확인
-      const token = localStorage.getItem("auth_token")
-      if (token) {
-        setIsLoggedIn(true)
-        // 로그인된 상태면 대시보드로 리다이렉트
-        router.push("/dashboard")
-      }
+      const checkAuth = async () => {
+        try {
+          // localStorage 대신 Capacitor Preferences 사용
+          const { value: token } = await Preferences.get({ key: 'AUTH_TOKEN' });
+          if (token) {
+            setIsLoggedIn(true);
+            // 로그인된 상태면 대시보드로 리다이렉트
+            router.push('/dashboard');
+          }
+        } catch (error) {
+          console.error('[HomePage] 인증 상태 확인 오류:', error);
+        }
+      };
+      
+      checkAuth();
     }
   }, [isLoading, router])
 
