@@ -132,7 +132,7 @@ public class S3UploadServiceImpl implements S3UploadService {
                 .build();
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(5))
+                .signatureDuration(Duration.ofSeconds(expirationInSeconds)) 
                 .getObjectRequest(getObjectRequest)
                 .build();
 
