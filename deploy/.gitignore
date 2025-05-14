@@ -1,0 +1,25 @@
+# 파이썬 가상 환경
+venv/
+env/
+.env
+
+# 파이썬 캐시
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 로그 파일
+*.log
+
+# 임시 파일
+/tmp/*
+
+# 로컬 개발 관련 파일
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 시스템 파일
+.DS_Store
+Thumbs.db 
