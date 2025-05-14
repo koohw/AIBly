@@ -31,3 +31,33 @@ export async function getPresignedUrl(
     throw err;
   }
 }
+
+/** 수동 업로드 완료 알림 */
+export interface UploadNotifyManualRequest {
+  fileName: string;
+  s3Key: string;
+  contentType: string;
+  size: number;
+}
+export interface UploadNotifyManualResponse {
+  fileId: number;
+  fileType: string;
+  analysisStatus: string;
+}
+export async function notifyManualUpload(
+  params: UploadNotifyManualRequest
+): Promise<UploadNotifyManualResponse> {
+  try {
+    console.log('📫 수동 업로드 알림 요청 중...', params);
+    const res = await apiClient.post<UploadNotifyManualResponse>(
+      '/api/videos/upload-notify/manual',
+      params
+    );
+    console.log('✅ 수동 업로드 알림 성공:', res.data);
+    return res.data;
+  } catch (error) {
+    const err = error as AxiosError;
+    console.error('❌ 수동 업로드 알림 실패:', err.response?.data || err.message);
+    throw err;
+  }
+}
