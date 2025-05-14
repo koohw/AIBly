@@ -15,7 +15,7 @@ export default function KakaoCallback() {
     }
 
     // 2) fetch도 바로 이 useEffect 내부에서 처리
-    fetch(`http://localhost:8080/oauth/kakao/callback?code=${code}`)
+    fetch(`https://k12e203.p.ssafy.io/api/oauth/kakao/callback?code=${code}`)
       .then((res) => res.json())
       .then((data) => {
         localStorage.setItem("auth_token", data.token);

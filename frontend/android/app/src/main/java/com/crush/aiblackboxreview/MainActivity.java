@@ -21,6 +21,7 @@ import com.capacitorjs.plugins.browser.BrowserPlugin;
 import com.capacitorjs.plugins.app.AppPlugin;
 
 import com.crush.aiblackboxreview.services.VideoMonitoringService;
+import com.crush.aiblackboxreview.plugins.AutoDetectPlugin;
 import com.getcapacitor.BridgeActivity;
 
 import java.io.File;
@@ -32,7 +33,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import androidx.core.app.NotificationCompat;
 
-//개발때만 실서비스에선 지우기기
+//개발때만 실서비스에선 지우기
 import android.webkit.WebSettings;
 
 public class MainActivity extends BridgeActivity {
@@ -48,6 +49,9 @@ public class MainActivity extends BridgeActivity {
         this.registerPlugin(BrowserPlugin.class);
         this.registerPlugin(AppPlugin.class);
 
+        // 자동 감지 설정 플러그인 등록
+        this.registerPlugin(AutoDetectPlugin.class);
+
         // Capacitor UI 초기화 이후 권한 확인을 안전하게
         getWindow().getDecorView().post(this::checkAndRequestPermissions);
 
@@ -58,17 +62,17 @@ public class MainActivity extends BridgeActivity {
         //이부분 지워야함 개발에서만 사용
         // 개발 중에만 사용 → 출시 빌드에선 꼭 제거하세요!
         webView.getSettings().setMixedContentMode(
-            WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         );
 
         webView.setWebChromeClient(new WebChromeClient() {
-        @Override
-        public boolean onConsoleMessage(ConsoleMessage cm) {
-            Log.d(TAG, "[WebView] " + cm.message()
-                + " (" + cm.sourceId() + ":" + cm.lineNumber() + ")");
-            return super.onConsoleMessage(cm);
-        }
-    });
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage cm) {
+                Log.d(TAG, "[WebView] " + cm.message()
+                        + " (" + cm.sourceId() + ":" + cm.lineNumber() + ")");
+                return super.onConsoleMessage(cm);
+            }
+        });
 
         // 3) 앱이 처음 실행될 때 받은 Intent 데이터 로그
         Uri initData = getIntent().getData();
@@ -277,9 +281,9 @@ public class MainActivity extends BridgeActivity {
         setIntent(intent);
         Uri data = intent.getData();
         if (data != null) {
-        Log.e(TAG, "onNewIntent, 딥링크 URL: " + data.toString());
+            Log.e(TAG, "onNewIntent, 딥링크 URL: " + data.toString());
         } else {
-        Log.e(TAG, "onNewIntent, data 가 null 입니다");
+            Log.e(TAG, "onNewIntent, data 가 null 입니다");
         }
     }
 }

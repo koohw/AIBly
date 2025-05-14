@@ -4,14 +4,32 @@ project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor
 
 include ':capacitor-browser'
 project(':capacitor-browser').projectDir = new File(
-  rootProject.projectDir,
-  '../node_modules/@capacitor/browser/android'
+        rootProject.projectDir,
+        '../node_modules/@capacitor/browser/android'
 )
 
 include ':capacitor-app'
 project(':capacitor-app').projectDir = new File(
-  rootProject.projectDir,
-  '../node_modules/@capacitor/app/android'
+        rootProject.projectDir,
+        '../node_modules/@capacitor/app/android'
+)
+
+include ':capacitor-android'
+project(':capacitor-android').projectDir = new File(
+        rootProject.projectDir,
+        '../node_modules/@capacitor/android/android'
+)
+
+include ':capacitor-camera'
+project(':capacitor-camera').projectDir = new File(
+        rootProject.projectDir,
+        '../node_modules/@capacitor/camera/android'
+)
+
+include ':capawesome-capacitor-file-picker'
+project(':capawesome-capacitor-file-picker').projectDir = new File(
+        rootProject.projectDir,
+        '../node_modules/@capawesome/capacitor-file-picker/android'
 )
 
 apply from: 'capacitor.settings.gradle'

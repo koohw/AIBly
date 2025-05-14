@@ -16,13 +16,9 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+
 import java.net.URL;
 import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Service
@@ -132,6 +128,7 @@ public class S3UploadServiceImpl implements S3UploadService {
                 .build();
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+
                 .signatureDuration(Duration.ofSeconds(expirationInSeconds))
                 //.signatureDuration(Duration.ofMinutes(5))
                 .getObjectRequest(getObjectRequest)

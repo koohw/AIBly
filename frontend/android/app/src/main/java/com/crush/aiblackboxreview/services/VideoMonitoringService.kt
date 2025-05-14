@@ -18,8 +18,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 
 class VideoMonitoringService : Service() {
@@ -39,8 +37,8 @@ class VideoMonitoringService : Service() {
         override fun run() {
             Log.d(TAG, "주기적 폴더 스캔 실행")
             contentObserver.scanDirectory()
-            // 2분마다 실행 (120000ms)
-            handler.postDelayed(this, 120000)
+            // 15분마다 실행 (900000ms) - 효율성 향상을 위해 간격 증가
+            handler.postDelayed(this, 900000)
         }
     }
 
@@ -50,36 +48,45 @@ class VideoMonitoringService : Service() {
         fun getService(): VideoMonitoringService = this@VideoMonitoringService
     }
 
-    // 클래스 레벨 변수 추가
+    // 저장소 모니터링 작업
     private var storageMonitorJob: kotlinx.coroutines.Job? = null
 
-    // 시스템 저장소 상태 모니터링 추가
+    // 시스템 저장소 상태 모니터링 (간격 증가)
     private fun monitorStorageState() {
         storageMonitorJob = CoroutineScope(Dispatchers.IO).launch {
+            // 서비스 시작 시 한 번 확인
+            checkDCIMFolder()
+
+            // 이후 주기적으로 확인
             while (isActive) {
-                try {
-                    val targetPath = "/storage/emulated/0/DCIM"
-                    val directory = File(targetPath)
-
-                    if (!directory.exists() || !directory.canRead()) {
-                        Log.w(TAG, "저장소 접근 불가: $targetPath (존재: ${directory.exists()}, 읽기 가능: ${directory.canRead()})")
-
-                        // 디렉토리 생성 시도
-                        if (!directory.exists()) {
-                            val created = directory.mkdirs()
-                            Log.d(TAG, "폴더 생성 시도: $created")
-                        }
-
-                        // 권한 확인 및 요청 로직 추가 가능
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "저장소 모니터링 중 오류", e)
-                }
-
-                delay(30000) // 30초마다 확인
+                delay(15 * 60 * 1000) // 15분으로 간격 증가
+                checkDCIMFolder()
             }
         }
     }
+
+    // DCIM 폴더 확인 로직 분리
+    private fun checkDCIMFolder() {
+        try {
+            val targetPath = "/storage/emulated/0/DCIM"
+            val directory = File(targetPath)
+
+            if (!directory.exists() || !directory.canRead()) {
+                Log.w(TAG, "DCIM 폴더 접근 불가: (존재: ${directory.exists()}, 읽기 가능: ${directory.canRead()})")
+
+                // 디렉토리 생성 시도
+                if (!directory.exists()) {
+                    val created = directory.mkdirs()
+                    Log.d(TAG, "DCIM 폴더 생성 시도: $created")
+                }
+            } else {
+                Log.d(TAG, "DCIM 폴더 확인 완료: 접근 가능")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "저장소 모니터링 중 오류", e)
+        }
+    }
+
 
     override fun onCreate() {
         super.onCreate()
@@ -104,56 +111,9 @@ class VideoMonitoringService : Service() {
         )
         Log.d(TAG, "ContentObserver 등록 완료")
 
-//        // 대상 폴더 경로
-//        val targetPath = "/storage/emulated/0/DCIM"
-//
-//        // 폴더가 없으면 생성 시도
-//        val directory = File(targetPath)
-//        if (!directory.exists()) {
-//            try {
-//                val created = directory.mkdirs()
-//                Log.d(TAG, "폴더 생성 결과: $created ($targetPath)")
-//            } catch (e: Exception) {
-//                Log.e(TAG, "폴더 생성 실패: ${e.message}")
-//            }
-//        }
-//
-//        // FileObserver 등록 (Android 버전에 따라 다르게 구현)
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//            fileObserver = object : FileObserver(File(targetPath),
-//                FileObserver.CREATE or FileObserver.MOVED_TO) {
-//                override fun onEvent(event: Int, path: String?) {
-//                    handleFileEvent(event, path, targetPath)
-//                }
-//            }
-//        } else {
-//            @Suppress("DEPRECATION")
-//            fileObserver = object : FileObserver(targetPath,
-//                FileObserver.CREATE or FileObserver.MOVED_TO) {
-//                override fun onEvent(event: Int, path: String?) {
-//                    handleFileEvent(event, path, targetPath)
-//                }
-//            }
-//        }
-//
-//        fileObserver.startWatching()
-//        Log.d(TAG, "FileObserver 감시 시작됨")
-
-        // 주기적인 폴더 스캔 시작 (첫 스캔은 10초 후)
-//        handler.postDelayed({
-//            contentObserver.scanDirectory()
-//            // 이후부터 주기적 스캔
-//            handler.postDelayed(scanRunnable, 120000)
-//        }, 10000) // 10초 지연
-//
-//        Log.d(TAG, "주기적 폴더 스캔은 10초 후 시작됨")
-
         // 주기적인 폴더 스캔 시작 (필요에 따라 유지 또는 제거)
         handler.post(scanRunnable)
         Log.d(TAG, "주기적 폴더 스캔 시작됨")
-
-        // 시작 시 즉시 첫 스캔 수행 (필요에 따라 유지 또는 제거)
-        contentObserver.scanDirectory()
 
         // 포그라운드 서비스 시작
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -167,38 +127,6 @@ class VideoMonitoringService : Service() {
         monitorStorageState()
     }
 
-    private fun handleFileEvent(event: Int, path: String?, targetPath: String) {
-        if (path != null) {
-            Log.d(TAG, "FileObserver 이벤트 감지됨: 이벤트=$event, 경로=$path")
-            val fullPath = "$targetPath/$path"
-
-            // MP4 파일인지 확인
-            if (path.endsWith(".mp4", ignoreCase = true)) {
-                // 파일 존재 여부 확인
-                val file = File(fullPath)
-                if (file.exists()) {
-                    Log.d(TAG, "새 MP4 파일 감지됨 (FileObserver): ${file.absolutePath}")
-
-                    // 비디오 파일 분석 시작 - AccidentAnalyzer 사용
-                    accidentAnalyzer.analyzeVideoForAccident(file)
-
-                    // ContentObserver에서 감지하도록 미디어 스캔 요청
-                    // (해당 파일이 미디어 스토어에 등록되도록)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        // Android 10 이상에서는 미디어 스캔 방식이 다름
-                        Log.d(TAG, "미디어 스캔 요청 (Android 10+)")
-                        contentObserver.scanDirectory()
-                    } else {
-                        Log.d(TAG, "미디어 스캔 요청 (Android 9-)")
-                        val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-                        mediaScanIntent.data = Uri.fromFile(file)
-                        sendBroadcast(mediaScanIntent)
-                    }
-                }
-            }
-        }
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "서비스 onStartCommand 호출됨")
         return START_STICKY
@@ -210,15 +138,26 @@ class VideoMonitoringService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        Log.d(TAG, "서비스 onDestroy 호출됨")
+
+        // ContentObserver 해제
         contentResolver.unregisterContentObserver(contentObserver)
-        fileObserver.stopWatching()
+
         // 주기적 스캔 중지
         handler.removeCallbacks(scanRunnable)
-        // 저장소 모니터링 작업 취소 추가
+
+        // 저장소 모니터링 작업 취소
         storageMonitorJob?.cancel()
+
+        // VideoContentObserver 리소스 정리
+        if (::contentObserver.isInitialized) {
+            contentObserver.shutdown()
+        }
+
         // AccidentAnalyzer 리소스 정리
-        accidentAnalyzer.onDestroy()
-        Log.d(TAG, "서비스 onDestroy 호출됨")
+        if (::accidentAnalyzer.isInitialized) {
+            accidentAnalyzer.onDestroy()
+        }
     }
 
     private fun createNotificationChannel() {
@@ -245,7 +184,7 @@ class VideoMonitoringService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("AI블리 실행 중")
-            .setContentText("블랙박스 영상 모니터링 중입니다.")
+            .setContentText("DCIM 폴더의 MP4 영상 모니터링 중입니다.")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
             .build()

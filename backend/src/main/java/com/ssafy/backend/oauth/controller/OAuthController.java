@@ -26,6 +26,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RequiredArgsConstructor
 @Controller
+@RequestMapping("/api/oauth")
 public class OAuthController {
 
     @Qualifier("oauthKakaoService")
@@ -42,7 +43,7 @@ public class OAuthController {
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    @GetMapping("/api/auth/kakao")
+    @GetMapping("/kakao")
     public void redirectToKakao(HttpServletResponse response) throws IOException {
         String uri = UriComponentsBuilder
                 .fromHttpUrl("https://kauth.kakao.com/oauth/authorize")
@@ -54,7 +55,7 @@ public class OAuthController {
         response.sendRedirect(uri);
     }
 
-    @PostMapping("/oauth/kakao/callback")
+    @PostMapping("/kakao/callback")
     public ResponseEntity<Map<String, String>> handleCallback(
             @RequestBody Map<String, String> body   // ← JSON 바디를 읽도록
     ) {
