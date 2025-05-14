@@ -25,7 +25,12 @@ if env_file.exists():
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Deploy Service", description="S3 파일 다운로드 서비스")
+# root_path 추가 - NGINX에서 /deploy 경로로 매핑하기 위함
+app = FastAPI(
+    title="Deploy Service", 
+    description="S3 파일 다운로드 서비스", 
+    root_path="/deploy"
+)
 
 # 정적 파일 및 템플릿 설정
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -59,7 +64,8 @@ async def read_root(request: Request):
         {"request": request, "title": "배포 서비스"}
     )
 
-@app.get("/deploy", response_class=HTMLResponse)
+# /deploy 경로 제거 (root_path가 대신함)
+@app.get("/download-apk", response_class=HTMLResponse)
 async def deploy_page(request: Request):
     """develop.apk 다운로드 페이지"""
     return templates.TemplateResponse(
@@ -67,7 +73,8 @@ async def deploy_page(request: Request):
         {"request": request, "title": "APK 다운로드", "file_name": "develop.apk"}
     )
 
-@app.get("/deploy/download")
+# /deploy 경로 제거 (root_path가 대신함)
+@app.get("/download-apk/download")
 async def download_develop_apk():
     """S3 버킷에서 develop.apk 파일을 다운로드합니다"""
     try:
@@ -100,7 +107,8 @@ async def download_develop_apk():
         logger.error(f"예상치 못한 오류 발생: {e}")
         raise HTTPException(status_code=500, detail=f"서버 오류가 발생했습니다: {str(e)}")
 
-@app.get("/deploy/test", response_class=HTMLResponse)
+# /deploy 경로 제거 (root_path가 대신함)
+@app.get("/test", response_class=HTMLResponse)
 async def test_page(request: Request):
     """S3 버킷의 모든 파일 목록 페이지"""
     try:
@@ -131,7 +139,7 @@ async def test_page(request: Request):
                     "file_name": file_name,
                     "size": obj['Size'],
                     "last_modified": obj['LastModified'].isoformat(),
-                    "download_url": f"/deploy/test/download?file_name={file_name}"
+                    "download_url": f"/test/download?file_name={file_name}"
                 })
         
         return templates.TemplateResponse(
@@ -146,7 +154,8 @@ async def test_page(request: Request):
         logger.error(f"S3 파일 목록을 가져오는 중 오류 발생: {e}")
         raise HTTPException(status_code=500, detail=f"서버 오류가 발생했습니다: {str(e)}")
 
-@app.get("/deploy/test/download")
+# /deploy 경로 제거 (root_path가 대신함)
+@app.get("/test/download")
 async def download_file(file_name: str):
     """지정된 파일을 S3 버킷에서 다운로드합니다"""
     try:
@@ -184,4 +193,5 @@ async def download_file(file_name: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True) 
+    # OpenAPI 문서가 root_path를 인식하도록 설정
+    uvicorn.run("main:app", host="0.0.0.0", port=8003, root_path="/deploy", reload=True) 
