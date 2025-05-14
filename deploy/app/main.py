@@ -139,7 +139,7 @@ async def test_page(request: Request):
                     "file_name": file_name,
                     "size": obj['Size'],
                     "last_modified": obj['LastModified'].isoformat(),
-                    "download_url": f"/files/download?file_name={file_name}"
+                    "download_url": f"/deploy/files/download?file_name={file_name}"
                 })
         
         return templates.TemplateResponse(

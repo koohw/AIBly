@@ -19,24 +19,24 @@
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="fs-4 m-0">
-                    <a href="/" class="text-white text-decoration-none">
+                    <a href="/deploy" class="text-white text-decoration-none">
                         <i class="fas fa-cloud-download-alt me-2"></i>배포 서비스
                     </a>
                 </h1>
                 <nav>
                     <ul class="nav">
                         <li class="nav-item">
-                            <a href="/" class="nav-link text-white">
+                            <a href="/deploy" class="nav-link text-white">
                                 <i class="fas fa-home me-1"></i> 홈
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="/apk-download" class="nav-link text-white">
+                            <a href="/deploy/apk-download" class="nav-link text-white">
                                 <i class="fas fa-download me-1"></i> APK 다운로드
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="/files" class="nav-link text-white">
+                            <a href="/deploy/files" class="nav-link text-white">
                                 <i class="fas fa-list me-1"></i> 모든 파일
                             </a>
                         </li>
@@ -62,17 +62,17 @@
                 <div class="col-md-6 text-center text-md-end mt-3 mt-md-0">
                     <ul class="list-inline m-0">
                         <li class="list-inline-item">
-                            <a href="/" class="text-white text-decoration-none">
+                            <a href="/deploy" class="text-white text-decoration-none">
                                 <i class="fas fa-home"></i>
                             </a>
                         </li>
                         <li class="list-inline-item ms-3">
-                            <a href="/apk-download" class="text-white text-decoration-none">
+                            <a href="/deploy/apk-download" class="text-white text-decoration-none">
                                 <i class="fas fa-download"></i>
                             </a>
                         </li>
                         <li class="list-inline-item ms-3">
-                            <a href="/files" class="text-white text-decoration-none">
+                            <a href="/deploy/files" class="text-white text-decoration-none">
                                 <i class="fas fa-list"></i>
                             </a>
                         </li>
@@ -97,7 +97,7 @@
             });
             
             // 다운로드 버튼에 로딩 효과 추가
-            const downloadBtns = document.querySelectorAll('a[href^="/apk-download/download"], a[href^="/files/download"]');
+            const downloadBtns = document.querySelectorAll('a[href^="/deploy/apk-download/download"], a[href^="/deploy/files/download"]');
             downloadBtns.forEach(btn => {
                 btn.addEventListener('click', function() {
                     const originalText = this.innerHTML;
