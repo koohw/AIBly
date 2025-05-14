@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Upload, Play, ImageIcon } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { FilePicker } from '@capawesome/capacitor-file-picker'
-import { getPresignedUrl, PresignedUrlResponse } from "@/lib/api/Video"
+import { getPresignedUrl, PresignedUrlResponse, notifyManualUpload } from "@/lib/api/Video"
 import type { AxiosError } from "axios"
 
 interface VideoSelectProps {
@@ -105,6 +105,16 @@ export default function VideoSelect({
       // 2) S3 업로드
       await uploadToS3(presignedUrl, selectedFile, setUploadProgress)
       setIsUploading(false)
+
+       // 3) DB 수동 업로드 알림
+      console.log('📫 DB 수동 업로드 알림 요청 중...')
+      await notifyManualUpload({
+        fileName: selectedFile.name,
+        s3Key,
+        contentType: selectedFile.type,
+        size: selectedFile.size,
+      })
+      console.log('✅ DB 알림 완료, 분석 준비 중')
 
       
       // 3) AI 분석 트리거
