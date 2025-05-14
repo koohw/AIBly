@@ -1,11 +1,9 @@
 package com.ssafy.backend.report.controller;
 
 import com.ssafy.backend.common.controller.BaseController;
-import com.ssafy.backend.config.JwtTokenProvider;
 import com.ssafy.backend.report.dto.response.ReportDetailResponseDto;
 import com.ssafy.backend.report.dto.response.ReportListResponseDto;
 import com.ssafy.backend.report.service.ReportService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

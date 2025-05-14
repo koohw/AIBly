@@ -62,7 +62,7 @@ public class Report {
     @Enumerated(EnumType.STRING)
     private AnalysisStatus analysisStatus;
 
-    @Builder
+    //@Builder
     public Report(VideoFile videoFile, String title, String accidentCode,
                   String accidentType, String carA, String carB,
                   String mainEvidence, String laws, String decisions,

@@ -1,9 +1,11 @@
 package com.ssafy.backend.s3.controller;
 
+import com.ssafy.backend.common.controller.BaseController;
 import com.ssafy.backend.s3.dto.request.PresignedUrlRequestDto;
 import com.ssafy.backend.s3.dto.response.PresignedUrlResponseDto;
 import com.ssafy.backend.s3.dto.request.PresignedDownloadRequestDto;
 import com.ssafy.backend.s3.service.S3UploadService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/s3")
 @RequiredArgsConstructor
-public class S3Controller {
+public class S3Controller extends BaseController {
 
 //    private final JWTUtil jwtUtil;
 
@@ -30,24 +32,25 @@ public class S3Controller {
     // jwt 관련 기능이 없어서 임시로 userId를 1로 진행함.
     @PostMapping("/downloadURL")
     public ResponseEntity<?> getDownloadURL(
-            @RequestHeader String accessToken,
-            @RequestBody PresignedDownloadRequestDto request
+            HttpServletRequest request,
+            @RequestBody PresignedDownloadRequestDto dto
     ) {
-//        Long userId = jwt.Util.getUserId(accessToken);
-        Long userId = 1L;
-        String url = s3UploadService.getDownloadURL(userId, request.getS3Key());
+
+        Long userId = getCurrentUserId(request);
+        String url = s3UploadService.getDownloadURL(userId, dto.getS3Key());
         return ResponseEntity.ok(url);
     }
 
     // S3에 업로드된 파일을 삭제
     @PostMapping("/deleteFile")
     public ResponseEntity<?> deleteFile(
-            @RequestHeader String accessToken,
-            @RequestBody PresignedDownloadRequestDto request
+            HttpServletRequest request,
+            //@RequestHeader String accessToken,
+            @RequestBody PresignedDownloadRequestDto dto
     ){
-//        Long userId = jwt.Util.getUserId(accessToken);
-        Long userId = 1L;
-        s3UploadService.deleteS3File(userId, request.getS3Key());
+
+        Long userId = getCurrentUserId(request);
+        s3UploadService.deleteS3File(userId, dto.getS3Key());
         return ResponseEntity.noContent().build();
     }
 }

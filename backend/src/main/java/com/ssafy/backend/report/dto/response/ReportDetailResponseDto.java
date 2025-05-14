@@ -19,6 +19,7 @@ public class ReportDetailResponseDto {
     private String decisions;
     private String createdAt;
     private String pdfKey;
+    private Long fileId;
 
 
     public static ReportDetailResponseDto from(Report report) {
@@ -32,7 +33,8 @@ public class ReportDetailResponseDto {
                 report.getLaws(),
                 report.getDecisions(),
                 report.getCreatedAt().toString(),
-                report.getPdfKey()
+                report.getPdfKey(),
+                report.getVideoFile() != null ? report.getVideoFile().getId() : null  // Lazy 접근 안전화
         );
     }
 }

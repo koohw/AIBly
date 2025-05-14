@@ -67,7 +67,6 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
     implementation project(path: ':capacitor-browser')
     implementation project(path: ':capacitor-app')
-
      // Firebase BoM (버전 관리 편리)
     implementation platform('com.google.firebase:firebase-bom:33.13.0')
 

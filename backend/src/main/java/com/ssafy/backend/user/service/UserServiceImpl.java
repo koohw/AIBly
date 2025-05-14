@@ -21,7 +21,8 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(userId);
     }
 
-    //fcm
+    //FE가 호출하는 게 아니라 BE 내부 서비스에서만 사용
+    //AI 콜백 처리 중에서 videoId 기준으로 user → FCM Token 조회
     @Override
     public String getUserFcmTokenByVideoId(Long videoId) {
         VideoFile videoFile = videoFileRepository.findById(videoId)
@@ -34,6 +35,16 @@ public class UserServiceImpl implements UserService {
 
         return user.getFcmToken();
     }
+
+    //FE(앱) → BE에게 내 FCM 토큰을 등록하기 위한 API
+    @Override
+    public void updateUserFcmToken(Long userId, String fcmToken) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        user.setFcmToken(fcmToken);
+        userRepository.save(user);
+    }
+
 
 
 }

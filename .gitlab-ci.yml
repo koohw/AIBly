@@ -36,3 +36,15 @@ be-file-check:
         - backend/**/*
       exists:
         - backend/Dockerfile
+
+
+deploy-file-check:
+  stage: file-check
+  trigger:
+    include: deploy/.gitlab-deploy-ci.yml
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - deploy/**/*
+      exists:
+        - deploy/Dockerfile

@@ -54,6 +54,7 @@ export default function UploadPage() {
       return () => URL.revokeObjectURL(objectUrl)
     }
   }
+  
 
   const handleUpload = async () => {
     if (!selectedFile) return
