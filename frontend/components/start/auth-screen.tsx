@@ -181,6 +181,17 @@ export default function AuthScreen() {
     setIsLoading(false);
   }
 };
+  const handleLogin = async () => {
+  // 비로그인 상태로 대시보드 접근을 위해 임시 토큰 저장
+  const token = process.env.NEXT_PUBLIC_JWT // 환경변수는 NEXT_PUBLIC_ 붙여야 클라이언트 접근 가능
+  if (token) {
+    await Preferences.set({ key: 'AUTH_TOKEN', value: token });
+    router.push("/dashboard");
+  } else {
+    console.error("JWT 토큰이 존재하지 않습니다.");
+  }
+};
+
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
@@ -264,6 +275,9 @@ export default function AuthScreen() {
               카카오톡으로 로그인하기
             </>
           )}
+        </button>
+        <button onClick={handleLogin}>
+          임시 로그인
         </button>
 
         <div className="relative flex items-center justify-center">

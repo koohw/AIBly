@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.crush.aiblackboxreview.MainActivity
 import com.crush.aiblackboxreview.R
 import com.crush.aiblackboxreview.api.OpenAIClient
+import com.crush.aiblackboxreview.managers.UploadManager
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileInputStream
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class AccidentAnalyzer(private val context: Context) {
     private val TAG = "AccidentAnalyzer"
     private val openAIClient = OpenAIClient()
+    private val uploadManager = UploadManager(context)
 
     // 작업 큐 추가
     private val videoQueue = ConcurrentLinkedQueue<File>()
@@ -189,6 +191,7 @@ class AccidentAnalyzer(private val context: Context) {
                         withContext(Dispatchers.Main) {
                             sendAccidentNotification(videoFile)
                         }
+                        handleAnalysisResult(true, videoFile)
                         break
                     }
                 } catch (e: Exception) {
@@ -220,6 +223,9 @@ class AccidentAnalyzer(private val context: Context) {
                             withContext(Dispatchers.Main) {
                                 sendAccidentNotification(videoFile)
                             }
+
+                            handleAnalysisResult(true, videoFile)
+
                             break
                         }
                     } catch (e: Exception) {
@@ -505,6 +511,30 @@ class AccidentAnalyzer(private val context: Context) {
         // 알림 표시 (ID를 다르게 해서 기존 알림과 겹치지 않게)
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(2001, builder.build())
+    }
+
+    /**
+     * OpenAI API 분석 결과 처리 메서드
+     * 사고로 판단된 경우 UploadManager를 통해 영상 업로드 처리
+     *
+     * @param isAccident 사고 여부 (true: 사고, false: 정상)
+     * @param videoFile 분석된 영상 파일
+     */
+    private fun handleAnalysisResult(isAccident: Boolean, videoFile: File) {
+        // 분석 결과 로그 출력
+        Log.d(TAG, "사고 여부: $isAccident")
+
+        // 사고로 판단된 경우 업로드 처리
+        if (isAccident) {
+            Log.d(TAG, "사고 영상 감지됨, 업로드 시작: ${videoFile.name}")
+            uploadManager.handleAccidentVideo(videoFile)
+        } else {
+            Log.d(TAG, "정상 영상으로 판단됨, 업로드 없음: ${videoFile.name}")
+        }
+    }
+
+    companion object {
+        private const val TAG = "AccidentAnalyzer"  // 로그 태그
     }
 
     // 클래스 리소스 정리
