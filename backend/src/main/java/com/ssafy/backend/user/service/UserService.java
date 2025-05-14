@@ -8,4 +8,8 @@ public interface UserService {
 
     // videoId 기준 FCM 토큰 조회
     String getUserFcmTokenByVideoId(Long videoId);
+
+    //fcm 토큰
+    void updateUserFcmToken(Long userId, String fcmToken);
+
 }
