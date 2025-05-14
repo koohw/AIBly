@@ -1,5 +1,6 @@
 package com.ssafy.backend.domain.report;
 
+import com.ssafy.backend.domain.file.AnalysisStatus;
 import com.ssafy.backend.domain.video.VideoFile;
 import jakarta.persistence.*;
 import lombok.*;
@@ -56,11 +57,16 @@ public class Report {
     @Column(length = 500)
     private String pdfKey;
 
+    //사용자에게 보여줄 Report 생성/분석 상태 (ANALYZING, COMPLETED, FAILED)
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private AnalysisStatus analysisStatus;
+
     @Builder
     public Report(VideoFile videoFile, String title, String accidentCode,
                   String accidentType, String carA, String carB,
                   String mainEvidence, String laws, String decisions,
-                  LocalDateTime createdAt) {
+                  LocalDateTime createdAt, AnalysisStatus analysisStatus) {
         this.videoFile = videoFile;
         this.title = title;
         this.accidentCode = accidentCode;
@@ -71,10 +77,16 @@ public class Report {
         this.laws = laws;
         this.decisions = decisions;
         this.createdAt = createdAt;
+        this.analysisStatus = analysisStatus;
     }
 
+    //초기상태 지정
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+        if (this.analysisStatus == null) {
+            this.analysisStatus = AnalysisStatus.ANALYZING;
+        }
     }
+
 }

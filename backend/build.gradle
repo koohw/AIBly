@@ -91,6 +91,11 @@ dependencies {
 	implementation 'com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10'
     /* HTML을 PDF로 변환 END */
 
+	/* FCM v1 서비스 START */
+	implementation 'com.google.auth:google-auth-library-oauth2-http:1.17.0'
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	/* FCM v1 서비스 END */
+
 	/* Testing START */
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'

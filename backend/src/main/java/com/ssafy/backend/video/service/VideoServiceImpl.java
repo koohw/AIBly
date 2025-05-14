@@ -71,4 +71,13 @@ public class VideoServiceImpl implements VideoService {
         }
         return FileType.PDF;
     }
+
+    //파일 업로드에 따른 fcm, polling 처리 다름
+    @Override
+    public UploadType getUploadType(Long videoId) {
+        VideoFile videoFile = videoFileRepository.findById(videoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.VIDEO_NOT_FOUND));
+        return videoFile.getUploadType();
+    }
+
 }

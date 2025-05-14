@@ -30,9 +30,8 @@ public class VideoController extends BaseController {
     ) {
         //Long userId = 1L; // 임시 사용자
         Long userId = getCurrentUserId(httpRequest); // ✔ BaseController 메서드 사용
-        UploadType uploadType = UploadType.AUTO;
+        UploadNotifyResponseDto response = videoService.registerUploadedVideo(request, userId, UploadType.AUTO); //업로드 타입에 따라 자동은 fcm발송, 수동은 앱에서 polling처리
 
-        UploadNotifyResponseDto response = videoService.registerUploadedVideo(request, userId, uploadType);
         return ResponseEntity.ok(response);
     }
 
@@ -43,9 +42,8 @@ public class VideoController extends BaseController {
             HttpServletRequest httpRequest
     ) {
         Long userId = getCurrentUserId(httpRequest);
-        UploadType uploadType = UploadType.MANUAL;
+        UploadNotifyResponseDto response = videoService.registerUploadedVideo(request, userId, UploadType.MANUAL);
 
-        UploadNotifyResponseDto response = videoService.registerUploadedVideo(request, userId, uploadType);
         return ResponseEntity.ok(response);
     }
 }

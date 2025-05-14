@@ -26,7 +26,7 @@ public class AiAnalysisService {
     private final AccidentDefinitionLoader accidentDefinitionLoader;
 
     @Transactional
-    public void handleAiCallback(JsonNode json, Long videoId) {
+    public Long handleAiCallback(JsonNode json, Long videoId) {
         VideoFile videoFile = videoFileRepository.findById(videoId)
                 .orElseThrow(() -> new IllegalArgumentException("VideoFile not found"));
 
@@ -52,6 +52,7 @@ public class AiAnalysisService {
         reportRepository.save(report);
 
         videoFile.setAnalysisStatus(AnalysisStatus.COMPLETED);
+        return report.getId();
     }
 
     private String formatTimelineLog(JsonNode json) {

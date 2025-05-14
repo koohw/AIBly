@@ -32,5 +32,9 @@ public class User {
     @Column(nullable = false)
     private String providerId; // 카카오 user id
 
+    // FCM 토큰 추가
+    @Column(name = "fcm_token")
+    private String fcmToken;
+
 }
 

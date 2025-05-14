@@ -12,5 +12,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     void deleteByIdAndVideoFileUserId(Long reportId, Long userId); //보고서 삭제
 
+    //fcm, polling 관련
+    Optional<Report> findByVideoFileId(Long videoId);
+
 }
 //변수명 다르게 만들면 JPA가 인식하지 못해서 @Query 명시 필요
