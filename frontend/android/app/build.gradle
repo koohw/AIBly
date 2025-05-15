@@ -76,10 +76,16 @@ dependencies {
     // OkHttp - HTTP 클라이언트 라이브러리 (S3 업로드 등에 사용)
     implementation 'com.squareup.okhttp3:logging-interceptor:4.10.0'  // 로깅 인터셉터 (디버깅용)
 
-
+//    // Firebase 메시징
+//    implementation 'com.google.firebase:firebase-messaging:23.4.0'
+//
+//    // (선택사항) Firebase 분석
+//    implementation 'com.google.firebase:firebase-analytics:21.5.0'
 }
 
 apply from: 'capacitor.build.gradle'
+//apply plugin: 'com.google.gms.google-services'
+
 
 try {
     def servicesJSON = file('google-services.json')

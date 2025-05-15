@@ -3,6 +3,9 @@ package com.crush.aiblackboxreview.api
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.GET
+import retrofit2.http.Path
+
 
 /**
  * 백엔드 서버 API와의 통신을 위한 Retrofit 인터페이스
@@ -27,6 +30,9 @@ interface BackendApiService {
      */
     @POST("api/videos/upload-notify/auto")
     suspend fun notifyUploadComplete(@Body request: UploadCompleteRequest): Response<UploadCompleteResponse>
+
+    @GET("api/reports/{reportId}")
+    suspend fun getReportDetails(@Path("reportId") reportId: String): Response<ReportResponse>
 
 }
 
@@ -76,4 +82,14 @@ data class UploadCompleteResponse(
     val fileId: Int? = null,
     val fileType: String? = null,
     val analysisStatus: String? = null
+)
+
+// 보고서 응답 모델 (같은 파일 내에 추가)
+data class ReportResponse(
+    val reportId: String,
+    val videoId: String,
+    val accidentDate: String,
+    val severity: String,
+    val description: String,
+    // 기타 필요한 필드
 )
