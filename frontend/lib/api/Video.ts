@@ -40,7 +40,8 @@ export interface UploadNotifyManualRequest {
   size: number;
 }
 export interface UploadNotifyManualResponse {
-  fileId: number;
+  /** 백엔드가 반환하는 ID 키가 videoId 입니다 */
+  videoId: number;
   fileType: string;
   analysisStatus: string;
 }
@@ -58,6 +59,28 @@ export async function notifyManualUpload(
   } catch (error) {
     const err = error as AxiosError;
     console.error('❌ 수동 업로드 알림 실패:', err.response?.data || err.message);
+    throw err;
+  }
+}
+  // 영상 분석 상태 Polling API
+// GET /api/internal/polling/{videoId}/status
+export interface PollingStatusResponse {
+  status: string;
+  reportId: number;
+}
+export async function pollVideoStatus(
+  videoId: string
+): Promise<PollingStatusResponse> {
+  try {
+    console.log(`🔄 Polling 상태 요청: videoId=${videoId}`);
+    const res = await apiClient.get<PollingStatusResponse>(
+      `/api/internal/polling/${videoId}/status`
+    );
+    console.log('✅ Polling 상태 응답:', res.data);
+    return res.data;
+  } catch (error) {
+    const err = error as AxiosError;
+    console.error('❌ Polling 상태 조회 실패:', err.response?.data || err.message);
     throw err;
   }
 }
