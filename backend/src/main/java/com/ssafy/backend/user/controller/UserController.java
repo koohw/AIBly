@@ -1,6 +1,7 @@
 package com.ssafy.backend.user.controller;
 
 import com.ssafy.backend.common.controller.BaseController;
+import com.ssafy.backend.config.CustomUserDetails;
 import com.ssafy.backend.user.dto.response.UserInfoDto;
 import com.ssafy.backend.config.JwtTokenProvider;
 import com.ssafy.backend.user.dto.response.request.FcmTokenRequestDto;
@@ -10,6 +11,7 @@ import com.ssafy.backend.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -57,10 +59,10 @@ public class UserController extends BaseController {
     //FE가 로그인 후 → BE에 FCM 토큰을 등록할 수 있는 API
     @PostMapping("/fcm-token")
     public ResponseEntity<Void> registerFcmToken(@RequestBody FcmTokenRequestDto requestDto,
-                                                 HttpServletRequest httpRequest) {
-        Long userId = getCurrentUserId(httpRequest); // ✔ BaseController 있으면 여기서 가져오기
-        userService.updateUserFcmToken(userId, requestDto.getFcmToken());
+                                                 @AuthenticationPrincipal CustomUserDetails user) {
+        userService.updateUserFcmToken(user.getUserId(), requestDto.getFcmToken());
         return ResponseEntity.ok().build();
     }
+
 
 }

@@ -98,6 +98,16 @@ public class JwtTokenProvider {
         }
         throw new IllegalArgumentException("토큰에 userId 클레임이 없습니다.");
     }
+
+    //JWT 파싱 중복 제거
+    public Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
 }
 
 

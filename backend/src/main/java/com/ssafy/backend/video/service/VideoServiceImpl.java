@@ -57,7 +57,7 @@ public class VideoServiceImpl implements VideoService {
 
         //AI 분석 요청
         if (fileType == FileType.VIDEO) {
-            aiService.requestAnalysis(file);
+            aiService.requestAndHandleAnalysis(file);
         }
 
         // 5. 저장된 정보를 응답 DTO로 반환

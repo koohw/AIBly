@@ -1,5 +1,6 @@
 package com.ssafy.backend.ai.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.ssafy.backend.ai.dto.request.AiRequestDto;
 import com.ssafy.backend.domain.video.VideoFile;
 import com.ssafy.backend.s3.service.S3UploadService;
@@ -19,13 +20,13 @@ import org.springframework.web.client.RestTemplate;
 public class AiService {
 
     private final RestTemplate restTemplate;
-    private final S3UploadService s3UploadService; // presigned URL 생성용
+    private final S3UploadService s3UploadService;
+    private final AiAnalysisService aiAnalysisService;
 
     @Value("${ai.server.url}")
     private String aiServerUrl;
 
-    public void requestAnalysis(VideoFile videoFile) {
-        // presigned URL 생성
+    public void requestAndHandleAnalysis(VideoFile videoFile) {
         String presignedUrl = s3UploadService.generatePresignedUrl(videoFile.getS3Key(), videoFile.getContentType());
 
         AiRequestDto requestDto = new AiRequestDto(
@@ -33,21 +34,21 @@ public class AiService {
                 videoFile.getId(),
                 presignedUrl,
                 videoFile.getFileName()
-        ); //아이디, URL, 파일명 담아서 요청
+        );
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON); //ai서버에 json 형태로 보내기 위해 헤더 설정
-
-        //엔티티를 만듦. 이게 RestTemplate의 실제 요청 단위
-        HttpEntity<AiRequestDto> requestEntity = new HttpEntity<>(requestDto, headers);
-
-        //AI 서버에 POST 요청 전송,분석이 끝나면 나중에 콜백 URL(/ai-callback)로 결과를 보내기때문에 응답 바디가 필요없음.
         try {
-            ResponseEntity<Void> response = restTemplate.postForEntity(aiServerUrl, requestEntity, Void.class);
-            log.info("AI 분석 요청 성공. videoId = {}", videoFile.getId());
+            JsonNode aiResponse = restTemplate.postForObject(aiServerUrl + "/analyze-test", requestDto, JsonNode.class);
+            log.info("AI 서버 응답 수신 완료: videoId={}", videoFile.getId());
+
+            aiAnalysisService.handleAiCallback(aiResponse, videoFile.getId());
+
         } catch (Exception e) {
-            log.error("AI 분석 요청 실패. videoId = {}, error = {}", videoFile.getId(), e.getMessage());
+            log.error("AI 분석 요청 또는 처리 실패: videoId={}, error={}", videoFile.getId(), e.getMessage(), e);
+            throw new RuntimeException("AI 서버 호출 또는 처리 실패", e);
         }
     }
 }
+
+
 //백엔드가 AI 서버에 분석 요청을 전송
+//순환참조 없이 리팩토링하기->AI 호출 + AiAnalysisService 호출만

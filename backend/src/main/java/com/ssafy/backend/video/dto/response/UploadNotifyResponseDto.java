@@ -8,7 +8,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class UploadNotifyResponseDto {
-    private Long fileId; //저장된 VideoFile ID
+    private Long videoId; //저장된 VideoFile ID
     private FileType fileType; //VIDEO, PDF
     private AnalysisStatus analysisStatus; //ANALYZING, COMPLETED, FAILED
 }
