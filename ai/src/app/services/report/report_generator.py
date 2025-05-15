@@ -1,10 +1,14 @@
 from ...models.response_models import AnalysisResponse, TimelineEvent
 from typing import Dict
+import logging
+
+logger = logging.getLogger(__name__)
 
 def generate_report(output: Dict) -> AnalysisResponse:
     final_report_data = output.get("final_report", {})
     final_report = final_report_data.get("final_report", {})
-    
+    logger.info(f"final_report: {final_report}")
+    logger.info(f"accident_type: {final_report_data.get('accident_type', '없음')}")
     # 타임라인 이벤트 변환
     timeline_events = []
     for event_data in final_report.get("event_timeline", []):

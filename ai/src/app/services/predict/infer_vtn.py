@@ -1,12 +1,11 @@
 import torch
 import os
 import pickle
-import json
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from ...config import Config
 
-
 def infer_vtn(result_data):
+
     """
     VTN 모델을 사용하여 사고 유형을 추론합니다.
     """

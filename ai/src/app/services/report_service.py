@@ -122,7 +122,6 @@ class ReportService:
             vtn_input = generate_vtn_input.generate_vtn_input(result)
             result["vtn_input"] = vtn_input
         except Exception as e:
-            logger.error(f"VTN 입력 생성 오류: {str(e)}")
             raise HTTPException(status_code=500, detail=f"VTN 입력 생성 중 오류 발생: {str(e)}")
         logger.info(f"VTN 입력 생성 완료")
 
