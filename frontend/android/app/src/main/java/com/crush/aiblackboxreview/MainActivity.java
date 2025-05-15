@@ -3,6 +3,8 @@ package com.crush.aiblackboxreview;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.SharedPreferences;
+import android.content.Context;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -27,7 +29,9 @@ import com.capacitorjs.plugins.app.AppPlugin;
 
 import com.crush.aiblackboxreview.services.VideoMonitoringService;
 import com.crush.aiblackboxreview.plugins.AutoDetectPlugin;
+import com.crush.aiblackboxreview.plugins.FcmTokenPlugin;
 import com.crush.aiblackboxreview.notifications.ReportNotificationManager;
+
 import com.getcapacitor.BridgeActivity;
 
 import java.io.File;
@@ -38,6 +42,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import androidx.core.app.NotificationCompat;
+
+import com.google.firebase.messaging.FirebaseMessaging;
 
 //개발때만 실서비스에선 지우기
 import android.webkit.WebSettings;
@@ -57,6 +63,11 @@ public class MainActivity extends BridgeActivity {
 
         // 자동 감지 설정 플러그인 등록
         this.registerPlugin(AutoDetectPlugin.class);
+
+        // FCM 토큰 플러그인 등록 (이 줄을 추가)
+        this.registerPlugin(FcmTokenPlugin.class);
+
+        setupFcmTokenTest();
 
         // Capacitor UI 초기화 이후 권한 확인을 안전하게
         getWindow().getDecorView().post(this::checkAndRequestPermissions);
@@ -315,6 +326,80 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    /**
+     * FCM 토큰 등록을 테스트하기 위한 버튼을 추가하는 메서드
+     */
+    private void setupFcmTokenTest() {
+        // 테스트 버튼 생성
+        Button testButton = new Button(this);
+        testButton.setText("FCM 토큰 등록 테스트");
+
+        // 버튼 레이아웃 설정
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        layoutParams.gravity = Gravity.CENTER;
+        layoutParams.setMargins(0, 150, 0, 0);
+        testButton.setLayoutParams(layoutParams);
+
+        // 클릭 이벤트 설정
+        testButton.setOnClickListener(v -> {
+            Toast.makeText(this, "FCM 토큰 테스트 시작...", Toast.LENGTH_SHORT).show();
+            testFcmTokenWithManager();
+        });
+
+        // 기존 UI에 버튼 추가
+        try {
+            ViewGroup rootView = (ViewGroup) ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+            if (rootView != null) {
+                rootView.addView(testButton);
+                Log.d(TAG, "FCM 토큰 테스트 버튼이 추가되었습니다.");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "테스트 버튼 추가 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * FcmTokenManager를 사용하여 FCM 토큰 등록을 테스트합니다.
+     */
+    private void testFcmTokenWithManager() {
+        Log.d(TAG, "FCM 토큰 테스트 시작 (FcmTokenManager 사용)");
+
+        // 1. 임시 JWT 토큰 저장 (FcmTokenManager가 사용할 수 있도록)
+        String jwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrYWthbzo0MjUxNzkzNzA2IiwidXNlcklkIjoxMSwiaWF0IjoxNzQ3Mjg5NzkwLCJleHAiOjE3NDczNzYxOTB9.FJ8gEd7DF1mqB4KpzgavwJzLt7vdha4ni1yugowe8JU";
+        SharedPreferences authPref = getSharedPreferences("auth_prefs", MODE_PRIVATE);
+        authPref.edit().putString("auth_token", jwtToken).apply();
+
+        // 2. FCM 토큰 요청
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        Log.e(TAG, "FCM 토큰 요청 실패", task.getException());
+                        Toast.makeText(this, "FCM 토큰 요청 실패", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // FCM 토큰 획득 성공
+                    String fcmToken = task.getResult();
+                    Log.d(TAG, "FCM 토큰 획득 성공: " + fcmToken.substring(0, 20) + "...");
+                    Toast.makeText(this, "FCM 토큰 획득 성공", Toast.LENGTH_SHORT).show();
+                    Log.d("AUTH_TOKEN", fcmToken);
+                    // 3. FcmTokenManager를 사용하여 토큰 등록
+                    try {
+                        com.crush.aiblackboxreview.managers.FcmTokenManager manager =
+                                new com.crush.aiblackboxreview.managers.FcmTokenManager(this);
+                        manager.registerTokenToServer(fcmToken);
+                        Log.d(TAG, "FcmTokenManager를 통한 등록 요청 완료");
+                        Toast.makeText(this, "FCM 토큰 등록 요청 완료", Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        Log.e(TAG, "FCM 토큰 등록 요청 실패", e);
+                        Toast.makeText(this, "FCM 토큰 등록 요청 실패: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
 
     @Override
     protected void onNewIntent(Intent intent) {
