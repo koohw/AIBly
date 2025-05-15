@@ -115,23 +115,25 @@ class OpenAIClient {
                         content = listOf(
                             Content(
                                 type = "text",
-                                text = "Analyze this dashcam frame and determine if it shows evidence of a car crash (vehicle-to-vehicle collision).\n\n" +
-                                        "Consider these as signs of a crash (respond with 'true'):\n" +
-                                        "• Any sudden camera movement, shaking, or jerking motion\n" +
-                                        "• Visible impact with another vehicle\n" +
-                                        "• Debris, broken parts, or glass on the road\n" +
-                                        "• Airbag deployment\n" +
-                                        "• Abnormal vehicle positioning or orientation\n" +
-                                        "• Sudden stops or unexpected vehicle movements\n" +
-                                        "• Any visible damage to vehicles\n\n" +
+                                text = """
+Analyze this dashcam frame and determine if it shows evidence of a vehicle-to-vehicle crash.
 
-                                        "IMPORTANT: Due to dashcam limitations, you may not always see the other vehicle involved in the crash. Focus on indirect evidence such as camera shake, sudden motion changes, or impact reactions.\n\n" +
+This frame is taken from near the end of a 10-second dashcam video.
 
-                                        "If you're unsure, err on the side of detecting a crash rather than missing one.\n\n" +
+Return "true" if you see:
+- Any signs of impact, camera shake, or abnormal movement
+- Reactionary motion from the vehicle (e.g., sudden lurching or angle change)
+- Signs of collision even without seeing the other vehicle (especially from the side or rear)
+- Obscured view due to potential impact
 
-                                        "Respond with ONLY one of these answers:\n" +
-                                        "- true\n" +
-                                        "- false"
+Return "false" only if the image clearly shows normal, uninterrupted driving with no anomalies.
+
+IMPORTANT: If uncertain, lean towards saying "true". It’s better to detect a possible crash than to miss one.
+
+Respond only with:
+- true
+- false
+""".trimIndent()
                             ),
                             Content(
                                 type = "image_url",
@@ -139,6 +141,7 @@ class OpenAIClient {
                             )
                         )
                     )
+
                 )
             )
 

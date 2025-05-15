@@ -31,7 +31,7 @@ object BackendApiClient {
      */
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)  // 연결 타임아웃
-        .readTimeout(30, TimeUnit.SECONDS)     // 읽기 타임아웃
+        .readTimeout(2, TimeUnit.MINUTES)     // 읽기 타임아웃
         .writeTimeout(90, TimeUnit.SECONDS)    // 쓰기 타임아웃 (업로드에 더 많은 시간 필요)
         .addInterceptor(authInterceptor)
         .build()

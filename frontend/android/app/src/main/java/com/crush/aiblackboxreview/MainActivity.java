@@ -14,6 +14,11 @@ import android.webkit.ConsoleMessage;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -22,6 +27,7 @@ import com.capacitorjs.plugins.app.AppPlugin;
 
 import com.crush.aiblackboxreview.services.VideoMonitoringService;
 import com.crush.aiblackboxreview.plugins.AutoDetectPlugin;
+import com.crush.aiblackboxreview.notifications.ReportNotificationManager;
 import com.getcapacitor.BridgeActivity;
 
 import java.io.File;
@@ -77,22 +83,16 @@ public class MainActivity extends BridgeActivity {
         // 3) 앱이 처음 실행될 때 받은 Intent 데이터 로그
         Uri initData = getIntent().getData();
         Log.e(TAG, "onCreate Intent data: " + initData);
+
+        // 알림에서 열린 경우 처리
+        handleNotificationIntent(getIntent());
+
+        // 보고서 알림 테스트 버튼 추가 (개발 중에만 사용)
+        setupReportNotificationTest();
+
     }
 
     private void checkAndRequestPermissions() {
-        Log.d(TAG, "권한 확인 시작");
-
-        // Android 11 이상에서 모든 파일 액세스 권한 확인
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                Log.d(TAG, "Android 11 이상: 모든 파일 액세스 권한 필요");
-                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                Uri uri = Uri.fromParts("package", getPackageName(), null);
-                intent.setData(uri);
-                startActivityForResult(intent, ALL_FILES_ACCESS_REQUEST_CODE);
-                return; // 권한 결과를 기다림
-            }
-        }
 
         List<String> permissionsToRequest = new ArrayList<>();
 
@@ -134,9 +134,6 @@ public class MainActivity extends BridgeActivity {
         if (permissionsToRequest.isEmpty()) {
             Log.d(TAG, "모든 권한이 이미 부여됨. 서비스 시작");
 
-            // 대상 디렉토리 존재하는지 확인 및 생성
-            ensureTargetDirectoryExists();
-
             startVideoMonitoringService();
         } else {
             Log.d(TAG, "권한 요청: " + permissionsToRequest);
@@ -145,20 +142,6 @@ public class MainActivity extends BridgeActivity {
                     permissionsToRequest.toArray(new String[0]),
                     PERMISSION_REQUEST_CODE
             );
-        }
-    }
-
-    private void ensureTargetDirectoryExists() {
-        try {
-            File directory = new File("/storage/emulated/0/DCIM/finevu_cloud");
-            if (!directory.exists()) {
-                boolean created = directory.mkdirs();
-                Log.d(TAG, "타겟 디렉토리 생성 결과: " + created);
-            } else {
-                Log.d(TAG, "타겟 디렉토리가 이미 존재함");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "디렉토리 생성 중 오류 발생", e);
         }
     }
 
@@ -185,7 +168,6 @@ public class MainActivity extends BridgeActivity {
 
             if (allGranted) {
                 Log.d(TAG, "모든 권한이 허용됨. 서비스 시작");
-                ensureTargetDirectoryExists();
                 startVideoMonitoringService();
             } else {
                 Log.d(TAG, "일부 권한이 거부됨. 서비스를 시작할 수 없음");
@@ -275,6 +257,65 @@ public class MainActivity extends BridgeActivity {
             Log.e(TAG, "테스트 알림 표시 중 오류 발생", e);
         }
     }
+
+    /**
+     * 알림 인텐트 처리
+     * 알림을 통해 앱이 실행된 경우 처리하는 메서드
+     */
+    private void handleNotificationIntent(Intent intent) {
+        if (intent.getBooleanExtra("FROM_NOTIFICATION", false)) {
+            String reportId = intent.getStringExtra("REPORT_ID");
+            if (reportId != null) {
+                Log.d(TAG, "알림에서 열림: reportId=" + reportId);
+                // 여기서 보고서 상세 화면으로 이동하거나 데이터 표시
+                Toast.makeText(this, "보고서 ID: " + reportId, Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    /**
+     * 보고서 알림 테스트 버튼 설정
+     * 개발 중에 알림 기능을 테스트하기 위한 UI 요소 추가
+     */
+    private void setupReportNotificationTest() {
+        // 테스트 버튼 생성
+        Button testButton = new Button(this);
+        testButton.setText("보고서 알림 테스트");
+
+        // 버튼 레이아웃 설정
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        layoutParams.gravity = Gravity.CENTER;
+        layoutParams.setMargins(0, 50, 0, 0);
+        testButton.setLayoutParams(layoutParams);
+
+        // 클릭 이벤트 설정
+        testButton.setOnClickListener(v -> {
+            // 테스트 알림 표시
+            ReportNotificationManager notificationManager = new ReportNotificationManager(this);
+            notificationManager.showReportNotification(
+                    "사고 분석 완료",
+                    "블랙박스 영상에서 감지된 사고의 분석이 완료되었습니다. 자세한 내용을 확인하려면 알림을 탭하세요.",
+                    "test_report_" + System.currentTimeMillis()
+            );
+            Toast.makeText(this, "테스트 알림이 발송되었습니다.", Toast.LENGTH_SHORT).show();
+        });
+
+        // 기존 UI에 버튼 추가
+        try {
+            ViewGroup rootView = (ViewGroup) ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+            if (rootView != null) {
+                rootView.addView(testButton);
+                Log.d(TAG, "보고서 알림 테스트 버튼이 추가되었습니다.");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "테스트 버튼 추가 실패: " + e.getMessage(), e);
+        }
+    }
+
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -285,5 +326,9 @@ public class MainActivity extends BridgeActivity {
         } else {
             Log.e(TAG, "onNewIntent, data 가 null 입니다");
         }
+
+        // 알림에서 열린 경우도 처리
+        handleNotificationIntent(intent);
     }
+
 }

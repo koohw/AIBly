@@ -54,36 +54,11 @@ class VideoMonitoringService : Service() {
     // 시스템 저장소 상태 모니터링 (간격 증가)
     private fun monitorStorageState() {
         storageMonitorJob = CoroutineScope(Dispatchers.IO).launch {
-            // 서비스 시작 시 한 번 확인
-            checkDCIMFolder()
 
             // 이후 주기적으로 확인
             while (isActive) {
                 delay(15 * 60 * 1000) // 15분으로 간격 증가
-                checkDCIMFolder()
             }
-        }
-    }
-
-    // DCIM 폴더 확인 로직 분리
-    private fun checkDCIMFolder() {
-        try {
-            val targetPath = "/storage/emulated/0/DCIM"
-            val directory = File(targetPath)
-
-            if (!directory.exists() || !directory.canRead()) {
-                Log.w(TAG, "DCIM 폴더 접근 불가: (존재: ${directory.exists()}, 읽기 가능: ${directory.canRead()})")
-
-                // 디렉토리 생성 시도
-                if (!directory.exists()) {
-                    val created = directory.mkdirs()
-                    Log.d(TAG, "DCIM 폴더 생성 시도: $created")
-                }
-            } else {
-                Log.d(TAG, "DCIM 폴더 확인 완료: 접근 가능")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "저장소 모니터링 중 오류", e)
         }
     }
 
