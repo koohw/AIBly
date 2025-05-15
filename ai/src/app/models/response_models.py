@@ -1,38 +1,56 @@
 from pydantic import BaseModel, Field
+from typing import List
+
+class TimelineEvent(BaseModel):
+    event: str
+    frameIdx: int
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "event": "차량 충돌",
+                "frameIdx": 120
+            }
+        }
 
 class AnalysisResponse(BaseModel):
     """
     AI 분석 응답 모델
-    
-    사고 영상 분석 결과 정보를 포함합니다.
     """
+    # 요청에서 가져오는 필드
     userId: int = Field(..., description="사용자 ID")
     videoId: int = Field(..., description="영상 ID")
     fileName: str = Field(..., description="영상 파일명")
-    accidentPlace: str = Field(..., description="사고 발생 장소")
-    accidentFeature: str = Field(..., description="사고 장소 특징(도로 상태, 신호등 등)")
+    
+    # 차량 방향
     carAProgress: str = Field(..., description="A 차량 진행 방향")
     carBProgress: str = Field(..., description="B 차량 진행 방향")
+    
+    # 과실 비율
     faultA: int = Field(..., description="A 차량 과실 비율(%)", ge=0, le=100)
     faultB: int = Field(..., description="B 차량 과실 비율(%)", ge=0, le=100)
-    title: str = Field(..., description="사고 제목")
-    laws: str = Field(..., description="관련 법조문")
-    precedents: str = Field(..., description="관련 판례")
+    
+    # 추가 필드
+    eventTimeline: List[TimelineEvent] = Field(..., description="사고 타임라인 이벤트")
+    accidentType: int = Field(..., description="사고 유형 코드")
+    damageLocation: str = Field(..., description="손상 위치")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "userId": 1,
                 "videoId": 123,
                 "fileName": "accident_video.mp4",
-                "accidentPlace": "서울시 강남구 테헤란로",
-                "accidentFeature": "4차선 도로, 신호등 있음",
                 "carAProgress": "직진",
-                "carBProgress": "우회전",
-                "faultA": 80,
-                "faultB": 20,
-                "title": "신호 위반 측면 충돌 사고",
-                "laws": "도로교통법 제5조, 제25조",
-                "precedents": "대법원 2020다12345 판결"
+                "carBProgress": "좌회전",
+                "faultA": 40,
+                "faultB": 60,
+                "eventTimeline": [
+                    {"event": "차량 A 진입", "frameIdx": 50},
+                    {"event": "차량 B 진입", "frameIdx": 75},
+                    {"event": "충돌 발생", "frameIdx": 120}
+                ],
+                "accidentType": 2,
+                "damageLocation": "전면부"
             }
         }

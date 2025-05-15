@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from ...models.request_models import AnalysisRequest
-from ...models.response_models import AnalysisResponse
+from ...models.response_models import AnalysisResponse, TimelineEvent
 from ...services.report_service import ReportService
 import logging
 from fastapi.responses import JSONResponse
@@ -55,20 +55,25 @@ async def analyze_video_test(request: AnalysisRequest):
     logger.info(f"테스트 분석 요청 받음: userId={request.userId}")
     
     try:
+        # 테스트용 타임라인 이벤트 생성
+        test_timeline = [
+            TimelineEvent(event="vehicle_B_entry", frameIdx=0),
+            TimelineEvent(event="accident_estimated", frameIdx=30),
+            TimelineEvent(event="aftermath", frameIdx=40)
+        ]
+        
         # 테스트용 더미 데이터 반환
         response_data = AnalysisResponse(
             userId=request.userId,
             videoId=request.videoId,
             fileName=request.fileName,
-            accidentPlace="테스트 서울시 강남구 테헤란로",
-            accidentFeature="테스트 4차선 도로, 신호등 있음",
-            carAProgress="테스트 직진",
-            carBProgress="테스트 우회전",
-            faultA=80,
-            faultB=20,
-            title="테스트 신호 위반 측면 충돌 사고",
-            laws="테스트 도로교통법 제5조, 제25조",
-            precedents="테스트 대법원 2020다12345 판결"
+            carAProgress="go_straight",
+            carBProgress="from_right",
+            faultA=20,
+            faultB=80,
+            eventTimeline=test_timeline,
+            accidentType=5,
+            damageLocation="1,2"
         )
         
         logger.info(f"테스트 응답 반환: {response_data}")

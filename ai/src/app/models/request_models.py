@@ -12,7 +12,7 @@ class AnalysisRequest(BaseModel):
     presignedUrl: HttpUrl = Field(..., description="영상 다운로드를 위한 프리사인드 URL")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "userId": 1,
                 "videoId": 123,
