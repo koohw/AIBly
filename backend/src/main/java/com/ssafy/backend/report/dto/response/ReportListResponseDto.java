@@ -3,9 +3,13 @@ package com.ssafy.backend.report.dto.response;
 import com.ssafy.backend.domain.report.Report;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 //보고서 목록 조회 DTO, 목록에서 필요한 최소 필드만 노출
 @Getter
+@Setter
+@NoArgsConstructor
 @AllArgsConstructor
 public class ReportListResponseDto {
 

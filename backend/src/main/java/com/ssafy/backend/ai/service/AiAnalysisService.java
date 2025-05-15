@@ -23,10 +23,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiAnalysisService {
+public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 엔티티 생성 및 저장, FCM 발송 (자동 업로드 시만)
 
     private final VideoFileRepository videoFileRepository;
     private final ReportRepository reportRepository;
@@ -86,7 +87,7 @@ public class AiAnalysisService {
                 log.info("FCM 토큰 없음 - FCM 발송 없음: videoId={}", videoId);
             } else {
                 try {
-                    fcmService.sendFCM(fcmToken, report.getId());
+                    fcmService.sendFCM(fcmToken, report.getId()); //FCM 발송 처리
                     log.info("FCM 발송 성공: videoId={}, reportId={}", videoId, report.getId());
                 } catch (Exception e) {
                     log.error("FCM 발송 실패: videoId={}, error={}", videoId, e.getMessage(), e);
@@ -118,4 +119,5 @@ accident_type, vehicle_A_direction, vehicle_B_direction,
 damage_location, negligence_rate/A, negligence_rate/B, event_timeline
 그 외는 모두 ai기반으로 생성. 빈값이면 빈 문자열 "" 반환.
  */
-//오로지 AI JSON 처리 + Report 생성 + FCM 발송
+
+
