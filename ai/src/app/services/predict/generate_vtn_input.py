@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import pickle
-import logging
 from ...config import Config
 
 
