@@ -98,19 +98,28 @@ public class PdfServiceImpl implements PdfService {
                 fontBytes = is.readAllBytes();
             }
             
+            // HTML 문법 정리 - XHTML 호환성 향상
+            String sanitizedHtml = processedHtml
+                .replace("&", "&amp;")
+                .replaceAll("<([^>]*?[^/])>\\s*</\\1>", "<$1/>")
+                .replaceAll("<br>", "<br/>");
+            
             // 간단한 빌더 설정
             PdfRendererBuilder builder = new PdfRendererBuilder();
             
-            // 폰트 설정 (주요 변경 부분)
+            // 폰트 설정
             builder.useFont(() -> new java.io.ByteArrayInputStream(fontBytes), "Noto Sans KR");
             
-            // 기본 HTML 템플릿
-            String finalHtml = "<!DOCTYPE html>" +
-                             "<html>" +
-                             "<head>" +
-                             "<style>body { font-family: 'Noto Sans KR', sans-serif; }</style>" +
-                             "</head>" +
-                             "<body>" + processedHtml + "</body>" +
+            // 엄격한 XHTML 형식의 HTML 템플릿 구성
+            String finalHtml = "<!DOCTYPE html>\n" +
+                             "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n" +
+                             "<head>\n" +
+                             "<meta charset=\"UTF-8\"/>\n" +
+                             "<style>\n" +
+                             "body { font-family: 'Noto Sans KR', sans-serif; }\n" +
+                             "</style>\n" +
+                             "</head>\n" +
+                             "<body>\n" + sanitizedHtml + "\n</body>\n" +
                              "</html>";
             
             builder.withHtmlContent(finalHtml, null);
