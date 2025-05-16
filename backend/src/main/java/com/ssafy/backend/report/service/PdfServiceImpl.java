@@ -1,20 +1,18 @@
 package com.ssafy.backend.report.service;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-
 import com.ssafy.backend.common.exception.CustomException;
 import com.ssafy.backend.common.exception.ErrorCode;
 import com.ssafy.backend.domain.report.Report;
 import com.ssafy.backend.domain.report.ReportRepository;
 import com.ssafy.backend.s3.service.S3UploadService;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.text.StringEscapeUtils;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -29,58 +27,65 @@ public class PdfServiceImpl implements PdfService {
     private final S3UploadService s3UploadService;
 
     private static final String TEMPLATE_PATH = "templates/report-pdf.html";
-    private static final String FONT_PATH = "fonts/NotoSansKR-Regular.ttf";
     private static final String S3_DIR = "report-pdf/";
 
     @Transactional
     @Override
     public String generateAndUploadPdf(Long reportId) {
+        // 1. Report 조회
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new CustomException(ErrorCode.REPORT_NOT_FOUND));
-
+        // 2. 이미 PDF 생성 여부 확인 (중복 방지)
         if (report.getPdfKey() != null) {
             throw new CustomException(ErrorCode.PDF_ALREADY_EXIST);
         }
 
+        // 3. PDF Key 생성 (UUID 사용)
         String s3Key = S3_DIR + UUID.randomUUID() + ".pdf";
 
         try {
+            // 4. 템플릿 치환 → HTML 생성
             String processedHtml = processTemplate(buildVariables(report));
+
+            // 5. HTML → PDF 생성 (한글 깨짐 방지 포함)
             byte[] pdfBytes = generatePdfFromHtml(processedHtml);
+
+            // 6. S3 업로드
             s3UploadService.uploadPdf(pdfBytes, s3Key, "application/pdf");
 
-            report.setPdfKey(s3Key);
-            reportRepository.saveAndFlush(report);
-
-            return s3Key;
         } catch (Exception e) {
-            e.printStackTrace();
             throw new CustomException(ErrorCode.PDF_GENERATE_FAIL);
         }
+
+        // 7. S3 업로드 성공 후에만 DB update (안전하게)
+        report.setPdfKey(s3Key);
+
+        reportRepository.saveAndFlush(report);
+
+        return s3Key;
     }
 
+    /**
+     * Report에서 템플릿 치환 변수 추출
+     */
     private Map<String, String> buildVariables(Report report) {
         Map<String, String> variables = new HashMap<>();
-        variables.put("title", escape(report.getTitle()));
-        variables.put("accidentType", escape(report.getAccidentType()));
-        variables.put("carA", escape(report.getCarA()));
-        variables.put("carB", escape(report.getCarB()));
-        variables.put("mainEvidence", escape(report.getMainEvidence()));
-        variables.put("laws", escape(report.getLaws()));
+        variables.put("title", report.getTitle());
+        variables.put("accidentType", report.getAccidentType());
+        variables.put("carA", report.getCarA());
+        variables.put("carB", report.getCarB());
+        variables.put("mainEvidence", report.getMainEvidence());
+        variables.put("laws", report.getLaws());
         variables.put("createdAt", report.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         return variables;
     }
 
-    private String escape(String value) {
-        return StringEscapeUtils.escapeHtml4(value != null ? value : "");
-    }
-
+    /**
+     * HTML 템플릿 치환
+     */
     private String processTemplate(Map<String, String> variables) {
         try {
-            String template = new String(
-                    new ClassPathResource(TEMPLATE_PATH).getInputStream().readAllBytes(),
-                    StandardCharsets.UTF_8
-            );
+            String template = new String(new ClassPathResource(TEMPLATE_PATH).getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             for (Map.Entry<String, String> entry : variables.entrySet()) {
                 template = template.replace("${" + entry.getKey() + "}", entry.getValue());
             }
@@ -90,46 +95,26 @@ public class PdfServiceImpl implements PdfService {
         }
     }
 
+    /**
+     * HTML → PDF 변환 (폰트 임베딩 강제 → 한글 깨짐 방지)
+     */
     private byte[] generatePdfFromHtml(String processedHtml) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            // 폰트 파일 바이트 읽기
-            byte[] fontBytes;
-            try (InputStream is = new ClassPathResource(FONT_PATH).getInputStream()) {
-                fontBytes = is.readAllBytes();
-            }
-            
-            // HTML 문법 정리 - XHTML 호환성 향상
-            String sanitizedHtml = processedHtml
-                .replace("&", "&amp;")
-                .replaceAll("<([^>]*?[^/])>\\s*</\\1>", "<$1/>")
-                .replaceAll("<br>", "<br/>");
-            
-            // 간단한 빌더 설정
             PdfRendererBuilder builder = new PdfRendererBuilder();
+
+            // 배포 환경 폰트 직접 사용
+            File fontFile = new File("/home/ubuntu/font/NotoSansKR-Regular.ttf");
             
-            // 폰트 설정
-            builder.useFont(() -> new java.io.ByteArrayInputStream(fontBytes), "Noto Sans KR");
-            
-            // 엄격한 XHTML 형식의 HTML 템플릿 구성
-            String finalHtml = "<!DOCTYPE html>\n" +
-                             "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n" +
-                             "<head>\n" +
-                             "<meta charset=\"UTF-8\"/>\n" +
-                             "<style>\n" +
-                             "body { font-family: 'Noto Sans KR', sans-serif; }\n" +
-                             "</style>\n" +
-                             "</head>\n" +
-                             "<body>\n" + sanitizedHtml + "\n</body>\n" +
-                             "</html>";
-            
-            builder.withHtmlContent(finalHtml, null);
+            builder.useFont(fontFile, "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
+            builder.withHtmlContent(processedHtml, null);
             builder.toStream(outputStream);
             builder.run();
             
             return outputStream.toByteArray();
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("PDF 생성 실패 (한글 깨짐 가능)", e);
+            throw new RuntimeException("PDF 생성 실패", e);
         }
     }
+
 }
