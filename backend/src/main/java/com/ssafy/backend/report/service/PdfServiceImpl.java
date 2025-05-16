@@ -1,5 +1,6 @@
 package com.ssafy.backend.report.service;
 
+import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.ssafy.backend.common.exception.CustomException;
 import com.ssafy.backend.common.exception.ErrorCode;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
@@ -48,7 +50,7 @@ public class PdfServiceImpl implements PdfService {
             byte[] pdfBytes = generatePdfFromHtml(processedHtml);
             s3UploadService.uploadPdf(pdfBytes, s3Key, "application/pdf");
 
-            report.setPdfKey(s3Key); // 업로드 성공 후에만 세팅
+            report.setPdfKey(s3Key);
             reportRepository.saveAndFlush(report);
 
             return s3Key;
@@ -90,11 +92,19 @@ public class PdfServiceImpl implements PdfService {
     }
 
     private byte[] generatePdfFromHtml(String processedHtml) {
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-             InputStream fontStream = new ClassPathResource(FONT_PATH).getInputStream()) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+
+            // FSSupplier를 사용해 jar 내 리소스를 안전하게 불러오기
+            FSSupplier<InputStream> fontSupplier = () -> {
+                try {
+                    return new ClassPathResource(FONT_PATH).getInputStream();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            };
 
             PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.useFont(fontStream, "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
+            builder.useFont(fontSupplier, "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
             builder.withHtmlContent(processedHtml, null);
             builder.toStream(outputStream);
             builder.run();
