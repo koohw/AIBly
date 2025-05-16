@@ -93,7 +93,7 @@ export default function Dashboard() {
   const handleViewAnalysis = () => {
     // /analysis?id=1 형태로 push
     router.push(`/analysis?id=1`)
-    // 나중에 API에서 받아온 동적 ID로 바꿀땐 아래와 같이 쓰면 됨됨
+    // 나중에 API에서 받아온 동적 ID로 바꿀땐 아래와 같이 쓰면 됨
     //router.push(`/analysis?id=${reportId}`)
   }
   
