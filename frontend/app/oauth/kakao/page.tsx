@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Preferences } from '@capacitor/preferences'
-import { registerFcmToken } from '@/lib/api/Fcm' // FCM 토큰 등록 함수 import 추가
+import { registerFcmToken } from '@/lib/api/Fcm'
 
 export default function KakaoOAuthCallbackPage() {
   const router = useRouter()
@@ -11,61 +11,55 @@ export default function KakaoOAuthCallbackPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
-    console.log('🌐🌐🌐 웹 리다이렉트 로그인 방식 실행됨');
-
+    console.log('웹 리다이렉트 로그인 방식 실행')
 
     if (!code) {
       console.error('인가 코드가 없습니다.')
       return
     }
 
-    console.log('🔵 OAuth 콜백 페이지 - 인가 코드 획득:', code.substring(0, 10) + '...')
+    // 환경 변수에서 백엔드 URL 가져오기
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://k12e203.p.ssafy.io/api';
 
-    // 1) 백엔드로 code 보내서 토큰 받기
+    // code-callback 엔드포인트 호출
     fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/oauth/kakao/callback?code=${code}`,
+      `${backendUrl}/oauth/kakao/code-callback`,
       { 
+        method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ code })
       }
     )
       .then(response => {
         if (!response.ok) {
           throw new Error(`백엔드 응답 오류: ${response.status}`)
         }
-        console.log('🔵 OAuth 콜백 - 백엔드 응답 성공')
         return response.json()
       })
       .then(async data => {
-        console.log('🔵 OAuth 콜백 - 응답 데이터 수신:', data)
-        
         // authToken이 있는지 확인
         if (data && data.authToken) {
-          console.log('🔵 OAuth 콜백 - 인증 토큰 수신:', data.authToken.substring(0, 10) + '...')
-          
           // 토큰 저장
           await Preferences.set({ key: 'AUTH_TOKEN', value: data.authToken })
-          console.log('🔵 OAuth 콜백 - 인증 토큰 저장 완료')
           
-          // FCM 토큰 등록 추가
+          // FCM 토큰 등록
           try {
-            console.log('🔵 OAuth 콜백 - FCM 토큰 등록 시도')
             await registerFcmToken(data.authToken)
-            console.log('🔵 OAuth 콜백 - FCM 토큰 등록 완료')
           } catch (fcmError) {
-            console.error('🔵 OAuth 콜백 - FCM 토큰 등록 오류:', fcmError)
+            console.error('FCM 토큰 등록 오류:', fcmError)
           }
         } else {
-          console.error('🔵 OAuth 콜백 - 응답에 인증 토큰이, 없습니다:', data)
+          console.error('응답에 인증 토큰이 없습니다:', data)
         }
         
         // 대시보드로 이동
         router.replace('/dashboard')
       })
       .catch(error => {
-        console.error('🔵 OAuth 콜백 - 처리 중 오류:', error)
+        console.error('로그인 처리 중 오류:', error)
       })
   }, [router])
 
