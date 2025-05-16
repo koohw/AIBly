@@ -51,9 +51,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             Log.d(TAG, "메시지 알림 본문: ${it.body}")
         }
     }
-
     override fun onNewToken(token: String) {
-        Log.d(TAG, "새 FCM 토큰: $token")
+        Log.e(TAG, "🆕🆕🆕 새 FCM 토큰 발급: $token 🆕🆕🆕")
+
         // 토큰을 서버에 전송
         sendRegistrationToServer(token)
     }
@@ -70,32 +70,35 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val authPref = getSharedPreferences("auth_prefs", MODE_PRIVATE)
         if (authPref.contains("auth_token")) {
             val authToken = authPref.getString("auth_token", null) ?: return
+            Log.e(TAG, "🔄🔄🔄 자동으로 FCM 토큰 서버 등록 시도 🔄🔄🔄")
+
             // 인증된 상태면 서버에 등록 시도
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    // API 호출 시 인증 헤더 매개변수 제거
                     val response = BackendApiClient.getFcmTokenService(applicationContext)
-                        .registerFcmToken(
-                            FcmTokenRequest(token) // 인증 헤더 매개변수 제거
-                        )
+                        .registerFcmToken(FcmTokenRequest(token))
+
                     if (response.isSuccessful) {
-                        Log.d(TAG, "FCM 토큰 등록 성공: ${response.code()}")
+                        Log.e(TAG, "✅✅✅ 자동 FCM 토큰 서버 등록 성공: ${response.code()} ✅✅✅")
                         // 등록 성공 상태 저장
                         sharedPref.edit().putBoolean("token_registered", true).apply()
+                        // 현재 시간 저장
+                        val currentTime = System.currentTimeMillis()
+                        sharedPref.edit().putLong("token_registration_time", currentTime).apply()
                     } else {
                         Log.e(
                             TAG,
-                            "FCM 토큰 등록 실패: ${response.code()} - ${response.errorBody()?.string()}"
+                            "❌❌❌ 자동 FCM 토큰 서버 등록 실패: ${response.code()} - ${response.errorBody()?.string()} ❌❌❌"
                         )
                         sharedPref.edit().putBoolean("token_registered", false).apply()
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "FCM 토큰 등록 에러", e)
+                    Log.e(TAG, "❌❌❌ 자동 FCM 토큰 서버 등록 에러 ❌❌❌", e)
                     sharedPref.edit().putBoolean("token_registered", false).apply()
                 }
             }
         } else {
-            Log.d(TAG, "인증 토큰이 없습니다. 로그인 후 FCM 토큰이 등록됩니다.")
+            Log.e(TAG, "⚠️⚠️⚠️ 인증 토큰이 없습니다. 로그인 후 FCM 토큰이 등록됩니다. ⚠️⚠️⚠️")
             sharedPref.edit().putBoolean("token_registered", false).apply()
         }
     }

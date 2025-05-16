@@ -11,7 +11,8 @@ import retrofit2.http.POST
  * FCM 토큰 등록 요청 데이터 클래스
  */
 data class FcmTokenRequest(
-    @SerializedName("fcmToken") val fcmToken: String
+    @SerializedName("fcmToken") val fcmToken: String,
+    @SerializedName("deviceId") val deviceId: String? = null // 선택적 필드 추가
 )
 
 /**
@@ -26,7 +27,7 @@ data class FcmTokenResponse(
  */
 interface FcmTokenApiService {
     // 슬래시 위치 확인 - BASE_URL에 슬래시가 있다면 여기서는 제거
-    @POST("api/user/fcm-token") // 앞의 슬래시 제거해보기
+    @POST("api/fcm/token") // 앞의 슬래시 제거해보기
     suspend fun registerFcmToken(
         @Body request: FcmTokenRequest
     ): Response<Void>
