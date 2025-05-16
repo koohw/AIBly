@@ -61,6 +61,7 @@ export default function LoginPage() {
   }, []);
 
   const handleKakaoLogin = async () => {
+    console.log('📱📱📱 앱 직접 로그인 방식 실행됨');
     console.log('[LoginPage] 🔥 handleKakaoLogin 호출됨');
     setIsLoading(true);
 

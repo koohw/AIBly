@@ -113,7 +113,7 @@ class VideoContentObserver(
 
         try {
             // 최근 24시간 내 추가된 MP4 파일만 검색
-            val oneDayAgo = (System.currentTimeMillis() / 1000) - (24 * 60 * 60)
+            val oneDayAgo = (System.currentTimeMillis() / 1000) - (1 * 60 * 60)
 
             val projection = arrayOf(
                 MediaStore.Video.Media.DATA,
