@@ -92,36 +92,31 @@ public class PdfServiceImpl implements PdfService {
 
     private byte[] generatePdfFromHtml(String processedHtml) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            // 폰트 파일을 바이트 배열로 로드
+            // 폰트 파일 바이트 읽기
             byte[] fontBytes;
             try (InputStream is = new ClassPathResource(FONT_PATH).getInputStream()) {
                 fontBytes = is.readAllBytes();
             }
-
+            
+            // 간단한 빌더 설정
             PdfRendererBuilder builder = new PdfRendererBuilder();
             
-            // Docker 컨테이너 환경을 위한 간단한 설정
-            builder.useFastMode();
+            // 폰트 설정 (주요 변경 부분)
             builder.useFont(() -> new java.io.ByteArrayInputStream(fontBytes), "Noto Sans KR");
             
-            // XML 파서 오류 방지를 위해 XHTML 형식으로 올바르게 구성
-            String validHtml = "<!DOCTYPE html>\n" +
-                              "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n" +
-                              "<head>\n" +
-                              "<meta charset=\"UTF-8\"/>\n" +
-                              "<style>\n" +
-                              "body { font-family: 'Noto Sans KR', sans-serif; }\n" +
-                              "</style>\n" +
-                              "</head>\n" +
-                              "<body>\n" + 
-                              processedHtml +
-                              "</body>\n" +
-                              "</html>";
+            // 기본 HTML 템플릿
+            String finalHtml = "<!DOCTYPE html>" +
+                             "<html>" +
+                             "<head>" +
+                             "<style>body { font-family: 'Noto Sans KR', sans-serif; }</style>" +
+                             "</head>" +
+                             "<body>" + processedHtml + "</body>" +
+                             "</html>";
             
-            builder.withHtmlContent(validHtml, null);
+            builder.withHtmlContent(finalHtml, null);
             builder.toStream(outputStream);
             builder.run();
-
+            
             return outputStream.toByteArray();
         } catch (Exception e) {
             e.printStackTrace();
