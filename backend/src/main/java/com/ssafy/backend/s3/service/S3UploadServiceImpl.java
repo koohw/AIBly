@@ -1,5 +1,7 @@
 package com.ssafy.backend.s3.service;
 
+import com.ssafy.backend.domain.file.S3File;
+import com.ssafy.backend.domain.file.S3FileRepository;
 import com.ssafy.backend.domain.video.VideoFile;
 import com.ssafy.backend.domain.video.VideoFileRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +14,6 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -28,6 +29,7 @@ public class S3UploadServiceImpl implements S3UploadService {
     private final S3Client s3Client;
     private final VideoFileRepository videoFileRepository;
     private final S3Presigner s3Presigner;
+    private final S3FileRepository s3FileRepository;
 
     @Value("${aws.bucketName}")
     private String bucket;
@@ -117,6 +119,18 @@ public class S3UploadServiceImpl implements S3UploadService {
                         .contentType(contentType)
                         .build(),
                 RequestBody.fromBytes(pdfBytes));
+    }
+
+    //s3file db에 저장
+    @Override
+    public void saveS3File(S3File s3File) {
+
+        s3FileRepository.save(s3File);
+    }
+
+    @Override
+    public boolean isDuplicateFile(String fileHash, Long userId) {
+        return s3FileRepository.existsByFileHashAndUserId(fileHash, userId);
     }
 
     //사용자 PDF 다운로드용

@@ -6,7 +6,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "s3_files")
+@Table(name = "s3_files", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"fileHash", "userId"})
+}) //해시 검증으로 중복 방지
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,7 +24,7 @@ public class S3File {
     private String s3Key; // S3에 저장된 실제 파일 이름 (f0a1-3b2e.mp4, UUID.mp4 등)
 
     @Column(nullable = false)
-    private String FileName; //사용자가 업로드한 원래 파일 이름
+    private String fileName; //사용자가 업로드한 원래 파일 이름
 
     @Column(nullable = false)
     private String contentType; //video/mp4, application/pdf
@@ -38,6 +40,12 @@ public class S3File {
 
     @Column(nullable = false)
     private LocalDateTime uploadDate;
+
+    @Column(nullable = false, length = 128)
+    private String fileHash;  // SHA256 등 해시값, s3파일 중복 방지
+
+    @Column(nullable = false)
+    private Long userId;  // 업로드한 유저 ID, s3파일 중복 방지
 
     @PrePersist
     public void prePersist() {
