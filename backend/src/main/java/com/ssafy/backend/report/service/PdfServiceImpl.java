@@ -100,21 +100,25 @@ public class PdfServiceImpl implements PdfService {
 
             PdfRendererBuilder builder = new PdfRendererBuilder();
             
-            // Docker 컨테이너 환경을 위한 강화된 설정
+            // Docker 컨테이너 환경을 위한 간단한 설정
             builder.useFastMode();
             builder.useFont(() -> new java.io.ByteArrayInputStream(fontBytes), "Noto Sans KR");
             
-            // CSS에 직접 폰트 정의 추가
-            String fontFaceStyle = "@font-face { font-family: 'Noto Sans KR'; src: url('data:font/truetype;base64,%s'); }";
-            String fontBase64 = java.util.Base64.getEncoder().encodeToString(fontBytes);
-            String fontStyle = String.format(fontFaceStyle, fontBase64);
+            // XML 파서 오류 방지를 위해 XHTML 형식으로 올바르게 구성
+            String validHtml = "<!DOCTYPE html>\n" +
+                              "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n" +
+                              "<head>\n" +
+                              "<meta charset=\"UTF-8\"/>\n" +
+                              "<style>\n" +
+                              "body { font-family: 'Noto Sans KR', sans-serif; }\n" +
+                              "</style>\n" +
+                              "</head>\n" +
+                              "<body>\n" + 
+                              processedHtml +
+                              "</body>\n" +
+                              "</html>";
             
-            // HTML에 폰트 스타일 직접 주입
-            String htmlWithFont = "<html><head><style>" + fontStyle + 
-                                 "body { font-family: 'Noto Sans KR', sans-serif; }" +
-                                 "</style></head><body>" + processedHtml + "</body></html>";
-            
-            builder.withHtmlContent(htmlWithFont, null);
+            builder.withHtmlContent(validHtml, null);
             builder.toStream(outputStream);
             builder.run();
 
