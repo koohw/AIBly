@@ -2,6 +2,7 @@ package com.ssafy.backend.report.service;
 
 import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+
 import com.ssafy.backend.common.exception.CustomException;
 import com.ssafy.backend.common.exception.ErrorCode;
 import com.ssafy.backend.domain.report.Report;
@@ -94,7 +95,6 @@ public class PdfServiceImpl implements PdfService {
     private byte[] generatePdfFromHtml(String processedHtml) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
-            // FSSupplier를 사용해 jar 내 리소스를 안전하게 불러오기
             FSSupplier<InputStream> fontSupplier = () -> {
                 try {
                     return new ClassPathResource(FONT_PATH).getInputStream();
