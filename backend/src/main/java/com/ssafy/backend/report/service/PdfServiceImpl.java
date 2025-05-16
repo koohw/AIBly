@@ -1,6 +1,5 @@
 package com.ssafy.backend.report.service;
 
-import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
 import com.ssafy.backend.common.exception.CustomException;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
@@ -94,17 +92,14 @@ public class PdfServiceImpl implements PdfService {
 
     private byte[] generatePdfFromHtml(String processedHtml) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-
-            FSSupplier<InputStream> fontSupplier = () -> {
-                try {
-                    return new ClassPathResource(FONT_PATH).getInputStream();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            };
+            // 폰트 파일을 바이트 배열로 로드
+            byte[] fontBytes;
+            try (InputStream is = new ClassPathResource(FONT_PATH).getInputStream()) {
+                fontBytes = is.readAllBytes();
+            }
 
             PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.useFont(fontSupplier, "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
+            builder.useFont(() -> new java.io.ByteArrayInputStream(fontBytes), "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
             builder.withHtmlContent(processedHtml, null);
             builder.toStream(outputStream);
             builder.run();
