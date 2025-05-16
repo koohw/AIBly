@@ -99,8 +99,22 @@ public class PdfServiceImpl implements PdfService {
             }
 
             PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.useFont(() -> new java.io.ByteArrayInputStream(fontBytes), "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
-            builder.withHtmlContent(processedHtml, "classpath:templates/");
+            
+            // Docker 컨테이너 환경을 위한 강화된 설정
+            builder.useFastMode();
+            builder.useFont(() -> new java.io.ByteArrayInputStream(fontBytes), "Noto Sans KR");
+            
+            // CSS에 직접 폰트 정의 추가
+            String fontFaceStyle = "@font-face { font-family: 'Noto Sans KR'; src: url('data:font/truetype;base64,%s'); }";
+            String fontBase64 = java.util.Base64.getEncoder().encodeToString(fontBytes);
+            String fontStyle = String.format(fontFaceStyle, fontBase64);
+            
+            // HTML에 폰트 스타일 직접 주입
+            String htmlWithFont = "<html><head><style>" + fontStyle + 
+                                 "body { font-family: 'Noto Sans KR', sans-serif; }" +
+                                 "</style></head><body>" + processedHtml + "</body></html>";
+            
+            builder.withHtmlContent(htmlWithFont, null);
             builder.toStream(outputStream);
             builder.run();
 
