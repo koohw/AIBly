@@ -5,15 +5,15 @@ import com.ssafy.backend.config.JwtTokenProvider;
 import com.ssafy.backend.domain.file.UploadType;
 import com.ssafy.backend.video.dto.request.UploadNotifyRequestDto;
 
+import com.ssafy.backend.video.dto.response.MyVideoResponseDto;
 import com.ssafy.backend.video.dto.response.UploadNotifyResponseDto;
 import com.ssafy.backend.video.service.VideoService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/videos")
@@ -46,4 +46,19 @@ public class VideoController extends BaseController {
 
         return ResponseEntity.ok(response);
     }
+
+    //영상 목록
+    @GetMapping("/list/content")
+    public ResponseEntity<List<MyVideoResponseDto>> getMyVideos(HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        return ResponseEntity.ok(videoService.getMyVideos(userId));
+    }
+
+    //상세 영상
+    @GetMapping("/detail-content/{videoId}")
+    public ResponseEntity<MyVideoResponseDto> getMyVideoDetail(@PathVariable Long videoId, HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        return ResponseEntity.ok(videoService.getMyVideoDetail(userId, videoId));
+    }
+
 }

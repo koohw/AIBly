@@ -25,10 +25,11 @@ public class ReportDetailResponseDto {
     private String damageLocation;
     private String eventTimeline;
     private LocalDateTime createdAt;
+    private String videoUrl;
 
 
     //Report Entity를 ReportDetailResponseDto로 변환해주는 정적 메서드
-    public static ReportDetailResponseDto from(Report report) {
+    public static ReportDetailResponseDto from(Report report, String videoUrl) {
         return ReportDetailResponseDto.builder()
                 .id(report.getId())
                 .title(report.getTitle())
@@ -42,6 +43,13 @@ public class ReportDetailResponseDto {
                 .damageLocation(report.getDamageLocation())
                 .eventTimeline(report.getMainEvidence())
                 .createdAt(report.getCreatedAt())
+                .videoUrl(videoUrl)
                 .build();
+    }
+
+    // 편의 오버로딩 추가 (목록 조회 등 videoUrl 필요 없을 때)
+    //상세 화면에서는 videoUrl 필요, 목록 등에서는 필요 없음
+    public static ReportDetailResponseDto from(Report report) {
+        return from(report, null);
     }
 }

@@ -1,5 +1,6 @@
 package com.ssafy.backend.s3.service;
 
+import com.ssafy.backend.domain.file.S3File;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
@@ -23,6 +24,10 @@ public interface S3UploadService {
     // 한글 PDF 업로드 기능
     void uploadPdf(byte[] pdfBytes, String s3Key, String contentType);
 
+    //s3 file 저장
+    void saveS3File(S3File s3File);
+
+    boolean isDuplicateFile(String fileHash, Long userId);
 }
 
 //Presigned URL API는 아직 DB에 저장할 게 없어서 Repository를 안 씀

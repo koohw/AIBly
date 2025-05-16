@@ -20,7 +20,7 @@ public class TestAuthController {
     @PostMapping("/login/test")
     public ResponseEntity<String> testLogin() {
         // 💡 여기서 userId는 테스트용으로 DB에 넣어둔 사용자 ID (예: 1L)
-        String token = jwtTokenProvider.generateToken("kakao", "테스트_임시_ID", 10L);
+        String token = jwtTokenProvider.generateToken("kakao", "테스트_임시_ID", 4L);
         return ResponseEntity.ok(token);
     }
 }

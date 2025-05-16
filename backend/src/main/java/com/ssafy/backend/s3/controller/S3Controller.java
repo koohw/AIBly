@@ -1,6 +1,8 @@
 package com.ssafy.backend.s3.controller;
 
 import com.ssafy.backend.common.controller.BaseController;
+import com.ssafy.backend.domain.file.FileType;
+import com.ssafy.backend.domain.file.S3File;
 import com.ssafy.backend.s3.dto.request.PresignedUrlRequestDto;
 import com.ssafy.backend.s3.dto.response.PresignedUrlResponseDto;
 import com.ssafy.backend.s3.dto.request.PresignedDownloadRequestDto;
@@ -20,10 +22,32 @@ public class S3Controller extends BaseController {
     private final S3UploadService s3UploadService;
 
     // presigned URL을 생성하여 프론트에 전달
+    //Presigned URL 요청과 동시에 DB에 S3File 기록
     @PostMapping("/presigned")
-    public ResponseEntity<PresignedUrlResponseDto> getPresignedUrl(@RequestBody PresignedUrlRequestDto request) {
+    public ResponseEntity<PresignedUrlResponseDto> getPresignedUrl(
+            @RequestBody PresignedUrlRequestDto request,
+            HttpServletRequest httpRequest) {
+
+        Long userId = getCurrentUserId(httpRequest);
+
+        if (s3UploadService.isDuplicateFile(request.getFileHash(), userId)) {
+            throw new RuntimeException("이미 업로드된 파일입니다.");
+        }
+
         String s3Key = s3UploadService.generateS3Key(request.getFileName());
         String presignedUrl = s3UploadService.generatePresignedUrl(s3Key, request.getContentType());
+
+        S3File file = S3File.builder()
+                .s3Key(s3Key)
+                .fileName(request.getFileName())
+                .contentType(request.getContentType())
+                .fileHash(request.getFileHash())
+                .userId(userId)
+                .fileType(FileType.VIDEO)
+                .size(request.getSize())
+                .build();
+
+        s3UploadService.saveS3File(file);
 
         return ResponseEntity.ok(new PresignedUrlResponseDto(presignedUrl, s3Key));
     }
@@ -53,4 +77,5 @@ public class S3Controller extends BaseController {
         s3UploadService.deleteS3File(userId, dto.getS3Key());
         return ResponseEntity.noContent().build();
     }
+
 }

@@ -34,13 +34,17 @@ public class ReportServiceImpl implements ReportService {
 
 
      //보고서 상세 조회 (Projection → DTO)
-     @Transactional(readOnly = true)
      @Override
      public ReportDetailResponseDto getMyReportDetail(Long userId, Long reportId) {
          Report report = reportRepository.findDetailByIdAndUserId(reportId, userId)
                  .orElseThrow(() -> new IllegalArgumentException("해당 보고서를 찾을 수 없습니다."));
-         return ReportDetailResponseDto.from(report);
+
+         //S3 Presigned URL 생성 추가
+         String videoUrl = s3UploadService.generateDownloadPresignedUrl(report.getVideoFile().getS3Key());
+
+         return ReportDetailResponseDto.from(report, videoUrl);
      }
+
 
     //보고서 삭제
     @Transactional
