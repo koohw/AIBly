@@ -28,6 +28,12 @@ public class OAuthKakaoService implements OAuthService {
     @Override
     public KakaoLoginRequest getToken(String code) {
         String url = "https://kauth.kakao.com/oauth/token";
+
+        // 로그 추가
+        System.out.println("카카오 토큰 요청 URL: " + url);
+        System.out.println("인가 코드: " + code);
+        System.out.println("리다이렉트 URI: " + redirectUri);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -37,11 +43,22 @@ public class OAuthKakaoService implements OAuthService {
         params.add("redirect_uri", redirectUri);
         params.add("code", code);
 
+        // 요청 파라미터 로깅
+        System.out.println("요청 파라미터: " + params);
+
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        ResponseEntity<KakaoLoginRequest> response = restTemplate.exchange(
-                url, HttpMethod.POST, request, KakaoLoginRequest.class
-        );
-        return response.getBody();
+
+        try {
+            ResponseEntity<KakaoLoginRequest> response = restTemplate.exchange(
+                    url, HttpMethod.POST, request, KakaoLoginRequest.class
+            );
+            System.out.println("카카오 응답 성공: " + response.getStatusCode());
+            return response.getBody();
+        } catch (Exception e) {
+            System.err.println("카카오 토큰 요청 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Override
