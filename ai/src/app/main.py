@@ -108,4 +108,4 @@ app.include_router(report_router)
 
 if __name__ == "__main__": 
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, workers=4)  # workers 수 증가
+    uvicorn.run(app, host="0.0.0.0", port=8000, workers=1)
