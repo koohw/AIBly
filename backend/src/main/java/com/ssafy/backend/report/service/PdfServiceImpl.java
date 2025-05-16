@@ -102,18 +102,41 @@ public class PdfServiceImpl implements PdfService {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
 
-            // 배포 환경 폰트 직접 사용
-            File fontFile = new File("/home/ubuntu/font/NotoSansKR-Regular.ttf");
+            // 폰트 파일과 베이스 URL 설정
+            File fontFile = null;
+            String baseUrl = null;
             
+            // 1. 먼저 EC2 배포 환경 폰트 경로 확인
+            File ec2FontFile = new File("/home/ubuntu/font/NotoSansKR-Regular.ttf");
+            if (ec2FontFile.exists()) {
+                fontFile = ec2FontFile;
+                baseUrl = ec2FontFile.getParentFile().toURI().toString();
+                System.out.println("EC2 환경 폰트 파일 사용: " + fontFile.getAbsolutePath());
+            } else {
+                // 2. 로컬 환경에서 폰트 파일 확인
+                try {
+                    fontFile = new ClassPathResource("fonts/NotoSansKR-Regular.ttf").getFile();
+                    baseUrl = fontFile.getParentFile().toURI().toString();
+                    System.out.println("로컬 환경 폰트 파일 사용: " + fontFile.getAbsolutePath());
+                } catch (Exception e) {
+                    System.err.println("로컬 환경 폰트 파일 로드 실패: " + e.getMessage());
+                    throw new RuntimeException("폰트 파일을 찾을 수 없습니다. EC2와 로컬 환경 모두 실패했습니다.");
+                }
+            }
+
+            // 3. HTML 컨텐츠에 폰트 디렉토리 기준 베이스 URL 설정
+            builder.withHtmlContent(processedHtml, baseUrl);
+
+            // 4. 폰트 설정 및 임베딩
             builder.useFont(fontFile, "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
-            builder.withHtmlContent(processedHtml, null);
+
             builder.toStream(outputStream);
             builder.run();
-            
+
             return outputStream.toByteArray();
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("PDF 생성 실패", e);
+            throw new RuntimeException("PDF 생성 실패 (한글 깨짐 가능): " + e.getMessage(), e);
         }
     }
 
