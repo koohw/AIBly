@@ -100,7 +100,7 @@ public class PdfServiceImpl implements PdfService {
 
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFont(() -> new java.io.ByteArrayInputStream(fontBytes), "Noto Sans KR", 400, PdfRendererBuilder.FontStyle.NORMAL, true);
-            builder.withHtmlContent(processedHtml, null);
+            builder.withHtmlContent(processedHtml, "classpath:templates/");
             builder.toStream(outputStream);
             builder.run();
 
