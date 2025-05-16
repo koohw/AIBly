@@ -56,13 +56,4 @@ public class UserController extends BaseController {
     }
 
 
-    //FE가 로그인 후 → BE에 FCM 토큰을 등록할 수 있는 API
-    @PostMapping("/fcm-token")
-    public ResponseEntity<Void> registerFcmToken(@RequestBody FcmTokenRequestDto requestDto,
-                                                 @AuthenticationPrincipal CustomUserDetails user) {
-        userService.updateUserFcmToken(user.getUserId(), requestDto.getFcmToken());
-        return ResponseEntity.ok().build();
-    }
-
-
 }

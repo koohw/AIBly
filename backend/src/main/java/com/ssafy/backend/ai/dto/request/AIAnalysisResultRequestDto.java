@@ -1,4 +1,4 @@
-package com.ssafy.backend.report.dto.request;
+package com.ssafy.backend.ai.dto.request;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -21,6 +21,8 @@ public class AIAnalysisResultRequestDto {
         private int accident_place_feature;
         private int vehicle_a_progress_info;
         private int vehicle_b_progress_info;
+        private int fault_a;
+        private int fault_b;
     }
 
     @Getter
