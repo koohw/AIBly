@@ -1,11 +1,13 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Upload, Play, ImageIcon } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { FilePicker } from '@capawesome/capacitor-file-picker'
-import { getPresignedUrl, PresignedUrlResponse, notifyManualUpload } from "@/lib/api/Video"
+import { getPresignedUrl, PresignedUrlResponse, notifyManualUpload, pollVideoStatus } from "@/lib/api/Video"
+import { getReportDetail } from "@/lib/api/Report"
 import type { AxiosError } from "axios"
 
 interface VideoSelectProps {
@@ -21,6 +23,7 @@ export default function VideoSelect({
   onFileChange,
   onClearSelection,
 }: VideoSelectProps) {
+  const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -108,34 +111,40 @@ export default function VideoSelect({
 
        // 3) DB 수동 업로드 알림
       console.log('📫 DB 수동 업로드 알림 요청 중...')
-      await notifyManualUpload({
+      const { videoId  } = await notifyManualUpload({
         fileName: selectedFile.name,
         s3Key,
         contentType: selectedFile.type,
         size: selectedFile.size,
       })
-      console.log('✅ DB 알림 완료, 분석 준비 중')
+      console.log(`✅ DB 알림 완료, 분석 준비 중: videoId=${videoId }` )
 
       
-      // 3) AI 분석 트리거
-      console.log('🎬 AI 분석 시작')
       setIsAnalyzing(true)
-      // TODO: 실제 분석 API 호출
-      // 예: await analyzeVideo(s3Key, setAnalyzeProgress)
-      // simulate progress
-      const interval = setInterval(() => {
-        setAnalyzeProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval)
-            console.log('🏁 AI 분석 완료')
-            return 100
+      console.log('🔄 상태 폴링 시작: videoId=', videoId )
+      const pollInterval = setInterval(async () => {
+        try {
+          const { status, reportId } = await pollVideoStatus(String(videoId))
+          console.log(`📊 폴링 상태: ${status}`)
+          if (status === 'COMPLETED') {
+            clearInterval(pollInterval)
+            console.log(`🏁 분석 완료: reportId=${reportId}`)
+             // 보고서 상세 조회
+            const report = await getReportDetail(reportId)
+            console.log('📄 보고서 상세:', report)
+
+            setIsAnalyzing(false)
+            // router.push(`/analysis/${reportId}`)
           }
-          return prev + 5
-        })
-      }, 300)
+        } catch (e) {
+          console.error('폴링 오류:', e)
+          clearInterval(pollInterval)
+          setIsAnalyzing(false)
+        }
+      }, 3000)
     } catch (error) {
       const err = error as AxiosError
-      console.error('🚨 처리 중 오류 발생:', err.response?.data || err.message)
+      console.error('🚨 처리 중 오류:', err.response?.data || err.message)
       setIsUploading(false)
       setIsAnalyzing(false)
     }

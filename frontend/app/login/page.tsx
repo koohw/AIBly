@@ -9,6 +9,7 @@ import { Browser } from '@capacitor/browser';
 import { CapacitorKakaoLogin } from '@team-lepisode/capacitor-kakao-login'
 import { Preferences } from '@capacitor/preferences'
 import { App } from '@capacitor/app'
+import { registerFcmToken } from '@/lib/api/Fcm' // FCM 토큰 등록 유틸리티 import
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -96,6 +97,14 @@ export default function LoginPage() {
 
     // 3️⃣ 로컬 스토리지 대신 Capacitor Preferences 에 저장
     await Preferences.set({ key: 'AUTH_TOKEN', value: authToken });
+
+    // [추가] FCM 토큰 등록
+      try {
+        await registerFcmToken(authToken);
+        console.log('[LoginPage] FCM 토큰 등록 요청 완료');
+      } catch (fcmError) {
+        console.error('[LoginPage] FCM 토큰 등록 중 오류 (로그인은 계속 진행됨):', fcmError);
+      }
 
     // 4️⃣ 대시보드 페이지로 이동
     router.replace('/dashboard');
