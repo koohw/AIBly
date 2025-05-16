@@ -1,7 +1,9 @@
 package com.ssafy.backend.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.backend.ai.dto.response.AccidentDefinitionDto;
+import com.ssafy.backend.ai.dto.response.EventLogDto;
 import com.ssafy.backend.domain.file.AnalysisStatus;
 import com.ssafy.backend.domain.file.UploadType;
 import com.ssafy.backend.domain.report.Report;
@@ -34,6 +36,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
     private final AccidentDefinitionLoader accidentDefinitionLoader;
     private final UserService userService;
     private final FcmService fcmService;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public Long handleAiCallback(JsonNode json, Long videoId) {
@@ -54,7 +57,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         String damageLocation = json.path("damageLocation").asText("");
         int faultA = json.path("faultA").asInt();
         int faultB = json.path("faultB").asInt();
-        String timelineLog = formatEventTimeline(json.path("eventTimeline"));
+        String timelineJson = convertEventTimelineToJson(json.path("eventTimeline"));  // ✅ 여기서 JSON으로 변환
 
         // CSV 기반 정적 데이터
         AccidentDefinitionDto definition = accidentDefinitionLoader.get(accidentTypeCode);
@@ -69,7 +72,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                 .decisions(definition.getPrecedents())
                 .carA(carA)
                 .carB(carB)
-                .mainEvidence(timelineLog)
+                .mainEvidence(timelineJson)
                 .createdAt(LocalDateTime.now())
                 .analysisStatus(AnalysisStatus.COMPLETED)
                 .build();
@@ -100,17 +103,24 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         return report.getId();
     }
 
-    private String formatEventTimeline(JsonNode eventTimeline) {
-        if (eventTimeline == null || !eventTimeline.isArray()) return "AI 분석 로그 없음";
+    //프론트에게 넘기는 파일 [] 이렇게 덩어리로 보내기.
+    private String convertEventTimelineToJson(JsonNode eventTimeline) {
+        if (eventTimeline == null || !eventTimeline.isArray()) {
+            return "[]";  // 빈 배열로 저장
+        }
 
-        return StreamSupport.stream(eventTimeline.spliterator(), false)
-                .map(entry -> {
-                    String frame = entry.path("frameIdx").asText();
-                    String event = entry.path("event").asText();
-                    return frame + "프레임 - " + event;
-                })
-                .collect(Collectors.joining("\\n"));
+        List<EventLogDto> timelineList = StreamSupport.stream(eventTimeline.spliterator(), false)
+                .map(entry -> new EventLogDto(entry.path("event").asText(), entry.path("frameIdx").asInt()))
+                .collect(Collectors.toList());
+
+        try {
+            return objectMapper.writeValueAsString(timelineList);
+        } catch (Exception e) {
+            log.error("EventTimeline JSON 변환 실패", e);
+            return "[]";
+        }
     }
+
 }
 
 //csv:title, accidentFeature, laws, precedents 동적만
