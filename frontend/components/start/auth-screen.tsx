@@ -186,7 +186,7 @@ export default function AuthScreen() {
   const token = process.env.NEXT_PUBLIC_JWT // 환경변수는 NEXT_PUBLIC_ 붙여야 클라이언트 접근 가능
   if (token) {
     await Preferences.set({ key: 'AUTH_TOKEN', value: token });
-    router.push("/dashboard");
+    router.replace('/dashboard');
   } else {
     console.error("JWT 토큰이 존재하지 않습니다.");
   }
