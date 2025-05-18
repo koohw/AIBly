@@ -4,6 +4,8 @@ import com.ssafy.backend.domain.file.S3File;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.util.Optional;
+
 public interface S3UploadService {
 
     //파일 이름에서 UUID로 s3Key 생성
@@ -18,8 +20,11 @@ public interface S3UploadService {
     //유저가 pdf파일 다운받을 때
     String generateDownloadPresignedUrl(String s3Key);
 
-    // s3 파일 삭제 요청
-    void deleteS3File(Long userId, String s3Key);
+    //S3에 올라간 영상 파일 삭제(S3 presigned URL로 업로드한 진짜 파일을 제거)
+    void deleteFromS3(String s3Key);
+
+    //s3_files 레코드 삭제
+    void deleteS3FileEntity(String s3Key);
 
     // 한글 PDF 업로드 기능
     void uploadPdf(byte[] pdfBytes, String s3Key, String contentType);
@@ -27,7 +32,15 @@ public interface S3UploadService {
     //s3 file 저장
     void saveS3File(S3File s3File);
 
+    //유저가 같은 파일을 올렸는지 파악함
     boolean isDuplicateFile(String fileHash, Long userId);
+
+    //s3key가 있다면 새로 만들지 말고 presignedURL만 새로 발급 받아서 중복 방지
+    String getOrCreateS3Key(String fileHash, Long userId, String fileName, String contentType, long size);
+
+    //userId + s3Key로 S3File을 찾는 메서드
+    Optional<S3File> getS3FileByS3KeyAndUserId(String s3Key, Long userId);
+
 }
 
 //Presigned URL API는 아직 DB에 저장할 게 없어서 Repository를 안 씀

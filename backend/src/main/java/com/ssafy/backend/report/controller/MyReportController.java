@@ -34,14 +34,14 @@ public class MyReportController extends BaseController {
         return ResponseEntity.ok(report);
     }
 
-
     //내 보고서 삭제 (PDF + 영상 +Report DB 삭제까지 서비스 내부에서 수행)
     @DeleteMapping("/{reportId}")
-    public ResponseEntity<Void> deleteMyReport(@PathVariable Long reportId, HttpServletRequest request) {
+    public ResponseEntity<Void> deleteMyReport(@PathVariable Long reportId, @RequestParam(defaultValue = "false") boolean alsoDeleteVideo, HttpServletRequest request) {
         Long userId = getCurrentUserId(request);
-        reportService.deleteMyReport(userId, reportId);
+        reportService.deleteMyReport(userId, reportId, alsoDeleteVideo);
         return ResponseEntity.noContent().build();
     }
+
 
      //JWT 기반 User ID 추출 (CustomUserDetails 사용 예시) 지금은 principal이 String으로 저장되고 있어서 못씀
  /**

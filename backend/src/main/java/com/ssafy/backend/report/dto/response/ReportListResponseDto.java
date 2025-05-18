@@ -10,13 +10,26 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class ReportListResponseDto {
 
     private Long id;
     private String title;
     private String accidentCode;
     private String createdAt;
+    private int faultA;
+    private int faultB;
+    private String fileName;
+
+    //생성자 명확히 표시,@AllArgsConstructor 대신 적음
+    public ReportListResponseDto(Long id, String title, String accidentCode, String createdAt, int faultA, int faultB, String fileName) {
+        this.id = id;
+        this.title = title;
+        this.accidentCode = accidentCode;
+        this.createdAt = createdAt;
+        this.faultA = faultA;
+        this.faultB = faultB;
+        this.fileName = fileName;
+    }
 
     /**
      * from(Report report)이란? 엔티티(Report)를 받아서 DTO(ReportListResponseDto)로 변환하는 역할
@@ -28,7 +41,11 @@ public class ReportListResponseDto {
                 report.getId(),
                 report.getTitle(),
                 report.getAccidentCode(),
-                report.getCreatedAt().toString()
+                report.getCreatedAt().toString(),
+                report.getFaultA(),
+                report.getFaultB(),
+                report.getFileName()
         );
     }
+
 }

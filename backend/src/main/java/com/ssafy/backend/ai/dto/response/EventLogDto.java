@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EventLogDto {
     private String event;
-    private int frameIdx;
+    private String timeInSeconds; // "0.68초"처럼 표현
 }
 // JSON 배열 그대로 프론트에서 받도록

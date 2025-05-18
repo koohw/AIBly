@@ -4,6 +4,7 @@ import com.ssafy.backend.ai.service.AiService;
 import com.ssafy.backend.common.exception.CustomException;
 import com.ssafy.backend.common.exception.ErrorCode;
 import com.ssafy.backend.domain.file.*;
+import com.ssafy.backend.domain.report.ReportRepository;
 import com.ssafy.backend.domain.video.VideoFile;
 import com.ssafy.backend.domain.video.VideoFileRepository;
 import com.ssafy.backend.s3.service.S3UploadService;
@@ -28,46 +29,52 @@ public class VideoServiceImpl implements VideoService {
     private final UserRepository userRepository;
     private final AiService aiService;
     private final S3UploadService s3UploadService;
+    private final ReportRepository reportRepository;
+
 
     @Override
     @Transactional
     public UploadNotifyResponseDto registerUploadedVideo(UploadNotifyRequestDto dto, Long userId, UploadType uploadType) {
 
-        // 중복 업로드 방지
-        videoFileRepository.findByUserIdAndS3Key(userId, dto.getS3Key()).ifPresent(existing -> {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        // 1. 중복 업로드 방지
+        videoFileRepository.findByUserIdAndS3KeyAndFileName(userId, dto.getS3Key(),dto.getFileName()).ifPresent(existing -> {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE); // 이미 등록된 파일
         });
 
-
-        // 실제 User 엔티티 조회
+        // 2. 실제 User 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        // 3. 사전에 저장된 S3File 확인 (이게 없으면 등록 불가)
+        S3File s3File = s3UploadService.getS3FileByS3KeyAndUserId(dto.getS3Key(), userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FILE_NOT_FOUND));
 
-        // 업로드된 파일이 VIDEO인지 PDF인지 자동 분류
-        FileType fileType = determineFileType(dto.getContentType());
+        // 4. 파일 타입 자동 분류
+        FileType fileType = determineFileType(s3File.getContentType());
 
-        // 저장
+        // 5. VideoFile 생성
         VideoFile file = VideoFile.builder()
                 .fileName(dto.getFileName())
-                .s3Key(dto.getS3Key())
-                .contentType(dto.getContentType())
-                .size(dto.getSize())
-                .uploadType(uploadType)         // AUTO / MANUAL
-                .fileType(fileType)             // VIDEO / PDF
+                .s3Key(s3File.getS3Key())
+                .contentType(s3File.getContentType())
+                .size(s3File.getSize())
+                .uploadType(uploadType)
+                .fileType(fileType)
                 .analysisStatus(AnalysisStatus.ANALYZING)
                 .user(user)
                 .build();
+
         videoFileRepository.save(file);
 
-        //AI 분석 요청
+        // 6. AI 분석 요청 (영상인 경우에만)
         if (fileType == FileType.VIDEO) {
             aiService.requestAndHandleAnalysis(file);
         }
 
-        // 5. 저장된 정보를 응답 DTO로 반환
+        // 7. 결과 반환
         return new UploadNotifyResponseDto(file.getId(), file.getFileType(), file.getAnalysisStatus());
     }
+
 
     //FileType 분류
     private FileType determineFileType(String contentType) {
@@ -113,4 +120,55 @@ public class VideoServiceImpl implements VideoService {
                 .size(video.getSize())
                 .build();
     }
+
+    //영상 삭제 시 참조 확인 후 S3 삭제
+    //다른 파일명의 같은 영상이 존재하면 삭제 안함
+    @Transactional
+    @Override
+    public void deleteVideo(Long videoId, boolean alsoDeleteS3) {
+        VideoFile video = videoFileRepository.findById(videoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.VIDEO_NOT_FOUND));
+
+        String s3Key = video.getS3Key();
+        videoFileRepository.delete(video);
+
+        if (alsoDeleteS3) {
+            long remaining = videoFileRepository.countByS3Key(s3Key);
+            if (remaining == 0) {
+                s3UploadService.deleteFromS3(s3Key);              // S3 객체 삭제
+                s3UploadService.deleteS3FileEntity(s3Key);        // s3_files 레코드 삭제
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteVideoAndReport(Long userId, Long videoId) {
+        VideoFile video = videoFileRepository.findByIdAndUserId(videoId, userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.VIDEO_NOT_FOUND));
+
+        // 연결된 보고서 삭제
+        reportRepository.findByVideoFileId(videoId).ifPresent(report -> {
+            // PDF도 삭제
+            String pdfKey = report.getPdfKey();
+            if (pdfKey != null && !pdfKey.isEmpty()) {
+                s3UploadService.deleteFromS3(pdfKey);
+                s3UploadService.deleteS3FileEntity(pdfKey);
+            }
+
+            reportRepository.delete(report);
+        });
+
+        // videoFile 삭제
+        videoFileRepository.delete(video);
+
+        // S3Key 참조 수 확인
+        String s3Key = video.getS3Key();
+        long remaining = videoFileRepository.countByS3Key(s3Key);
+        if (remaining == 0) {
+            s3UploadService.deleteFromS3(s3Key);
+            s3UploadService.deleteS3FileEntity(s3Key);
+        }
+    }
+
 }

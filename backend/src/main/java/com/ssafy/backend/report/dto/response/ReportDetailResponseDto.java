@@ -28,6 +28,7 @@ public class ReportDetailResponseDto {
     private String videoUrl;
 
 
+
     //Report Entity를 ReportDetailResponseDto로 변환해주는 정적 메서드
     public static ReportDetailResponseDto from(Report report, String videoUrl) {
         return ReportDetailResponseDto.builder()
