@@ -16,4 +16,10 @@ public interface VideoService {
     List<MyVideoResponseDto> getMyVideos(Long userId); //내 영상 목록
 
     MyVideoResponseDto getMyVideoDetail(Long userId, Long videoId); //내 영상 상세조회
+
+    void deleteVideo(Long videoId, boolean alsoDeleteS3);  // 영상 삭제 시 참조 확인 후 S3 삭제
+
+    // 내 영상함에서 영상 삭제 (보고서 + PDF 포함 전부 삭제)
+    void deleteVideoAndReport(Long userId, Long videoId);
+
 }

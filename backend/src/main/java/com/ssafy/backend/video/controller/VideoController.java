@@ -61,4 +61,12 @@ public class VideoController extends BaseController {
         return ResponseEntity.ok(videoService.getMyVideoDetail(userId, videoId));
     }
 
+    // 내 영상함에서 영상 삭제 (보고서 + PDF 포함 전부 삭제)
+    @DeleteMapping("/{videoId}")
+    public ResponseEntity<Void> deleteMyVideo(@PathVariable Long videoId, HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        videoService.deleteVideoAndReport(userId, videoId);
+        return ResponseEntity.noContent().build();
+    }
+
 }

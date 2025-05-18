@@ -43,6 +43,8 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         VideoFile videoFile = videoFileRepository.findById(videoId)
                 .orElseThrow(() -> new IllegalArgumentException("VideoFile not found: " + videoId));
 
+        String fileName = videoFile.getFileName();
+
         // Idempotent 처리
         Report existingReport = reportRepository.findByVideoFileId(videoId).orElse(null);
         if (existingReport != null) {
@@ -55,19 +57,22 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         String carA = json.path("carAProgress").asText("");
         String carB = json.path("carBProgress").asText("");
         String damageLocation = json.path("damageLocation").asText("");
-        int faultA = json.path("faultA").asInt();
-        int faultB = json.path("faultB").asInt();
         String timelineJson = convertEventTimelineToJson(json.path("eventTimeline"));  // ✅ 여기서 JSON으로 변환
 
         // CSV 기반 정적 데이터
         AccidentDefinitionDto definition = accidentDefinitionLoader.get(accidentTypeCode);
 
+        // CSV 기반 과실비율로 대체
+        int faultA = definition.getFaultA();
+        int faultB = definition.getFaultB();
+
         // Report 생성
         Report report = Report.builder()
                 .videoFile(videoFile)
+                .fileName(fileName)
                 .accidentCode(String.valueOf(accidentTypeCode))
-                .title(definition.getTitle())
-                .accidentType(definition.getAccidentFeature())
+                .title(definition.getAccidentFeature())  // 장소 특징으로 제목 설정
+                .accidentType(definition.getTitle())     // 기존 title을 accidentType으로 이동
                 .laws(definition.getLaws())
                 .decisions(definition.getPrecedents())
                 .carA(carA)
@@ -81,6 +86,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         videoFile.setAnalysisStatus(AnalysisStatus.COMPLETED);
 
         // 업로드 타입 직접 조회 (VideoService 대신 Repository 사용)
+        //FCM 발송 처리
         UploadType uploadType = videoFile.getUploadType();
         log.info("업로드 타입 확인: videoId={}, uploadType={}", videoId, uploadType);
 
@@ -110,7 +116,12 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         }
 
         List<EventLogDto> timelineList = StreamSupport.stream(eventTimeline.spliterator(), false)
-                .map(entry -> new EventLogDto(entry.path("event").asText(), entry.path("frameIdx").asInt()))
+                .map(entry -> {
+                    String event = entry.path("event").asText();
+                    int frame = entry.path("frameIdx").asInt();
+                    double seconds = Math.round(frame * 0.68 * 100.0) / 100.0; // 소수점 둘째 자리 반올림
+                    return new EventLogDto(event, seconds + "초");
+                })
                 .collect(Collectors.toList());
 
         try {

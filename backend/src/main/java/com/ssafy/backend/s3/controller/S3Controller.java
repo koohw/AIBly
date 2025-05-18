@@ -21,10 +21,27 @@ public class S3Controller extends BaseController {
 
     private final S3UploadService s3UploadService;
 
-    // presigned URL을 생성하여 프론트에 전달
-    //Presigned URL 요청과 동시에 DB에 S3File 기록
+    //같은 영상이라 s3key가 같다면 presigedUrl만 새로 발급 받음
     @PostMapping("/presigned")
     public ResponseEntity<PresignedUrlResponseDto> getPresignedUrl(
+            @RequestBody PresignedUrlRequestDto request,
+            HttpServletRequest httpRequest) {
+
+        Long userId = getCurrentUserId(httpRequest);
+
+        String s3Key = s3UploadService.getOrCreateS3Key(
+                request.getFileHash(), userId,
+                request.getFileName(), request.getContentType(), request.getSize());
+
+        String presignedUrl = s3UploadService.generatePresignedUrl(s3Key, request.getContentType());
+
+        return ResponseEntity.ok(new PresignedUrlResponseDto(presignedUrl, s3Key));
+    }
+
+    // presigned URL을 생성하여 프론트에 전달, 계속 같은 영상이더라도 S3 KEY와 URL 함께 새로 발급
+    //Presigned URL 요청과 동시에 DB에 S3File 기록
+    @PostMapping("/new-url-key")
+    public ResponseEntity<PresignedUrlResponseDto> getPresignedUrlKey(
             @RequestBody PresignedUrlRequestDto request,
             HttpServletRequest httpRequest) {
 
@@ -63,19 +80,6 @@ public class S3Controller extends BaseController {
         Long userId = getCurrentUserId(request);
         String url = s3UploadService.getDownloadURL(userId, dto.getS3Key());
         return ResponseEntity.ok(url);
-    }
-
-    // S3에 업로드된 파일을 삭제
-    @PostMapping("/deleteFile")
-    public ResponseEntity<?> deleteFile(
-            HttpServletRequest request,
-            //@RequestHeader String accessToken,
-            @RequestBody PresignedDownloadRequestDto dto
-    ){
-
-        Long userId = getCurrentUserId(request);
-        s3UploadService.deleteS3File(userId, dto.getS3Key());
-        return ResponseEntity.noContent().build();
     }
 
 }

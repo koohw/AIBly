@@ -51,8 +51,9 @@ public class FcmServiceImpl implements FcmService {
             if (responseCode == 200) {
                 log.info("✅ FCM 발송 성공: reportId={}", reportId);
             } else {
-                log.error("FCM 발송 실패 - HTTP 응답 코드: {}, reportId={}", responseCode, reportId);
-                throw new RuntimeException("FCM v1 메시지 전송 실패: HTTP " + responseCode);
+                String errorResponse = new String(conn.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+                log.error("FCM 발송 실패 - HTTP 응답 코드: {}, 내용: {}, reportId={}", responseCode, errorResponse, reportId);
+                throw new RuntimeException("FCM v1 메시지 전송 실패: HTTP " + responseCode + " / " + errorResponse);
             }
 
         } catch (Exception e) {

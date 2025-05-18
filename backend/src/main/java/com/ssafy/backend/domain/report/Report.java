@@ -21,6 +21,9 @@ public class Report {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 300)
+    private String fileName;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "file_id", nullable = false)
     private VideoFile videoFile;
@@ -76,9 +79,10 @@ public class Report {
                   String carA, String carB, int faultA, int faultB,
                   String damageLocation, String mainEvidence,
                   String laws, String decisions,
-                  LocalDateTime createdAt, AnalysisStatus analysisStatus) {
+                  LocalDateTime createdAt, AnalysisStatus analysisStatus, String fileName) {
 
         this.videoFile = videoFile;
+        this.fileName = fileName;
         this.accidentCode = accidentCode;
         this.title = title;
         this.accidentType = accidentType;

@@ -24,13 +24,16 @@ public enum ErrorCode {
 
     // 보고서 관련
     REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 보고서입니다"),
+    REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 보고서가 존재합니다"),
     PDF_ALREADY_EXIST(HttpStatus.CONFLICT, "이미 PDF가 생성된 보고서입니다"),
     PDF_GENERATE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "PDF 생성에 실패했습니다"),
 
     // S3 관련
     S3_DELETE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 삭제에 실패했습니다"),
     S3_UPLOAD_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 업로드에 실패했습니다"),
+    FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 파일입니다"),
 
+    PDF_NOT_FOUND(HttpStatus.BAD_REQUEST, "PDF가 아직 생성되지 않았습니다."),
     // 공통
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "잘못된 입력값입니다"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "내부 서버 오류가 발생했습니다");

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "video_files", uniqueConstraints = {
-        @UniqueConstraint(name = "uq_user_s3key", columnNames = {"user_id", "s3key"})
+        @UniqueConstraint(name = "uq_user_s3key", columnNames = {"user_id", "s3key","file_name"})
 })
 @Getter
 @Setter

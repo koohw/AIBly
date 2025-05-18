@@ -29,6 +29,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     // fcm, polling 관련 (Entity 그대로 유지)
     Optional<Report> findByVideoFileId(Long videoId);
+
+    boolean existsByVideoFileId(Long videoFileId);
 }
 
 //변수명 다르게 만들면 JPA가 인식하지 못해서 @Query 명시 필요

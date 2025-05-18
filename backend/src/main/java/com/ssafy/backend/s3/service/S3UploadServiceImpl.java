@@ -1,5 +1,6 @@
 package com.ssafy.backend.s3.service;
 
+import com.ssafy.backend.domain.file.FileType;
 import com.ssafy.backend.domain.file.S3File;
 import com.ssafy.backend.domain.file.S3FileRepository;
 import com.ssafy.backend.domain.video.VideoFile;
@@ -7,6 +8,7 @@ import com.ssafy.backend.domain.video.VideoFileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -20,10 +22,12 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 
 import java.net.URL;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class S3UploadServiceImpl implements S3UploadService {
 
     private final S3Client s3Client;
@@ -87,24 +91,6 @@ public class S3UploadServiceImpl implements S3UploadService {
         return presignedUrl.toString();
     }
 
-    // S3에 업로드된 파일 삭제
-    @Override
-    public void deleteS3File(Long userId, String s3Key) {
-        // 사용자 검증 후 파일 삭제
-        VideoFile videoFile = getVideoFile(userId, s3Key);
-
-        // S3에서 삭제
-        DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
-                .bucket(bucket)
-                .key(videoFile.getS3Key())
-                .build();
-        s3Client.deleteObject(deleteRequest);
-
-        // DB에서 삭제
-        videoFileRepository.delete(videoFile);
-    }
-
-    // helper methods
     // userId, FileName 으로 videoFile 조회 -> userId, s3Key로 수정
     private VideoFile getVideoFile(Long userId, String s3Key) {
         return videoFileRepository.findByUserIdAndS3Key(userId, s3Key)
@@ -150,5 +136,54 @@ public class S3UploadServiceImpl implements S3UploadService {
 
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
+
+    @Override
+    public Optional<S3File> getS3FileByS3KeyAndUserId(String s3Key, Long userId) {
+        return s3FileRepository.findByS3KeyAndUserId(s3Key, userId);
+    }
+
+
+    //기존에 파일이 있으면 재사용 없으면 s3key 새로 만들기
+    public String getOrCreateS3Key(String fileHash, Long userId, String fileName, String contentType, long size) {
+        Optional<S3File> existing = s3FileRepository.findByFileHashAndUserId(fileHash, userId);
+
+        if (existing.isPresent()) {
+            System.out.println("기존 파일 재사용 - fileHash: " + fileHash + ", s3Key: " + existing.get().getS3Key());
+            return existing.get().getS3Key(); // 기존 파일의 key 재사용
+        }
+
+        // 새로운 파일이면 새로 저장
+        String s3Key = generateS3Key(fileName);
+
+        S3File file = S3File.builder()
+                .s3Key(s3Key)
+                .fileName(fileName)
+                .contentType(contentType)
+                .fileHash(fileHash)
+                .userId(userId)
+                .fileType(FileType.VIDEO)
+                .size(size)
+                .build();
+        System.out.println("새 파일 저장 - fileHash: " + fileHash + ", s3Key: " + s3Key);
+        s3FileRepository.save(file);
+        return s3Key;
+
+    }
+
+    @Override
+    public void deleteFromS3(String s3Key) {
+        DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                .bucket(bucket)
+                .key(s3Key)
+                .build();
+
+        s3Client.deleteObject(deleteRequest);
+    }
+
+    @Override
+    public void deleteS3FileEntity(String s3Key) {
+        s3FileRepository.deleteByS3Key(s3Key);
+    }
+
 
 }
