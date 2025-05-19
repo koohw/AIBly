@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.format.DateTimeFormatter;
+
 //보고서 목록 조회 DTO, 목록에서 필요한 최소 필드만 노출
 @Getter
 @Setter
@@ -37,11 +39,13 @@ public class ReportListResponseDto {
      * ReportListResponseDto dto = new ReportListResponseDto(report.getId(), report.getTitle()...이렇게 했었음
      */
     public static ReportListResponseDto from(Report report) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일 HH시 mm분");
+
         return new ReportListResponseDto(
                 report.getId(),
                 report.getTitle(),
                 report.getAccidentCode(),
-                report.getCreatedAt().toString(),
+                report.getCreatedAt().format(formatter),
                 report.getFaultA(),
                 report.getFaultB(),
                 report.getFileName()

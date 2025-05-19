@@ -56,6 +56,9 @@ public class Report {
     private String mainEvidence;    // 주요 증거 (AI eventTimeline)
 
     @Column(columnDefinition = "TEXT")
+    private String mainEvidenceHtml;
+
+    @Column(columnDefinition = "TEXT")
     private String laws;            // 법령 (CSV)
 
     @Column(columnDefinition = "TEXT")
@@ -79,7 +82,7 @@ public class Report {
                   String carA, String carB, int faultA, int faultB,
                   String damageLocation, String mainEvidence,
                   String laws, String decisions,
-                  LocalDateTime createdAt, AnalysisStatus analysisStatus, String fileName) {
+                  LocalDateTime createdAt, AnalysisStatus analysisStatus, String fileName, String mainEvidenceHtml) {
 
         this.videoFile = videoFile;
         this.fileName = fileName;
@@ -92,6 +95,7 @@ public class Report {
         this.faultB = faultB;
         this.damageLocation = damageLocation;
         this.mainEvidence = mainEvidence;
+        this.mainEvidenceHtml = mainEvidenceHtml;
         this.laws = laws;
         this.decisions = decisions;
         this.createdAt = createdAt;

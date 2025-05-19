@@ -74,8 +74,12 @@ public class PdfServiceImpl implements PdfService {
         variables.put("accidentType", report.getAccidentType());
         variables.put("carA", report.getCarA());
         variables.put("carB", report.getCarB());
+        variables.put("faultA", String.valueOf(report.getFaultA()));
+        variables.put("faultB", String.valueOf(report.getFaultB()));
+        variables.put("mainEvidenceHtml", report.getMainEvidenceHtml());
         variables.put("mainEvidence", report.getMainEvidence());
         variables.put("laws", report.getLaws());
+        variables.put("decisions", report.getDecisions());
         variables.put("createdAt", report.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         return variables;
     }
