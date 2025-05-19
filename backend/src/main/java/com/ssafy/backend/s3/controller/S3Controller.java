@@ -30,13 +30,13 @@ public class S3Controller extends BaseController {
         Long userId = getCurrentUserId(httpRequest);
 
         String s3Key = s3UploadService.getOrCreateS3Key(
-                request.getFileHash(), userId,
-                request.getFileName(), request.getContentType(), request.getSize());
+                request.getFileName(), request.getContentType(), userId);
 
         String presignedUrl = s3UploadService.generatePresignedUrl(s3Key, request.getContentType());
 
         return ResponseEntity.ok(new PresignedUrlResponseDto(presignedUrl, s3Key));
     }
+
 
     // presigned URL을 생성하여 프론트에 전달, 계속 같은 영상이더라도 S3 KEY와 URL 함께 새로 발급
     //Presigned URL 요청과 동시에 DB에 S3File 기록
@@ -47,7 +47,7 @@ public class S3Controller extends BaseController {
 
         Long userId = getCurrentUserId(httpRequest);
 
-        if (s3UploadService.isDuplicateFile(request.getFileHash(), userId)) {
+        if (s3UploadService.isDuplicateFile(request.getFileName(), request.getContentType(), userId)) {
             throw new RuntimeException("이미 업로드된 파일입니다.");
         }
 
@@ -58,16 +58,15 @@ public class S3Controller extends BaseController {
                 .s3Key(s3Key)
                 .fileName(request.getFileName())
                 .contentType(request.getContentType())
-                .fileHash(request.getFileHash())
                 .userId(userId)
                 .fileType(FileType.VIDEO)
-                .size(request.getSize())
                 .build();
 
         s3UploadService.saveS3File(file);
 
         return ResponseEntity.ok(new PresignedUrlResponseDto(presignedUrl, s3Key));
     }
+
 
     // presigned URL 을 생성 (다운로드 용도, FE용도...)
     // jwt 관련 기능이 없어서 임시로 userId를 1로 진행함.

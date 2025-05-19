@@ -7,8 +7,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "s3_files", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"fileHash", "userId"})
-}) //해시 검증으로 중복 방지
+        @UniqueConstraint(columnNames = {"fileName", "contentType", "userId"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -33,19 +33,19 @@ public class S3File {
     @Column(nullable = false)
     private FileType fileType; //썸네일, 영상, pdf
 
-    @Column(nullable = false)
-    private Long size;
-
     private Integer duration; // 영상 길이
 
     @Column(nullable = false)
     private LocalDateTime uploadDate;
 
-    @Column(nullable = false, length = 128)
-    private String fileHash;  // SHA256 등 해시값, s3파일 중복 방지
+    @Column(nullable = true, length = 128)
+    private String fileHash;
 
     @Column(nullable = false)
     private Long userId;  // 업로드한 유저 ID, s3파일 중복 방지
+
+    @Column(nullable = true)
+    private Long size;
 
     @PrePersist
     public void prePersist() {

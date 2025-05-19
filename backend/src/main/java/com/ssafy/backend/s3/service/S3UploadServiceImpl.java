@@ -115,8 +115,8 @@ public class S3UploadServiceImpl implements S3UploadService {
     }
 
     @Override
-    public boolean isDuplicateFile(String fileHash, Long userId) {
-        return s3FileRepository.existsByFileHashAndUserId(fileHash, userId);
+    public boolean isDuplicateFile(String fileName, String contentType, Long userId) {
+        return s3FileRepository.existsByFileNameAndContentTypeAndUserId(fileName, contentType, userId);
     }
 
     //사용자 PDF 다운로드용
@@ -143,31 +143,29 @@ public class S3UploadServiceImpl implements S3UploadService {
     }
 
 
-    //기존에 파일이 있으면 재사용 없으면 s3key 새로 만들기
-    public String getOrCreateS3Key(String fileHash, Long userId, String fileName, String contentType, long size) {
-        Optional<S3File> existing = s3FileRepository.findByFileHashAndUserId(fileHash, userId);
+    @Override
+    public String getOrCreateS3Key(String fileName, String contentType, Long userId) {
+        Optional<S3File> existing = s3FileRepository.findByFileNameAndContentTypeAndUserId(fileName, contentType, userId);
 
         if (existing.isPresent()) {
-            System.out.println("기존 파일 재사용 - fileHash: " + fileHash + ", s3Key: " + existing.get().getS3Key());
-            return existing.get().getS3Key(); // 기존 파일의 key 재사용
+            System.out.println("기존 파일 재사용 - fileName: " + fileName + ", s3Key: " + existing.get().getS3Key());
+            return existing.get().getS3Key();
         }
 
-        // 새로운 파일이면 새로 저장
+        // 새 S3 Key 생성
         String s3Key = generateS3Key(fileName);
 
         S3File file = S3File.builder()
                 .s3Key(s3Key)
                 .fileName(fileName)
                 .contentType(contentType)
-                .fileHash(fileHash)
                 .userId(userId)
                 .fileType(FileType.VIDEO)
-                .size(size)
                 .build();
-        System.out.println("새 파일 저장 - fileHash: " + fileHash + ", s3Key: " + s3Key);
+
+        System.out.println("새 파일 저장 - fileName: " + fileName + ", s3Key: " + s3Key);
         s3FileRepository.save(file);
         return s3Key;
-
     }
 
     @Override

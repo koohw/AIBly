@@ -33,10 +33,9 @@ public interface S3UploadService {
     void saveS3File(S3File s3File);
 
     //유저가 같은 파일을 올렸는지 파악함
-    boolean isDuplicateFile(String fileHash, Long userId);
+    boolean isDuplicateFile(String fileName, String contentType, Long userId);
 
-    //s3key가 있다면 새로 만들지 말고 presignedURL만 새로 발급 받아서 중복 방지
-    String getOrCreateS3Key(String fileHash, Long userId, String fileName, String contentType, long size);
+    String getOrCreateS3Key(String fileName, String contentType, Long userId);
 
     //userId + s3Key로 S3File을 찾는 메서드
     Optional<S3File> getS3FileByS3KeyAndUserId(String s3Key, Long userId);
