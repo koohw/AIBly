@@ -4,6 +4,7 @@ import com.ssafy.backend.domain.report.Report;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 //보고서 상세 조회
 @Getter
@@ -24,13 +25,15 @@ public class ReportDetailResponseDto {
     private int faultB;
     private String damageLocation;
     private String eventTimeline;
-    private LocalDateTime createdAt;
+    private String createdAt;
     private String videoUrl;
 
 
 
     //Report Entity를 ReportDetailResponseDto로 변환해주는 정적 메서드
     public static ReportDetailResponseDto from(Report report, String videoUrl) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일 HH시 mm분");
+
         return ReportDetailResponseDto.builder()
                 .id(report.getId())
                 .title(report.getTitle())
@@ -43,7 +46,7 @@ public class ReportDetailResponseDto {
                 .faultB(report.getFaultB())
                 .damageLocation(report.getDamageLocation())
                 .eventTimeline(report.getMainEvidence())
-                .createdAt(report.getCreatedAt())
+                .createdAt(report.getCreatedAt().format(formatter))
                 .videoUrl(videoUrl)
                 .build();
     }

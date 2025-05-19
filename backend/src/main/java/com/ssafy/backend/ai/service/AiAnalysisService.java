@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -59,7 +60,8 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         String carB = convertDirectionCode(json.path("carBProgress").asText(""), false);
 
         String damageLocation = json.path("damageLocation").asText("");
-        String timelineJson = convertEventTimelineToJson(json.path("eventTimeline"));  // ✅ 여기서 JSON으로 변환
+        String timelineJson = convertEventTimelineToJson(json.path("eventTimeline"));  // 프론트 JSON용
+        String timelineHtml = convertEventTimelineToHtmlText(json.path("eventTimeline")); // PDF 출력용
 
         // CSV 기반 정적 데이터
         AccidentDefinitionDto definition = accidentDefinitionLoader.get(accidentTypeCode);
@@ -84,6 +86,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                 .faultA(faultA)
                 .faultB(faultB)
                 .mainEvidence(timelineJson)
+                .mainEvidenceHtml(timelineHtml)
                 .createdAt(LocalDateTime.now())
                 .analysisStatus(AnalysisStatus.COMPLETED)
                 .build();
@@ -129,7 +132,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                     String eventText = switch (event) {
                         case "vehicle_B_first_seen" -> "상대 차량 최초 인식";
                         case "aftermath" -> "사고 발생 시점";
-                        default -> "알 수 없음";
+                        default -> "동작 없음";
                     };
 
                     return new EventLogDto(eventText, seconds + "초");
@@ -142,6 +145,27 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
             return "[]";
         }
     }
+
+    private String convertEventTimelineToHtmlText(JsonNode eventTimeline) {
+        if (eventTimeline == null || !eventTimeline.isArray()) {
+            return "";
+        }
+
+        return StreamSupport.stream(eventTimeline.spliterator(), false)
+                .map(entry -> {
+                    String event = entry.path("event").asText();
+                    int frame = entry.path("frameIdx").asInt();
+                    double seconds = Math.round(frame * 0.68 * 100.0) / 100.0;
+                    return switch (event) {
+                        case "vehicle_B_first_seen" -> "상대 차량 최초 인식 " + seconds + "초";
+                        case "aftermath" -> "사고 발생 시점 " + seconds + "초";
+                        default -> null;
+                    };
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("<br/>")); // 줄바꿈 포함된 HTML 문자열로
+    }
+
 
     //한글 치환
     private String convertDirectionCode(String code, boolean isA) {
