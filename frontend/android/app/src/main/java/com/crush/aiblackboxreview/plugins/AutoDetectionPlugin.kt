@@ -9,7 +9,7 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 
-@CapacitorPlugin(name = "AutoDetectPlugin")
+@CapacitorPlugin(name = "AutoDetect") // 이름을 "AutoDetect"로 수정
 class AutoDetectPlugin : Plugin() {
     private val TAG = "AutoDetectPlugin"
 

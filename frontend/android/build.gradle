@@ -2,7 +2,7 @@
 
 
 buildscript {
-     ext {
+    ext {
         kotlin_version = '1.8.21'     // 쓰시려는 Kotlin 버전
     }
     repositories {
@@ -14,10 +14,10 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
-    
+
         // Firebase Google Services 플러그인 추가
         classpath 'com.google.gms:google-services:4.4.2'
-    
+
     }
 }
 

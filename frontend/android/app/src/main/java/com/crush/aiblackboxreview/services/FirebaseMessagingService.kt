@@ -20,42 +20,85 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(remoteMessage)
 
         Log.d(TAG, "FCM 메시지 수신: ${remoteMessage.data}")
+        Log.d(TAG, "FCM 알림 정보: ${remoteMessage.notification}")
 
-        // 데이터 메시지 처리
-        val data = remoteMessage.data
-        if (data.isNotEmpty()) {
-            when (data["type"]) {
-                "analysis_started" -> {
-                    // 분석 중 알림 표시
-                    val videoId = data["video_id"] ?: return
+        try {
+            // 1. notification 객체가 있는지 확인
+            if (remoteMessage.notification != null) {
+                val title = remoteMessage.notification?.title ?: "AI 분석 완료"
+                val body = remoteMessage.notification?.body ?: "블랙박스 영상 분석이 완료되었습니다."
+
+                // 2. data에서 reportId 확인
+                val reportId = remoteMessage.data["reportId"]
+
+                if (reportId != null) {
+                    Log.e(TAG, "📊 분석 완료 메시지 수신: reportId=$reportId, title=$title, body=$body")
+
+                    // 3. 알림 생성
                     val notificationManager = ReportNotificationManager(applicationContext)
-                    notificationManager.showAnalysisInProgressNotification(videoId)
+                    notificationManager.showReportNotification(title, body, reportId)
+                } else {
+                    Log.e(TAG, "⚠️ reportId가 없는 FCM 메시지 수신됨")
                 }
+            } else {
+                // notification 객체가 없는 경우 (data-only 메시지)
+                val reportId = remoteMessage.data["reportId"]
+                val title = remoteMessage.data["title"] ?: "AI 분석 완료"
+                val body = remoteMessage.data["body"] ?: "블랙박스 영상 분석이 완료되었습니다."
 
-                "analysis_complete" -> {
-                    // 분석 중 알림 제거
+                if (reportId != null) {
+                    Log.e(TAG, "📊 데이터 전용 분석 완료 메시지 수신: reportId=$reportId")
+
                     val notificationManager = ReportNotificationManager(applicationContext)
-                    notificationManager.cancelAnalysisInProgressNotification()
+                    notificationManager.showReportNotification(title, body, reportId)
+                } else {
+                    // 기존 로직은 그대로 유지 (type 기반 처리)
+                    val data = remoteMessage.data
+                    if (data.isNotEmpty()) {
+                        when (data["type"]) {
+                            "analysis_started" -> {
+                                // 분석 중 알림 표시
+                                val videoId = data["video_id"] ?: return
+                                val notificationManager = ReportNotificationManager(applicationContext)
+                                notificationManager.showAnalysisInProgressNotification(videoId)
+                            }
 
-                    // 분석 완료 알림 표시
-                    val reportId = data["report_id"] ?: return
-                    val title = data["title"] ?: "사고 분석 완료"
-                    val message = data["message"] ?: "사고 영상 분석이 완료되었습니다."
-                    notificationManager.showReportNotification(title, message, reportId)
+                            "analysis_complete" -> {
+                                // 분석 중 알림 제거
+                                val notificationManager = ReportNotificationManager(applicationContext)
+                                notificationManager.cancelAnalysisInProgressNotification()
+
+                                // 분석 완료 알림 표시
+                                val reportId = data["report_id"] ?: return
+                                val title = data["title"] ?: "사고 분석 완료"
+                                val message = data["message"] ?: "사고 영상 분석이 완료되었습니다."
+                                notificationManager.showReportNotification(title, message, reportId)
+                            }
+                        }
+                    }
                 }
             }
-        }
-
-        // 알림 메시지 처리 (선택사항)
-        remoteMessage.notification?.let {
-            Log.d(TAG, "메시지 알림 본문: ${it.body}")
+        } catch (e: Exception) {
+            Log.e(TAG, "FCM 메시지 처리 중 오류 발생", e)
         }
     }
     override fun onNewToken(token: String) {
         Log.e(TAG, "🆕🆕🆕 새 FCM 토큰 발급: $token 🆕🆕🆕")
 
-        // 토큰을 서버에 전송
-        sendRegistrationToServer(token)
+        // 토큰만 저장하고, 서버 등록은 로그인 후에만 수행되도록 함
+        saveFcmTokenLocally(token);
+    }
+
+    private fun saveFcmTokenLocally(token: String) {
+        // FCM 토큰 저장
+        val sharedPref = getSharedPreferences("fcm_prefs", MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putString("fcm_token", token)
+            putBoolean("token_registered", false) // 아직 등록되지 않음을 표시
+            apply()
+        }
+
+        Log.e(TAG, "💾 FCM 토큰이 로컬에 저장됨: ${token.substring(0, 20)}...")
     }
 
     private fun sendRegistrationToServer(token: String) {

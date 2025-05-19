@@ -50,6 +50,13 @@ class ReportNotificationManager(private val context: Context) {
             notificationManager.createNotificationChannel(channel)
 
             Log.d(TAG, "알림 채널 생성 완료: $CHANNEL_ID")
+
+            // 채널 설정 확인
+            val createdChannel = notificationManager.getNotificationChannel(CHANNEL_ID)
+            Log.e(TAG, "채널 중요도: ${createdChannel.importance}")
+            Log.e(TAG, "채널 설명: ${createdChannel.description}")
+        } else {
+            Log.e(TAG, "Android 8.0 미만이므로 알림 채널 생성 생략")
         }
     }
 

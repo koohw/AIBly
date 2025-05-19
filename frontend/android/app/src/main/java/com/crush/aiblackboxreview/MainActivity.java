@@ -15,6 +15,7 @@ import android.widget.Toast;
 import android.webkit.ConsoleMessage;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
+import android.webkit.JavascriptInterface;
 
 import android.view.Gravity;
 import android.view.ViewGroup;
@@ -31,6 +32,7 @@ import com.crush.aiblackboxreview.services.VideoMonitoringService;
 import com.crush.aiblackboxreview.plugins.AutoDetectPlugin;
 import com.crush.aiblackboxreview.plugins.FcmTokenPlugin;
 import com.crush.aiblackboxreview.notifications.ReportNotificationManager;
+import com.crush.aiblackboxreview.managers.FcmTokenManager;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -64,10 +66,11 @@ public class MainActivity extends BridgeActivity {
         // 자동 감지 설정 플러그인 등록
         this.registerPlugin(AutoDetectPlugin.class);
 
-        // FCM 토큰 플러그인 등록 (이 줄을 추가)
+        // FCM 토큰 플러그인 등록
         this.registerPlugin(FcmTokenPlugin.class);
 
-        setupFcmTokenTest();
+        // FCM 브릿지 설정 - 자바스크립트에서 호출 가능하도록
+        setupJsInterface();
 
         // Capacitor UI 초기화 이후 권한 확인을 안전하게
         getWindow().getDecorView().post(this::checkAndRequestPermissions);
@@ -97,14 +100,116 @@ public class MainActivity extends BridgeActivity {
 
         // 알림에서 열린 경우 처리
         handleNotificationIntent(getIntent());
+    }
+    
+    /**
+     * 자바스크립트에서 호출할 수 있는 인터페이스 설정
+     */
+    private void setupJsInterface() {
+        try {
+            WebView webView = (WebView) this.getBridge().getWebView();
+            webView.getSettings().setJavaScriptEnabled(true);
+            
+            // FCM 브릿지 객체 추가
+            webView.addJavascriptInterface(new FcmBridge(), "androidFcmBridge");
+            
+            Log.d(TAG, "자바스크립트 인터페이스 설정 완료 - FCM 브릿지 등록됨");
+        } catch (Exception e) {
+            Log.e(TAG, "자바스크립트 인터페이스 설정 실패", e);
+        }
+    }
+    
+    /**
+     * FCM 토큰 관련 자바스크립트 브릿지 클래스
+     */
+    private class FcmBridge {
+        @JavascriptInterface
+        public String registerFcmToken() {
+            Log.d(TAG, "🌉 자바스크립트에서 registerFcmToken() 호출됨");
+            
+            try {
+                // FcmTokenManager를 사용하여 토큰 등록 처리
+                FirebaseMessaging.getInstance().getToken()
+                    .addOnCompleteListener(task -> {
+                        if (!task.isSuccessful()) {
+                            Log.e(TAG, "JS 브릿지: FCM 토큰 요청 실패", task.getException());
+                            return;
+                        }
 
-        // 보고서 알림 테스트 버튼 추가 (개발 중에만 사용)
-        setupReportNotificationTest();
+                        // FCM 토큰 획득 성공
+                        String fcmToken = task.getResult();
+                        Log.d(TAG, "JS 브릿지: FCM 토큰 획득 성공: " + 
+                            (fcmToken.length() > 20 ? fcmToken.substring(0, 20) + "..." : fcmToken));
 
+                        // FcmTokenManager를 사용하여 토큰 등록
+                        try {
+                            FcmTokenManager manager = new FcmTokenManager(MainActivity.this);
+                            manager.registerTokenToServer(fcmToken);
+                            Log.d(TAG, "JS 브릿지: FCM 토큰 등록 요청 완료");
+                            
+                            // 결과를 Capacitor 저장소에 저장 (JS에서 확인 가능)
+                            SharedPreferences capacitorPrefs = 
+                                getSharedPreferences("CapacitorStorage", MODE_PRIVATE);
+                            capacitorPrefs.edit()
+                                .putString("fcm_token_registered", "true")
+                                .putString("fcm_token", fcmToken)
+                                .apply();
+                            
+                        } catch (Exception e) {
+                            Log.e(TAG, "JS 브릿지: FCM 토큰 등록 실패", e);
+                        }
+                    });
+                
+                // 성공 응답 반환 - 자바스크립트에서 성공으로 처리됨
+                return "success";
+            } catch (Exception e) {
+                Log.e(TAG, "JS 브릿지: 예외 발생", e);
+                return "error: " + e.getMessage();
+            }
+        }
+        
+        @JavascriptInterface
+        public String getFcmToken() {
+            Log.d(TAG, "🌉 자바스크립트에서 getFcmToken() 호출됨");
+            
+            try {
+                // 저장된 토큰 조회
+                FcmTokenManager manager = new FcmTokenManager(MainActivity.this);
+                String token = manager.getFcmToken();
+                
+                if (token != null && !token.isEmpty()) {
+                    Log.d(TAG, "JS 브릿지: 저장된 FCM 토큰 반환: " + 
+                        (token.length() > 10 ? token.substring(0, 10) + "..." : token));
+                    return token;
+                } else {
+                    // 저장된 토큰이 없으면 Firebase에서 직접 가져오기 시도
+                    try {
+                        FirebaseMessaging.getInstance().getToken()
+                            .addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    String fcmToken = task.getResult();
+                                    Log.d(TAG, "JS 브릿지: 새 FCM 토큰 획득: " + 
+                                        (fcmToken.length() > 10 ? fcmToken.substring(0, 10) + "..." : fcmToken));
+                                    
+                                    // 저장
+                                    manager.saveFcmToken(fcmToken);
+                                }
+                            });
+                    } catch (Exception e) {
+                        Log.e(TAG, "JS 브릿지: 토큰 획득 실패", e);
+                    }
+                    
+                    Log.d(TAG, "JS 브릿지: 저장된 FCM 토큰 없음, 빈 문자열 반환");
+                    return "";
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "JS 브릿지: 토큰 획득 중 오류", e);
+                return "";
+            }
+        }
     }
 
     private void checkAndRequestPermissions() {
-
         List<String> permissionsToRequest = new ArrayList<>();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -144,7 +249,6 @@ public class MainActivity extends BridgeActivity {
 
         if (permissionsToRequest.isEmpty()) {
             Log.d(TAG, "모든 권한이 이미 부여됨. 서비스 시작");
-
             startVideoMonitoringService();
         } else {
             Log.d(TAG, "권한 요청: " + permissionsToRequest);
@@ -210,9 +314,6 @@ public class MainActivity extends BridgeActivity {
         try {
             Log.d(TAG, "비디오 모니터링 서비스 시작 시도");
 
-            // 테스트 알림 표시
-            testNotification();
-
             Intent serviceIntent = new Intent(this, VideoMonitoringService.class);
 
             // UI가 완전히 올라온 뒤 실행되도록 postDelayed
@@ -227,45 +328,6 @@ public class MainActivity extends BridgeActivity {
 
         } catch (Exception e) {
             Log.e(TAG, "서비스 시작 실패: " + e.getMessage(), e);
-        }
-    }
-    private void testNotification() {
-        try {
-            // 알림 채널 생성
-            String channelId = "test_channel";
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                NotificationChannel channel = new NotificationChannel(
-                        channelId,
-                        "테스트 알림 채널",
-                        NotificationManager.IMPORTANCE_HIGH
-                );
-                channel.setDescription("테스트용 알림 채널입니다");
-                NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                notificationManager.createNotificationChannel(channel);
-            }
-
-            // 알림 생성
-            Intent intent = new Intent(this, MainActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(
-                    this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
-
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentTitle("테스트 알림")
-                    .setContentText("이 알림이 보이면 알림 기능이 정상 작동합니다.")
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setContentIntent(pendingIntent)
-                    .setAutoCancel(true)
-                    .setVibrate(new long[]{0, 500, 250, 500});
-
-            // 알림 표시
-            NotificationManager notificationManager =
-                    (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            notificationManager.notify(9999, builder.build());
-
-            Log.d(TAG, "테스트 알림이 표시되었습니다.");
-        } catch (Exception e) {
-            Log.e(TAG, "테스트 알림 표시 중 오류 발생", e);
         }
     }
 
@@ -284,123 +346,6 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    /**
-     * 보고서 알림 테스트 버튼 설정
-     * 개발 중에 알림 기능을 테스트하기 위한 UI 요소 추가
-     */
-    private void setupReportNotificationTest() {
-        // 테스트 버튼 생성
-        Button testButton = new Button(this);
-        testButton.setText("보고서 알림 테스트");
-
-        // 버튼 레이아웃 설정
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        layoutParams.gravity = Gravity.CENTER;
-        layoutParams.setMargins(0, 50, 0, 0);
-        testButton.setLayoutParams(layoutParams);
-
-        // 클릭 이벤트 설정
-        testButton.setOnClickListener(v -> {
-            // 테스트 알림 표시
-            ReportNotificationManager notificationManager = new ReportNotificationManager(this);
-            notificationManager.showReportNotification(
-                    "사고 분석 완료",
-                    "블랙박스 영상에서 감지된 사고의 분석이 완료되었습니다. 자세한 내용을 확인하려면 알림을 탭하세요.",
-                    "test_report_" + System.currentTimeMillis()
-            );
-            Toast.makeText(this, "테스트 알림이 발송되었습니다.", Toast.LENGTH_SHORT).show();
-        });
-
-        // 기존 UI에 버튼 추가
-        try {
-            ViewGroup rootView = (ViewGroup) ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
-            if (rootView != null) {
-                rootView.addView(testButton);
-                Log.d(TAG, "보고서 알림 테스트 버튼이 추가되었습니다.");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "테스트 버튼 추가 실패: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * FCM 토큰 등록을 테스트하기 위한 버튼을 추가하는 메서드
-     */
-    private void setupFcmTokenTest() {
-        // 테스트 버튼 생성
-        Button testButton = new Button(this);
-        testButton.setText("FCM 토큰 등록 테스트");
-
-        // 버튼 레이아웃 설정
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        layoutParams.gravity = Gravity.CENTER;
-        layoutParams.setMargins(0, 150, 0, 0);
-        testButton.setLayoutParams(layoutParams);
-
-        // 클릭 이벤트 설정
-        testButton.setOnClickListener(v -> {
-            Toast.makeText(this, "FCM 토큰 테스트 시작...", Toast.LENGTH_SHORT).show();
-            testFcmTokenWithManager();
-        });
-
-        // 기존 UI에 버튼 추가
-        try {
-            ViewGroup rootView = (ViewGroup) ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
-            if (rootView != null) {
-                rootView.addView(testButton);
-                Log.d(TAG, "FCM 토큰 테스트 버튼이 추가되었습니다.");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "테스트 버튼 추가 실패: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * FcmTokenManager를 사용하여 FCM 토큰 등록을 테스트합니다.
-     */
-    private void testFcmTokenWithManager() {
-        Log.d(TAG, "FCM 토큰 테스트 시작 (FcmTokenManager 사용)");
-
-        // 1. 임시 JWT 토큰 저장 (FcmTokenManager가 사용할 수 있도록)
-        String jwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrYWthbzo0MjUxNzkzNzA2IiwidXNlcklkIjoxMSwiaWF0IjoxNzQ3Mjg5NzkwLCJleHAiOjE3NDczNzYxOTB9.FJ8gEd7DF1mqB4KpzgavwJzLt7vdha4ni1yugowe8JU";
-        SharedPreferences authPref = getSharedPreferences("auth_prefs", MODE_PRIVATE);
-        authPref.edit().putString("auth_token", jwtToken).apply();
-
-        // 2. FCM 토큰 요청
-        FirebaseMessaging.getInstance().getToken()
-                .addOnCompleteListener(task -> {
-                    if (!task.isSuccessful()) {
-                        Log.e(TAG, "FCM 토큰 요청 실패", task.getException());
-                        Toast.makeText(this, "FCM 토큰 요청 실패", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    // FCM 토큰 획득 성공
-                    String fcmToken = task.getResult();
-                    Log.d(TAG, "FCM 토큰 획득 성공: " + fcmToken.substring(0, 20) + "...");
-                    Toast.makeText(this, "FCM 토큰 획득 성공", Toast.LENGTH_SHORT).show();
-                    Log.d("AUTH_TOKEN", fcmToken);
-                    // 3. FcmTokenManager를 사용하여 토큰 등록
-                    try {
-                        com.crush.aiblackboxreview.managers.FcmTokenManager manager =
-                                new com.crush.aiblackboxreview.managers.FcmTokenManager(this);
-                        manager.registerTokenToServer(fcmToken);
-                        Log.d(TAG, "FcmTokenManager를 통한 등록 요청 완료");
-                        Toast.makeText(this, "FCM 토큰 등록 요청 완료", Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        Log.e(TAG, "FCM 토큰 등록 요청 실패", e);
-                        Toast.makeText(this, "FCM 토큰 등록 요청 실패: " + e.getMessage(),
-                                Toast.LENGTH_SHORT).show();
-                    }
-                });
-    }
-
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -415,5 +360,4 @@ public class MainActivity extends BridgeActivity {
         // 알림에서 열린 경우도 처리
         handleNotificationIntent(intent);
     }
-
 }

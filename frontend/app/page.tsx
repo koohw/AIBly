@@ -8,6 +8,8 @@ import { Upload, Camera, Clock, FileText, AlertCircle, User, ChevronRight } from
 import AuthScreen from "@/components/start/auth-screen"
 import LoginRequiredModal from "@/components/start/login-required-modal"
 import { useTheme } from "./contexts/theme-context"
+import { registerFcmToken } from '@/lib/api/Fcm'; // FCM 토큰 등록 함수 import
+
 
 export default function Home() {
   const router = useRouter()
@@ -33,18 +35,42 @@ export default function Home() {
         setIsGuest(false)
         setHasAnalysis(true)
 
-        // (선택) 유효성 재검증이 필요하면 여기에 API 호출…
-        // await fetch(`${API_URL}/user/me`, { headers: { Authorization: `Bearer ${authToken}` } })
-      } else {
-        // 게스트 모드 또는 비로그인 상태 확인
-        const { value: guestToken } = await Preferences.get({ key: "guest_token" })
-        if (guestToken) {
-          setIsLoggedIn(true) // 게스트도 로그인된 것으로 처리
-          setIsGuest(true)
-        } else {
-          setIsLoggedIn(false)
-        }
+      // FCM 토큰 등록 상태 확인
+const { value: fcmRegistered } = await Preferences.get({ key: "fcm_token_registered" });
+      
+// FCM 토큰이 등록되지 않았다면 등록 시도
+if (fcmRegistered !== "true") {
+  try {
+    console.log("[Home] FCM 토큰이 등록되지 않았습니다. 등록을 시도합니다.");
+    // 타임아웃 추가하여 비동기로 처리
+    setTimeout(async () => {
+      try {
+        await registerFcmToken(authToken);
+        await Preferences.set({ key: "fcm_token_registered", value: "true" });
+        console.log("[Home] FCM 토큰 등록 완료");
+      } catch (delayedError) {
+        console.error("[Home] 지연된 FCM 토큰 등록 실패:", delayedError);
       }
+    }, 2000);
+  } catch (error) {
+    console.error("[Home] FCM 토큰 등록 실패:", error);
+  }
+} else {
+  console.log("[Home] FCM 토큰이 이미 등록되어 있습니다.");
+}
+
+      // (선택) 유효성 재검증이 필요하면 여기에 API 호출…
+      // await fetch(`${API_URL}/user/me`, { headers: { Authorization: `Bearer ${authToken}` } })
+    } else {
+      // 게스트 모드 또는 비로그인 상태 확인
+      const { value: guestToken } = await Preferences.get({ key: "guest_token" })
+      if (guestToken) {
+        setIsLoggedIn(true) // 게스트도 로그인된 것으로 처리
+        setIsGuest(true)
+      } else {
+        setIsLoggedIn(false)
+      }
+    }
 
       // 2) 자동 감지 설정도 Preferences에서 꺼내기
       const { value: autoDetect } = await Preferences.get({ key: "AUTO_DETECT" })
