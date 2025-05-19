@@ -54,8 +54,10 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         // AI JSON 기반 동적 데이터
         int accidentTypeCode = json.path("accidentType").asInt();
         log.info("📥 handleAiCallback에서 받은 accidentTypeCode: {}", accidentTypeCode);
-        String carA = json.path("carAProgress").asText("");
-        String carB = json.path("carBProgress").asText("");
+
+        String carA = convertDirectionCode(json.path("carAProgress").asText(""), true);
+        String carB = convertDirectionCode(json.path("carBProgress").asText(""), false);
+
         String damageLocation = json.path("damageLocation").asText("");
         String timelineJson = convertEventTimelineToJson(json.path("eventTimeline"));  // ✅ 여기서 JSON으로 변환
 
@@ -124,10 +126,15 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                     String event = entry.path("event").asText();
                     int frame = entry.path("frameIdx").asInt();
                     double seconds = Math.round(frame * 0.68 * 100.0) / 100.0; // 소수점 둘째 자리 반올림
-                    return new EventLogDto(event, seconds + "초");
+                    String eventText = switch (event) {
+                        case "vehicle_B_first_seen" -> "상대 차량 최초 인식";
+                        case "aftermath" -> "사고 발생 시점";
+                        default -> "알 수 없음";
+                    };
+
+                    return new EventLogDto(eventText, seconds + "초");
                 })
                 .collect(Collectors.toList());
-
         try {
             return objectMapper.writeValueAsString(timelineList);
         } catch (Exception e) {
@@ -135,6 +142,20 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
             return "[]";
         }
     }
+
+    //한글 치환
+    private String convertDirectionCode(String code, boolean isA) {
+        return switch (code) {
+            case "move_left" -> isA ? "좌회전" : "좌측에서 진입";
+            case "move_right" -> isA ? "우회전" : "우측에서 진입";
+            case "go_straight" -> isA ? "직진" : "정면에서 진입";
+            case "from_left" -> "왼쪽에서 진입";
+            case "from_right" -> "오른쪽에서 진입";
+            case "center", "unknown" -> "중앙선 침범";
+            default -> isA ? "내 차량 진행 방향 알 수 없음" : "상대 차량 진행 방향 알 수 없음";
+        };
+    }
+
 
 }
 
