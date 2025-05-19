@@ -42,7 +42,7 @@ class FcmTokenManager(private val context: Context) {
             // Capacitor 저장소 확인
             val capacitorPrefs =
                 context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-            authToken = capacitorPrefs.getString("AUTH_TOKEN", null)
+            authToken = capacitorPrefs.getString("auth_token", null)
 
             if (authToken != null) {
                 Log.e(TAG, "🔑 Capacitor 저장소에서 인증 토큰 찾음: ${authToken.substring(0, 10)}...")
