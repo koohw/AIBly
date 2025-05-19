@@ -10,7 +10,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { CapacitorKakaoLogin } from '@team-lepisode/capacitor-kakao-login'
 import { Preferences } from '@capacitor/preferences'
 import { App } from '@capacitor/app'
-
+import { registerFcmToken } from '@/lib/api/Fcm' // FCM 토큰 등록 유틸리티 import
+import { Capacitor } from '@capacitor/core'
 
 export default function AuthScreen() {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -25,7 +26,7 @@ export default function AuthScreen() {
     CapacitorKakaoLogin.initialize({
       appKey: process.env.NEXT_PUBLIC_KAKAO_NATIVE_APP_KEY!,  // "네이티브 앱 키"
     }).catch(e => console.error('SDK init 에러', e))
-  }, [])
+  }, []);
 
   // 앱 상태 변경 리스너 추가
   useEffect(() => {
@@ -131,58 +132,145 @@ export default function AuthScreen() {
   }
 
   const handleKakaoLogin = async () => {
+    console.log('📱📱📱 AuthScreen에서 앱 직접 로그인 방식 실행됨');
+    console.log('[AuthScreen] 🔥 handleKakaoLogin 호출됨');
     setIsLoading(true);
 
-      try {
-    // 1) 플러그인으로 카카오 로그인 → accessToken, refreshToken 획득
-    const { accessToken, refreshToken } = await CapacitorKakaoLogin.login();
-
-    await Preferences.set({
-      key: "kakao_access_token",
-      value: accessToken,
-    });
-
-    // 2) 우리 서비스 백엔드에 POST 요청 (authToken 발급)
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://k12e203.p.ssafy.io/api'}/oauth/kakao/callback`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          accessToken,
-          // refreshToken: refreshToken  // 필요한 경우
-        }),
+    try {
+      // 1️⃣ 플러그인으로 카카오 로그인 → accessToken, refreshToken 획득
+      const result = await CapacitorKakaoLogin.login();
+      console.log('[AuthScreen] 카카오 로그인 결과:', result);
+      
+      if (!result || !result.accessToken) {
+        throw new Error('카카오 로그인 결과에 accessToken이 없습니다.');
       }
-    );
-    if (!res.ok) {
-      throw new Error(`백엔드 에러 ${res.status}`);
+      
+      const { accessToken, refreshToken } = result;
+      console.log('[AuthScreen] 🎉 Kakao accessToken:', accessToken.substring(0, 10) + '...');
+
+      await Preferences.set({
+        key: "kakao_access_token",
+        value: accessToken,
+      });
+      console.log('[AuthScreen] 🎉 카카오 토큰 저장 성공');
+
+      // 2️⃣ 우리 서비스 백엔드에 POST 요청 (authToken 발급)
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://k12e203.p.ssafy.io/api';
+      console.log('[AuthScreen] 백엔드 URL:', backendUrl);
+      
+      console.log('[AuthScreen] 백엔드 요청 시작');
+      const res = await fetch(
+        `${backendUrl}/oauth/kakao/callback`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            accessToken,
+            // refreshToken: refreshToken  // 필요한 경우
+          }),
+        }
+      );
+      
+      console.log('[AuthScreen] 백엔드 응답 상태:', res.status, res.statusText);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[AuthScreen] 백엔드 오류 응답:', errorText);
+        throw new Error(`백엔드 에러 ${res.status}: ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log('[AuthScreen] 백엔드 응답 데이터:', JSON.stringify(data));
+      
+      if (!data || !data.authToken) {
+        console.error('[AuthScreen] 백엔드 응답에 authToken이 없습니다:', data);
+        throw new Error('백엔드 응답에 authToken이 없습니다');
+      }
+      
+      const { authToken } = data;
+      console.log('[AuthScreen] 🔑 서비스 JWT(authToken):', authToken.substring(0, 10) + '...');
+
+      // 3) 로컬 스토리지 대신 Capacitor Preferences 에 저장
+      await Preferences.set({ key: 'AUTH_TOKEN', value: authToken });
+      console.log('[AuthScreen] 인증 토큰 저장 완료');
+
+      // [추가] FCM 토큰 등록 - 이 부분이 중요합니다!
+      try {
+        console.log('[AuthScreen] FCM 토큰 등록 시도 시작');
+        await registerFcmToken(authToken);
+        console.log('[AuthScreen] FCM 토큰 등록 요청 완료');
+        // FCM 토큰 등록 상태 저장
+        await Preferences.set({ key: 'fcm_token_registered', value: 'true' });
+      } catch (fcmError: any) {
+        console.error('[AuthScreen] FCM 토큰 등록 중 오류:', fcmError.message || fcmError);
+        // FCM 오류가 발생해도 로그인 진행
+      }
+
+      // 4️⃣ 대시보드 페이지로 이동
+      console.log('[AuthScreen] 대시보드로 이동');
+      router.replace('/dashboard');
+    } catch (e: any) {
+      console.error('[AuthScreen] 로그인 처리 중 에러:', e.message || e);
+      // 오류 유형에 따른 더 자세한 로그
+      if (e instanceof Error) {
+        console.error('[AuthScreen] 에러 이름:', e.name);
+        console.error('[AuthScreen] 에러 메시지:', e.message);
+        console.error('[AuthScreen] 에러 스택:', e.stack);
+      }
+      
+      // 사용자에게 오류 알림
+      alert(`로그인 처리 중 오류가 발생했습니다: ${e.message || '알 수 없는 오류'}`);
+    } finally {
+      setIsLoading(false);
     }
-    const { authToken } = await res.json();
+  };
 
-    // 3) 로컬 스토리지 대신 Capacitor Preferences 에 저장
-    await Preferences.set({ key: 'AUTH_TOKEN', value: authToken });
-
-    // 4) 대시보드 페이지로 이동
-    router.replace('/dashboard');
-  } catch (e) {
-    console.error('로그인 처리 중 에러', e);
-  } finally {
-    setIsLoading(false);
-  }
-};
   const handleLogin = async () => {
-  // 비로그인 상태로 대시보드 접근을 위해 임시 토큰 저장
-  const token = process.env.NEXT_PUBLIC_JWT // 환경변수는 NEXT_PUBLIC_ 붙여야 클라이언트 접근 가능
-  if (token) {
-    await Preferences.set({ key: 'AUTH_TOKEN', value: token });
-    router.replace('/dashboard');
-  } else {
-    console.error("JWT 토큰이 존재하지 않습니다.");
-  }
-};
-
+    // 비로그인 상태로 대시보드 접근을 위해 임시 토큰 저장
+    const token = process.env.NEXT_PUBLIC_JWT // 환경변수는 NEXT_PUBLIC_ 붙여야 클라이언트 접근 가능
+    if (token) {
+      console.log('[AuthScreen] 임시 로그인 시작, 토큰:', token.substring(0, 10) + '...');
+      
+      try {
+        // 토큰 저장
+        await Preferences.set({ key: 'AUTH_TOKEN', value: token });
+        console.log('[AuthScreen] 임시 로그인 토큰 저장 완료');
+        
+        // 네이티브 브릿지 확인 (디버깅 목적)
+        if (Capacitor.isNativePlatform()) {
+          console.log('[AuthScreen] 네이티브 플랫폼에서 실행 중');
+          console.log('[AuthScreen] FCM 브릿지 확인:', 
+            (window as any).androidFcmBridge ? '✅ 존재함' : '❌ 존재하지 않음');
+          console.log('[AuthScreen] MainActivity 브릿지 확인:', 
+            (window as any).MainActivity ? '✅ 존재함' : '❌ 존재하지 않음');
+        }
+        
+        // FCM 토큰 등록
+        try {
+          console.log('[AuthScreen] 임시 로그인 - FCM 토큰 등록 시도');
+          await registerFcmToken(token);
+          console.log('[AuthScreen] 임시 로그인 - FCM 토큰 등록 완료');
+          // FCM 토큰 등록 상태 저장
+          await Preferences.set({ key: 'fcm_token_registered', value: 'true' });
+        } catch (fcmError: any) {
+          console.error('[AuthScreen] 임시 로그인 - FCM 토큰 등록 오류:', fcmError.message || fcmError);
+          // FCM 등록 실패해도 계속 진행
+        }
+        
+        // 대시보드로 이동
+        console.log('[AuthScreen] 임시 로그인 - 대시보드로 이동');
+        router.replace('/dashboard');
+      } catch (error: any) {
+        console.error('[AuthScreen] 임시 로그인 에러:', error.message || error);
+        alert('임시 로그인 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
+      }
+    } else {
+      console.error("JWT 토큰이 존재하지 않습니다.");
+      alert("JWT 토큰이 존재하지 않습니다. 환경 변수를 확인해주세요.");
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">

@@ -45,7 +45,9 @@ interface BackendApiService {
 
 data class PresignedUrlRequest(
     val fileName: String,
-    val contentType: String
+    val contentType: String,
+    val size: Long,              // 추가: 파일 크기
+    val fileHash: String         // 추가: 파일 해시값
 )
 
 /**
@@ -57,6 +59,13 @@ data class PresignedUrlRequest(
 data class PresignedUrlResponse(
     val presignedUrl: String, // 'url'에서 'presignedUrl'로 변경
     val s3Key: String
+)
+
+// 오류 응답을 위한 데이터 모델 추가
+data class ErrorResponse(
+    val status: Int,
+    val message: String,
+    val timestamp: String
 )
 
 /**
@@ -79,9 +88,9 @@ data class UploadCompleteRequest(
  * @property timestamp 서버 처리 시간 (선택 사항)
  */
 data class UploadCompleteResponse(
-    val fileId: Int? = null,
-    val fileType: String? = null,
-    val analysisStatus: String? = null
+    val videoId: Int,               // 변경: fileId에서 videoId로
+    val fileType: String,           // 유지
+    val analysisStatus: String
 )
 
 // 보고서 응답 모델 (같은 파일 내에 추가)

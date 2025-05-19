@@ -7,6 +7,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import android.util.Log
 
 /**
  * 백엔드 API 서비스에 접근하기 위한 Retrofit 클라이언트
@@ -20,12 +21,33 @@ object BackendApiClient {
     private const val AUTH_TOKEN =
         "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrYWthbzo0MjUxNzkzNzA2IiwidXNlcklkIjoxMSwiaWF0IjoxNzQ3Mjg5NzkwLCJleHAiOjE3NDczNzYxOTB9.FJ8gEd7DF1mqB4KpzgavwJzLt7vdha4ni1yugowe8JU"
 
-    // 인증 토큰을 동적으로 가져오기 위한 함수
+    // BackendApiClient.kt - getAuthToken 메서드 수정
     private fun getAuthToken(context: Context): String {
-        val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-        return sharedPref.getString("auth_token", AUTH_TOKEN) ?: AUTH_TOKEN
-    }
+        // 두 저장소 모두에서 토큰을 찾음
 
+        // 1. Capacitor 저장소 확인
+        val capacitorPref = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+        val capacitorToken = capacitorPref.getString("AUTH_TOKEN", null)
+
+        // 2. 네이티브 저장소 확인
+        val nativePref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        val nativeToken = nativePref.getString("auth_token", null)
+
+        // 디버깅을 위한 로그 추가
+        if (capacitorToken != null) {
+            Log.d("TokenDebug", "Capacitor에서 저장한 토큰을 찾음: ${capacitorToken.substring(0, 20)}...")
+        }
+
+        if (nativeToken != null) {
+            Log.d("TokenDebug", "네이티브에서 저장한 토큰을 찾음: ${nativeToken.substring(0, 20)}...")
+        }
+
+        // Capacitor 토큰 우선, 없으면 네이티브 토큰, 모두 없으면 기본 토큰
+        val selectedToken = capacitorToken ?: nativeToken ?: AUTH_TOKEN
+        Log.d("TokenDebug", "선택된 인증 토큰: ${selectedToken.substring(0, 20)}...")
+
+        return selectedToken
+    }
     // 동적 인증 인터셉터 생성
     private fun createAuthInterceptor(authToken: String): Interceptor {
         return Interceptor { chain ->
@@ -75,8 +97,12 @@ object BackendApiClient {
      * 백엔드 API 서비스 인스턴스
      * 앱 전체에서 이 인스턴스를 통해 API 호출 가능
      */
-    val backendApiService: BackendApiService = defaultRetrofit.create(BackendApiService::class.java)
-
+    fun getBackendApiService(context: Context): BackendApiService {
+        val authToken = getAuthToken(context)
+        val client = createOkHttpClient(authToken)
+        val retrofit = createRetrofit(client)
+        return retrofit.create(BackendApiService::class.java)
+    }
     /**
      * FCM 토큰 API 서비스 인스턴스 생성
      * 컨텍스트를 통해 현재 인증 토큰을 사용
