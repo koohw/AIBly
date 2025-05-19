@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -54,6 +53,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
 
         // AI JSON 기반 동적 데이터
         int accidentTypeCode = json.path("accidentType").asInt();
+        log.info("📥 handleAiCallback에서 받은 accidentTypeCode: {}", accidentTypeCode);
         String carA = json.path("carAProgress").asText("");
         String carB = json.path("carBProgress").asText("");
         String damageLocation = json.path("damageLocation").asText("");
@@ -61,10 +61,12 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
 
         // CSV 기반 정적 데이터
         AccidentDefinitionDto definition = accidentDefinitionLoader.get(accidentTypeCode);
-
+        log.info("📦 AccidentDefinitionDto 조회 결과 - code {}: {}", accidentTypeCode, definition);
+        log.info("🔍 AccidentDefinitionDto - faultA={}, faultB={}", definition.getFaultA(), definition.getFaultB());
         // CSV 기반 과실비율로 대체
         int faultA = definition.getFaultA();
         int faultB = definition.getFaultB();
+        log.info("📝 Report 저장 전 과실비율 - faultA={}, faultB={}", faultA, faultB);
 
         // Report 생성
         Report report = Report.builder()
@@ -77,6 +79,8 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                 .decisions(definition.getPrecedents())
                 .carA(carA)
                 .carB(carB)
+                .faultA(faultA)
+                .faultB(faultB)
                 .mainEvidence(timelineJson)
                 .createdAt(LocalDateTime.now())
                 .analysisStatus(AnalysisStatus.COMPLETED)
