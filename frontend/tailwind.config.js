@@ -59,6 +59,26 @@ module.exports = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    function({ addBase }) {
+      addBase({
+        ':root': {
+          '--sat': '0px',
+          '--sab': '0px',
+          '--sal': '0px',
+          '--sar': '0px',
+        },
+        '@supports(padding: env(safe-area-inset-top))': {
+          ':root': {
+            '--sat': 'env(safe-area-inset-top)',
+            '--sab': 'env(safe-area-inset-bottom)',
+            '--sal': 'env(safe-area-inset-left)',
+            '--sar': 'env(safe-area-inset-right)',
+          }
+        }
+      })
+    }
+  ],
 }
 

@@ -101,4 +101,42 @@
   .app-container {
     @apply p-4;
   }
+  
+  /* 모바일 Safe Area 유틸리티 - 강화된 버전 */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1.5rem) !important;
+  }
+  
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 1.5rem) !important;
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 1.5rem) !important;
+  }
+  
+  .mt-safe {
+    margin-top: env(safe-area-inset-top, 1.5rem) !important;
+  }
+}
+
+/* 모바일 환경에서 하단 영역 안전 마진 추가 */
+@media (max-width: 768px) {
+  /* 하단 네비게이션 바 높이 정의 (기기별로 다를 수 있음) */
+  :root {
+    --navigation-bar-height: 56px; /* 안드로이드 네비게이션 바 높이 (기본값) */
+  }
+}
+
+/* 네이티브 앱 환경 감지 및 스타일 적용 */
+[data-native-app="true"] {
+  /* 네이티브 앱 전용 스타일 */
+  --navigation-bar-height: 56px; /* 안드로이드 네비게이션 바 높이 (기본값) */
+}
+
+/* 네이티브 앱에서 고정 하단 요소 처리 */
+[data-native-app="true"] .bottom-action-bar {
+  bottom: var(--navigation-bar-height) !important;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0)) !important;
+  z-index: 100 !important;
 }

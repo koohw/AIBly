@@ -99,20 +99,17 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         UploadType uploadType = videoFile.getUploadType();
         log.info("업로드 타입 확인: videoId={}, uploadType={}", videoId, uploadType);
 
-        if (uploadType == UploadType.AUTO) {
-            String fcmToken = userService.getUserFcmTokenByVideoId(videoId);
-            if (fcmToken == null || fcmToken.isBlank()) {
-                log.info("FCM 토큰 없음 - FCM 발송 없음: videoId={}", videoId);
-            } else {
-                try {
-                    fcmService.sendFCM(fcmToken, report.getId()); //FCM 발송 처리
-                    log.info("FCM 발송 성공: videoId={}, reportId={}", videoId, report.getId());
-                } catch (Exception e) {
-                    log.error("FCM 발송 실패: videoId={}, error={}", videoId, e.getMessage(), e);
-                }
-            }
+        // 모든 업로드 타입에서 FCM 발송
+        String fcmToken = userService.getUserFcmTokenByVideoId(videoId);
+        if (fcmToken == null || fcmToken.isBlank()) {
+            log.info("FCM 토큰 없음 - FCM 발송 없음: videoId={}", videoId);
         } else {
-            log.info("수동 업로드 - FCM 발송 없음: videoId={}", videoId);
+            try {
+                fcmService.sendFCM(fcmToken, report.getId()); //FCM 발송 처리
+                log.info("FCM 발송 성공: videoId={}, reportId={}, uploadType={}", videoId, report.getId(), uploadType);
+            } catch (Exception e) {
+                log.error("FCM 발송 실패: videoId={}, error={}", videoId, e.getMessage(), e);
+            }
         }
 
         return report.getId();

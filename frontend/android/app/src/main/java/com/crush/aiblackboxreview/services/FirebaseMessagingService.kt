@@ -1,148 +1,180 @@
 package com.crush.aiblackboxreview.services
 
+import android.content.Context
+import android.content.Intent
 import android.util.Log
-import com.crush.aiblackboxreview.api.BackendApiClient
-import com.crush.aiblackboxreview.api.FcmTokenRequest
+import androidx.core.app.NotificationManagerCompat
 import com.crush.aiblackboxreview.notifications.ReportNotificationManager
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONException
 
-class MyFirebaseMessagingService : FirebaseMessagingService() {
+class AiBlackboxReviewFirebaseMessagingService : FirebaseMessagingService() {
 
-    companion object {
-        private const val TAG = "FCMService"
+    private val TAG = "FCMService"
+
+    /**
+     * FCM 토큰이 갱신될 때 호출됩니다.
+     */
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        Log.d(TAG, "FCM 토큰 갱신: $token")
+        
+        try {
+            // 토큰을 SharedPreferences에 저장
+            val preferences = getSharedPreferences("fcm_prefs", Context.MODE_PRIVATE)
+            preferences.edit()
+                .putString("fcm_token", token)
+                .putBoolean("token_registered", false)
+                .apply()
+                
+            Log.d(TAG, "FCM 토큰이 SharedPreferences에 저장됨")
+        } catch (e: Exception) {
+            Log.e(TAG, "FCM 토큰 저장 오류", e)
+        }
     }
 
+    /**
+     * FCM 메시지가 수신될 때 호출됩니다.
+     */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
-
+        
+        Log.d(TAG, "=================================================================")
+        Log.d(TAG, "==== FCM 메시지 수신 시작 ====")
         Log.d(TAG, "FCM 메시지 수신: ${remoteMessage.data}")
         Log.d(TAG, "FCM 알림 정보: ${remoteMessage.notification}")
-
+        Log.d(TAG, "FCM 메시지 ID: ${remoteMessage.messageId}")
+        Log.d(TAG, "FCM 발신자: ${remoteMessage.senderId}")
+        
         try {
-            // 1. notification 객체가 있는지 확인
+            // FCM 메시지 상세 내용 로깅
+            val reportId = remoteMessage.data["reportId"]
+            
+            Log.d(TAG, "==== FCM 메시지 상세 내용 ====")
             if (remoteMessage.notification != null) {
-                val title = remoteMessage.notification?.title ?: "AI 분석 완료"
-                val body = remoteMessage.notification?.body ?: "블랙박스 영상 분석이 완료되었습니다."
-
-                // 2. data에서 reportId 확인
-                val reportId = remoteMessage.data["reportId"]
-
-                if (reportId != null) {
-                    Log.e(TAG, "📊 분석 완료 메시지 수신: reportId=$reportId, title=$title, body=$body")
-
-                    // 3. 알림 생성
-                    val notificationManager = ReportNotificationManager(applicationContext)
-                    notificationManager.showReportNotification(title, body, reportId)
-                } else {
-                    Log.e(TAG, "⚠️ reportId가 없는 FCM 메시지 수신됨")
+                val notificationTitle = remoteMessage.notification?.title ?: ""
+                val notificationBody = remoteMessage.notification?.body ?: ""
+                Log.d(TAG, "FCM Notification 타입 메시지: title=$notificationTitle, body=$notificationBody, reportId=$reportId")
+                
+                // 분석 완료 메시지인 경우 처리
+                if (notificationTitle.contains("AI 분석") || notificationTitle.contains("분석 완료")) {
+                    Log.e(TAG, "📊 분석 완료 메시지 수신: reportId=$reportId, title=$notificationTitle, body=$notificationBody")
+                    
+                    // 보고서 ID가 있으면 저장
+                    reportId?.let {
+                        saveNewReportId(it)
+                    }
+                    
+                    // 알림 표시 권한 확인
+                    if (checkNotificationPermission()) {
+                        // 알림 표시
+                        val notificationManager = ReportNotificationManager(applicationContext)
+                        notificationManager.showReportNotification(
+                            title = notificationTitle,
+                            message = notificationBody,
+                            reportId = reportId ?: "0"
+                        )
+                    } else {
+                        Log.w(TAG, "알림 표시 권한이 없습니다.")
+                    }
                 }
             } else {
-                // notification 객체가 없는 경우 (data-only 메시지)
-                val reportId = remoteMessage.data["reportId"]
-                val title = remoteMessage.data["title"] ?: "AI 분석 완료"
-                val body = remoteMessage.data["body"] ?: "블랙박스 영상 분석이 완료되었습니다."
-
-                if (reportId != null) {
-                    Log.e(TAG, "📊 데이터 전용 분석 완료 메시지 수신: reportId=$reportId")
-
-                    val notificationManager = ReportNotificationManager(applicationContext)
-                    notificationManager.showReportNotification(title, body, reportId)
-                } else {
-                    // 기존 로직은 그대로 유지 (type 기반 처리)
-                    val data = remoteMessage.data
-                    if (data.isNotEmpty()) {
-                        when (data["type"]) {
-                            "analysis_started" -> {
-                                // 분석 중 알림 표시
-                                val videoId = data["video_id"] ?: return
-                                val notificationManager = ReportNotificationManager(applicationContext)
-                                notificationManager.showAnalysisInProgressNotification(videoId)
-                            }
-
-                            "analysis_complete" -> {
-                                // 분석 중 알림 제거
-                                val notificationManager = ReportNotificationManager(applicationContext)
-                                notificationManager.cancelAnalysisInProgressNotification()
-
-                                // 분석 완료 알림 표시
-                                val reportId = data["report_id"] ?: return
-                                val title = data["title"] ?: "사고 분석 완료"
-                                val message = data["message"] ?: "사고 영상 분석이 완료되었습니다."
-                                notificationManager.showReportNotification(title, message, reportId)
-                            }
-                        }
+                Log.d(TAG, "FCM Data 타입 메시지: ${remoteMessage.data}")
+                
+                // 데이터 메시지 처리 (백그라운드에서도 작동)
+                reportId?.let {
+                    saveNewReportId(it)
+                    
+                    // 알림 표시 권한 확인 후 알림 생성
+                    if (checkNotificationPermission()) {
+                        val notificationManager = ReportNotificationManager(applicationContext)
+                        notificationManager.showReportNotification(
+                            title = "AI 분석 완료",
+                            message = "보고서가 생성되었습니다.",
+                            reportId = it
+                        )
                     }
                 }
             }
+            
         } catch (e: Exception) {
             Log.e(TAG, "FCM 메시지 처리 중 오류 발생", e)
         }
+        
+        Log.d(TAG, "==== FCM 메시지 수신 완료 ====")
+        Log.d(TAG, "=================================================================")
     }
-    override fun onNewToken(token: String) {
-        Log.e(TAG, "🆕🆕🆕 새 FCM 토큰 발급: $token 🆕🆕🆕")
-
-        // 토큰만 저장하고, 서버 등록은 로그인 후에만 수행되도록 함
-        saveFcmTokenLocally(token);
-    }
-
-    private fun saveFcmTokenLocally(token: String) {
-        // FCM 토큰 저장
-        val sharedPref = getSharedPreferences("fcm_prefs", MODE_PRIVATE)
-        with(sharedPref.edit()) {
-            putString("fcm_token", token)
-            putBoolean("token_registered", false) // 아직 등록되지 않음을 표시
-            apply()
-        }
-
-        Log.e(TAG, "💾 FCM 토큰이 로컬에 저장됨: ${token.substring(0, 20)}...")
-    }
-
-    private fun sendRegistrationToServer(token: String) {
-        // FCM 토큰 저장
-        val sharedPref = getSharedPreferences("fcm_prefs", MODE_PRIVATE)
-        with(sharedPref.edit()) {
-            putString("fcm_token", token)
-            apply()
-        }
-
-        // 인증 토큰 확인
-        val authPref = getSharedPreferences("auth_prefs", MODE_PRIVATE)
-        if (authPref.contains("auth_token")) {
-            val authToken = authPref.getString("auth_token", null) ?: return
-            Log.e(TAG, "🔄🔄🔄 자동으로 FCM 토큰 서버 등록 시도 🔄🔄🔄")
-
-            // 인증된 상태면 서버에 등록 시도
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val response = BackendApiClient.getFcmTokenService(applicationContext)
-                        .registerFcmToken(FcmTokenRequest(token))
-
-                    if (response.isSuccessful) {
-                        Log.e(TAG, "✅✅✅ 자동 FCM 토큰 서버 등록 성공: ${response.code()} ✅✅✅")
-                        // 등록 성공 상태 저장
-                        sharedPref.edit().putBoolean("token_registered", true).apply()
-                        // 현재 시간 저장
-                        val currentTime = System.currentTimeMillis()
-                        sharedPref.edit().putLong("token_registration_time", currentTime).apply()
-                    } else {
-                        Log.e(
-                            TAG,
-                            "❌❌❌ 자동 FCM 토큰 서버 등록 실패: ${response.code()} - ${response.errorBody()?.string()} ❌❌❌"
-                        )
-                        sharedPref.edit().putBoolean("token_registered", false).apply()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌❌❌ 자동 FCM 토큰 서버 등록 에러 ❌❌❌", e)
-                    sharedPref.edit().putBoolean("token_registered", false).apply()
+    
+    /**
+     * 새 보고서 ID를 Preferences에 저장합니다.
+     */
+    private fun saveNewReportId(reportId: String) {
+        try {
+            Log.d(TAG, "==== saveNewReportId 호출: reportId=$reportId ====")
+            
+            val preferences = getSharedPreferences("capacitor_new_reports", Context.MODE_PRIVATE)
+            val existingIdsStr = preferences.getString("NEW_REPORT_IDS", "[]") ?: "[]"
+            Log.d(TAG, "기존 저장된 reportIds: $existingIdsStr")
+            
+            // JSON 배열로 파싱
+            val reportIds = JSONArray(existingIdsStr)
+            Log.d(TAG, "JSON 파싱 후 reportIds 목록: $reportIds")
+            
+            // 중복 확인
+            var isDuplicate = false
+            for (i in 0 until reportIds.length()) {
+                if (reportIds.getString(i) == reportId) {
+                    isDuplicate = true
+                    break
                 }
             }
-        } else {
-            Log.e(TAG, "⚠️⚠️⚠️ 인증 토큰이 없습니다. 로그인 후 FCM 토큰이 등록됩니다. ⚠️⚠️⚠️")
-            sharedPref.edit().putBoolean("token_registered", false).apply()
+            
+            // 중복이 아니면 추가
+            if (!isDuplicate) {
+                Log.d(TAG, "새 reportId 추가: $reportId")
+                reportIds.put(reportId)
+                
+                // 다시 문자열로 변환하여 저장
+                val newIdsStr = reportIds.toString()
+                preferences.edit().putString("NEW_REPORT_IDS", newIdsStr).apply()
+                Log.d(TAG, "새 보고서 ID($reportId) 저장 완료: $newIdsStr")
+                
+                // MainActivity가 활성화되어 있으면 새 보고서 목록 갱신 브로드캐스트 전송
+                val intent = Intent("com.crush.aiblackboxreview.NEW_REPORT")
+                intent.putExtra("reportId", reportId)
+                sendBroadcast(intent)
+            } else {
+                Log.d(TAG, "이미 존재하는 reportId: $reportId")
+            }
+            
+            Log.d(TAG, "최종 저장된 reportIds: ${preferences.getString("NEW_REPORT_IDS", "[]")}")
+            
+        } catch (e: JSONException) {
+            Log.e(TAG, "JSON 파싱 오류", e)
+            
+            // 오류 발생 시 새로 배열 생성
+            try {
+                val newArray = JSONArray()
+                newArray.put(reportId)
+                getSharedPreferences("capacitor_new_reports", Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("NEW_REPORT_IDS", newArray.toString())
+                    .apply()
+                Log.d(TAG, "파싱 오류 후 새로 생성된 배열: $newArray")
+            } catch (e2: Exception) {
+                Log.e(TAG, "새 배열 저장 오류", e2)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "saveNewReportId 오류", e)
         }
+    }
+    
+    /**
+     * 알림 표시 권한을 확인합니다.
+     */
+    private fun checkNotificationPermission(): Boolean {
+        return NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()
     }
 }

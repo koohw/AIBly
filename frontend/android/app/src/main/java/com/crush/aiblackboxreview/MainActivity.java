@@ -16,6 +16,7 @@ import android.webkit.ConsoleMessage;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.JavascriptInterface;
+import android.webkit.JavascriptInterface;
 
 import android.view.Gravity;
 import android.view.ViewGroup;
@@ -32,6 +33,7 @@ import com.crush.aiblackboxreview.services.VideoMonitoringService;
 import com.crush.aiblackboxreview.plugins.AutoDetectPlugin;
 import com.crush.aiblackboxreview.plugins.FcmTokenPlugin;
 import com.crush.aiblackboxreview.notifications.ReportNotificationManager;
+import com.crush.aiblackboxreview.managers.FcmTokenManager;
 import com.crush.aiblackboxreview.managers.FcmTokenManager;
 
 import com.getcapacitor.BridgeActivity;
@@ -67,10 +69,16 @@ public class MainActivity extends BridgeActivity {
         this.registerPlugin(AutoDetectPlugin.class);
 
         // FCM 토큰 플러그인 등록
+        // FCM 토큰 플러그인 등록
         this.registerPlugin(FcmTokenPlugin.class);
 
         // FCM 브릿지 설정 - 자바스크립트에서 호출 가능하도록
         setupJsInterface();
+        // FCM 브릿지 설정 - 자바스크립트에서 호출 가능하도록
+        setupJsInterface();
+
+        // 웹뷰 레이아웃 설정
+        setupWebViewLayout();
 
         // Capacitor UI 초기화 이후 권한 확인을 안전하게
         getWindow().getDecorView().post(this::checkAndRequestPermissions);
@@ -207,6 +215,92 @@ public class MainActivity extends BridgeActivity {
                 return "";
             }
         }
+        
+        @JavascriptInterface
+        public String getNewReportIds() {
+            Log.d(TAG, "🌉 자바스크립트에서 getNewReportIds() 호출됨");
+            
+            try {
+                // 안드로이드 서비스에서 저장한 새 보고서 ID 목록 가져오기
+                SharedPreferences sharedPref = getSharedPreferences("capacitor_new_reports", MODE_PRIVATE);
+                String newReportIdsJson = sharedPref.getString("NEW_REPORT_IDS", "[]");
+                
+                Log.d(TAG, "새 보고서 ID 목록: " + newReportIdsJson);
+                
+                // 가져온 목록을 Capacitor Preferences에 동기화
+                SharedPreferences capacitorPrefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE);
+                capacitorPrefs.edit()
+                    .putString("NEW_REPORT_IDS", newReportIdsJson)
+                    .apply();
+                
+                return newReportIdsJson;
+            } catch (Exception e) {
+                Log.e(TAG, "새 보고서 ID 목록 가져오기 실패", e);
+                return "[]";
+            }
+        }
+        
+        @JavascriptInterface
+        public boolean updateNewReportIds(String jsonArray) {
+            Log.d(TAG, "🌉 자바스크립트에서 updateNewReportIds() 호출됨: " + jsonArray);
+            
+            try {
+                // 자바스크립트에서 보낸 업데이트된 ID 목록을 안드로이드에 저장
+                SharedPreferences sharedPref = getSharedPreferences("capacitor_new_reports", MODE_PRIVATE);
+                sharedPref.edit()
+                    .putString("NEW_REPORT_IDS", jsonArray)
+                    .apply();
+                
+                // Capacitor Preferences에도 저장
+                SharedPreferences capacitorPrefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE);
+                capacitorPrefs.edit()
+                    .putString("NEW_REPORT_IDS", jsonArray)
+                    .apply();
+                
+                Log.d(TAG, "새 보고서 ID 목록 업데이트 완료");
+                return true;
+            } catch (Exception e) {
+                Log.e(TAG, "새 보고서 ID 목록 업데이트 실패", e);
+                return false;
+            }
+        }
+    }
+
+    /**
+     * 웹뷰 레이아웃 관련 설정
+     */
+    private void setupWebViewLayout() {
+        try {
+            // 웹뷰 참조 가져오기
+            WebView webView = (WebView) this.getBridge().getWebView();
+            
+            // 웹뷰 레이아웃 파라미터 조정
+            ViewGroup.LayoutParams params = webView.getLayoutParams();
+            if (params instanceof ViewGroup.MarginLayoutParams) {
+                ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) params;
+                // 하단 마진 설정 (네비게이션 바 높이를 고려)
+                marginParams.bottomMargin = getResources().getDimensionPixelSize(
+                    getResources().getIdentifier("navigation_bar_height", "dimen", "android")
+                );
+                webView.setLayoutParams(marginParams);
+                Log.d(TAG, "웹뷰 하단 마진 설정 완료: " + marginParams.bottomMargin + "px");
+            }
+            
+            // 웹뷰 스타일 조정
+            webView.getSettings().setJavaScriptEnabled(true);
+            webView.getSettings().setDomStorageEnabled(true);
+            webView.getSettings().setAllowFileAccess(true);
+            
+            // 네이티브 환경임을 알리는 자바스크립트 주입
+            webView.evaluateJavascript(
+                "document.documentElement.setAttribute('data-native-app', 'true');", 
+                null
+            );
+            
+            Log.d(TAG, "웹뷰 레이아웃 설정 완료");
+        } catch (Exception e) {
+            Log.e(TAG, "웹뷰 레이아웃 설정 실패", e);
+        }
     }
 
     private void checkAndRequestPermissions() {
@@ -337,11 +431,53 @@ public class MainActivity extends BridgeActivity {
      */
     private void handleNotificationIntent(Intent intent) {
         if (intent.getBooleanExtra("FROM_NOTIFICATION", false)) {
-            String reportId = intent.getStringExtra("REPORT_ID");
+            final String reportId = intent.getStringExtra("REPORT_ID");
             if (reportId != null) {
                 Log.d(TAG, "알림에서 열림: reportId=" + reportId);
-                // 여기서 보고서 상세 화면으로 이동하거나 데이터 표시
-                Toast.makeText(this, "보고서 ID: " + reportId, Toast.LENGTH_SHORT).show();
+                
+                // 웹뷰 참조
+                final WebView webView = (WebView) this.getBridge().getWebView();
+                
+                // FCM 플래그 설정 (딥링크 방지)
+                webView.evaluateJavascript(
+                    "window.__FROM_FCM_NOTIFICATION = true;" +
+                    "window.__FCM_REPORT_ID = '" + reportId + "';",
+                    null
+                );
+                
+                // 먼저 대시보드로 이동한 후, 약간의 지연 후 분석 페이지로 이동
+                String script = "window.location.href = '/dashboard';";
+                webView.evaluateJavascript(script, null);
+                Log.d(TAG, "대시보드로 먼저 이동합니다");
+                
+                // 0.5초 후에 분석 페이지로 이동
+                webView.postDelayed(() -> {
+                    try {
+                        // 시간을 두고 분석 페이지로 이동
+                        String delayedScript = String.format(
+                            "try {" +
+                            "  console.log('FCM 알림: 분석 페이지로 이동 시도, ID=%s');" +
+                            "  if (window.next && window.next.router) {" +
+                            "    window.next.router.push('/analysis?id=%s');" +
+                            "  } else {" +
+                            "    window.location.href = '/analysis?id=%s';" +
+                            "  }" +
+                            "} catch(e) {" +
+                            "  console.error('이동 중 오류:', e);" +
+                            "  window.location.href = '/analysis?id=%s';" +
+                            "}",
+                            reportId, reportId, reportId, reportId
+                        );
+                        
+                        webView.evaluateJavascript(delayedScript, result -> {
+                            Log.d(TAG, "분석 페이지 이동 결과: " + result);
+                        });
+                        
+                        Log.d(TAG, "분석 페이지로 지연 이동: reportId=" + reportId);
+                    } catch (Exception e) {
+                        Log.e(TAG, "지연 이동 중 오류", e);
+                    }
+                }, 500); // 500ms 후 실행
             }
         }
     }

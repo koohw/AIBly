@@ -9,6 +9,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.crush.aiblackboxreview.MainActivity
 import com.crush.aiblackboxreview.R
 
@@ -61,6 +62,13 @@ class ReportNotificationManager(private val context: Context) {
     }
 
     /**
+     * 알림에 사용할 앱 아이콘 리소스 ID를 반환합니다.
+     */
+    private fun getAppIcon(): Int {
+        return R.drawable.ic_launcher_foreground
+    }
+
+    /**
      * 보고서 알림 표시
      *
      * @param title 알림 제목
@@ -72,18 +80,19 @@ class ReportNotificationManager(private val context: Context) {
 
         // 알림음 설정
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-
+        
         // 인텐트 설정 (알림 클릭 시 액티비티 열기)
         val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("REPORT_ID", reportId)
             putExtra("FROM_NOTIFICATION", true)
+            putExtra("DIRECT_NAVIGATE", true)
+            putExtra("TARGET_URL", "/analysis?id=$reportId")
         }
 
-        // PendingIntent 생성
         val pendingIntent = PendingIntent.getActivity(
             context,
-            0,
+            reportId.hashCode(), // 각 보고서별 고유 requestCode 사용
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -103,9 +112,61 @@ class ReportNotificationManager(private val context: Context) {
         // 알림 표시
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
+        
+        try {
+            notificationManager.notify(reportId.hashCode(), notificationBuilder.build())
+            Log.d(TAG, "알림 표시 완료")
+        } catch (e: Exception) {
+            Log.e(TAG, "알림 표시 중 오류 발생", e)
+        }
+    }
 
-        Log.d(TAG, "알림 표시 완료")
+    /**
+     * 보고서 준비 완료 알림을 표시합니다.
+     */
+    fun showReportReadyNotification(reportId: Int, title: String, body: String) {
+        // 알림 채널 생성
+        createNotificationChannel()
+        
+        Log.d(TAG, "보고서 알림 생성: reportId=$reportId, title=$title")
+        
+        // 인텐트 설정 (알림 클릭 시 액티비티 열기)
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("REPORT_ID", reportId.toString())
+            putExtra("FROM_NOTIFICATION", true)
+            putExtra("DIRECT_NAVIGATE", true)
+            putExtra("TARGET_URL", "/analysis?id=$reportId")
+        }
+
+        // PendingIntent 생성 - 각 reportId에 대해 고유한 requestCode 사용
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            reportId.hashCode(), // 각 보고서별 고유 requestCode 사용
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // 알림 생성
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(getAppIcon())
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+
+        // 알림 표시
+        val notificationManager = NotificationManagerCompat.from(context)
+        try {
+            notificationManager.notify(reportId, builder.build())
+            Log.d(TAG, "알림 표시 완료")
+        } catch (e: SecurityException) {
+            Log.e(TAG, "알림 표시 권한 없음", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "알림 표시 중 오류 발생", e)
+        }
     }
 
     /**
