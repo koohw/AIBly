@@ -19,6 +19,10 @@ export default function UploadPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analyzeProgress, setAnalyzeProgress] = useState(0)
 
+  interface FileChange {
+  file: File
+  preview: string
+}
   // 인증 상태 확인 - Capacitor Preferences 사용
   useEffect(() => {
     const checkAuth = async () => {
@@ -43,17 +47,14 @@ export default function UploadPage() {
     checkAuth()
   }, [router])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file && file.type.startsWith("video/")) {
-      setSelectedFile(file)
-      const objectUrl = URL.createObjectURL(file)
-      setPreview(objectUrl)
+  const handleFileChange = (file: File, previewUrl: string) => {
+  console.log('👈 parent previewUrl:', previewUrl)
+  if (preview) URL.revokeObjectURL(preview)
+  setSelectedFile(file)
+  setPreview(previewUrl)
+}
 
-      // 이전 미리보기 URL 정리
-      return () => URL.revokeObjectURL(objectUrl)
-    }
-  }
+
   
 
   const handleUpload = async () => {
@@ -153,7 +154,7 @@ export default function UploadPage() {
       <VideoSelect
         selectedFile={selectedFile} 
         preview={preview} 
-        onFileChange={handleFileChange} 
+        onFileChange={handleFileChange}
         onClearSelection={handleClearSelection} 
       />
     </div>

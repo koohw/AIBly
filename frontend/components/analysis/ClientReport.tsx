@@ -1,19 +1,40 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Calendar, Clock } from "lucide-react"
 import { useTheme } from "@/app/contexts/theme-context"
+import { getReportDetail, ReportDetailResponse } from "@/lib/api/Report"
+import { FormattedText } from "@/components/analysis/FormattedText"
 
 export default function ClientReport({ id }: { id: string }) {
   const router = useRouter()
   const { theme } = useTheme()
+  // 로딩/에러/데이터 상태
+  const [report, setReport] = useState<ReportDetailResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
   const videoTotalDuration = 30
+
+    // id가 바뀔 때마다 상세 조회
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    getReportDetail(id)
+      .then((data) => {
+        setReport(data)
+      })
+      .catch((err) => {
+        console.error("보고서 상세 조회 실패:", (err as any).response?.data ?? err.message)
+        setError("보고서를 불러오는 중 오류가 발생했습니다.")
+      })
+      .finally(() => setLoading(false))
+  }, [id])
 
   const handleBack = () => router.back()
   const handlePlayPause = () => {
@@ -35,6 +56,14 @@ export default function ClientReport({ id }: { id: string }) {
     if (videoRef.current) videoRef.current.currentTime = t
   }
 
+  // 로딩 및 에러 처리
+  if (loading) {
+    return <div className="p-4 text-center">보고서를 불러오는 중...</div>
+  }
+  if (error || !report) {
+    return <div className="p-4 text-center text-red-500">{error}</div>
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
           {/* 헤더 */}
@@ -45,7 +74,12 @@ export default function ClientReport({ id }: { id: string }) {
               </Button>
               <h1 className="text-xl font-bold">AI 사고 분석 보고서</h1>
             </div>
-            <p className="text-sm mt-1 text-white/80">분석 완료: 2025년 4월 22일</p>
+            <p className="text-sm mt-1 text-white/80">
+              분석 완료: {new Date(report.createdAt).toLocaleString("ko-KR", {
+                year: "numeric", month: "numeric", day: "numeric",
+                hour: "2-digit", minute: "2-digit"
+              })}
+            </p>
           </header>
     
           {/* 사고 일시 */}
@@ -54,6 +88,7 @@ export default function ClientReport({ id }: { id: string }) {
               <Calendar className="mr-2" size={18} />
               <Clock className="mr-2" size={18} />
               <span>2025년 4월 15일 오후 2:30</span>
+              <span>{report.createdAt}</span>
             </div>
           </div>
     
@@ -65,12 +100,12 @@ export default function ClientReport({ id }: { id: string }) {
             </h2>
             <div className="app-card p-4 flex items-center border-2 border-border">
               <div className="w-1/2 text-center">
-                <div className="text-4xl font-bold text-appblue">30%</div>
+                <div className="text-4xl font-bold text-appblue">{report.faultA}</div>
                 <div className="text-sm font-medium text-foreground">사용자</div>
               </div>
               <div className="h-12 border-r-2 border-border"></div>
               <div className="w-1/2 text-center">
-                <div className="text-4xl font-bold text-red-500">70%</div>
+                <div className="text-4xl font-bold text-red-500">{report.faultB}</div>
                 <div className="text-sm font-medium text-foreground">상대방</div>
               </div>
             </div>
@@ -148,11 +183,11 @@ export default function ClientReport({ id }: { id: string }) {
                 <div className="space-y-4">
                   <div className="bg-appblue text-white p-3 rounded-md flex justify-between items-center">
                     <span>A 차량</span>
-                    <span className="font-bold">70%</span>
+                    <span className="font-bold">{report.faultA}</span>
                   </div>
                   <div className="bg-muted text-foreground p-3 rounded-md flex justify-between items-center">
                     <span>B 차량</span>
-                    <span className="font-bold">30%</span>
+                    <span className="font-bold">{report.faultB}</span>
                   </div>
     
                   <div className="mt-6">
@@ -213,8 +248,7 @@ export default function ClientReport({ id }: { id: string }) {
                       <p className="font-medium mb-1 text-foreground">도로교통법 제16조</p>
                       <p className="text-muted-foreground mb-3">[차로 진입 차선 변경]</p>
                       <p className="text-muted-foreground">
-                        도로에서 차로를 변경하려는 경우에는 안전하게 진로를 변경한 후 차로를 변경하여야 하며, 이때 수신호
-                        또는 방향지시등을 사용하고 도로를 양보하여야 한다.
+                        <FormattedText text={report.laws} />
                       </p>
                     </div>
                   </div>
@@ -245,20 +279,7 @@ export default function ClientReport({ id }: { id: string }) {
                       <p className="font-medium text-foreground">서울중앙지방법원 2019-xxxxxxx</p>
                       <p className="text-muted-foreground mb-2">판결일: 2019년 5월 12일</p>
                       <p className="text-muted-foreground">
-                        유사한 교차로 사고에서 신호위반 차량에 대해 70%의 과실이 인정되었으며, 피해자 차량의 회피 시도 시
-                        가능한 조치를 취하지 못한 점에 대해 30%의 과실이 인정됨.
-                      </p>
-                    </div>
-                  </div>
-    
-                  <div className="app-card p-4">
-                    <h3 className="font-medium mb-2 text-foreground">보험사 합의 사례</h3>
-                    <div className="text-sm">
-                      <p className="font-medium text-foreground">사례 1: 유사 상황 교차로 사고</p>
-                      <p className="text-muted-foreground mb-2">합의일: 2023년 2월 9일</p>
-                      <p className="text-muted-foreground">
-                        신호위반 차량과 회피하려던 차량의 충돌사고에서 25:75의 과실비율로 합의한 사례. 신호를 위반한 차량에
-                        더 높은 과실이 인정됨.
+                        <FormattedText text={report.precedents} />
                       </p>
                     </div>
                   </div>
