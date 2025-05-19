@@ -9,21 +9,28 @@ deploy-ai-server:
 
   before_script:
     - mkdir -p ~/.ssh
-    # SSH 개인 키를 base64로 인코딩된 환경 변수에서 디코딩하여 저장
     - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
 
   script:
-    # .venv 디렉토리를 제외한 모든 파일 삭제
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "find /home/ubuntu/ai-server/ai -mindepth 1 -not -path '*/\.venv*' -delete"
-    
-    # 로컬 ai 디렉토리의 모든 파일을 .venv를 제외하고 전송
+    # 1. 원격 서버에서 .venv 제외하고 ai 디렉토리 정리
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" \
+        "find /home/ubuntu/ai-server/ai -mindepth 1 -not -path '*/\.venv*' -delete"
+
+    # 2. 로컬 ai 디렉토리를 .venv 제외하고 rsync 전송
     - rsync -avz --exclude='.venv' -e "ssh -o StrictHostKeyChecking=no" ./ai/ "$DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/ai-server/ai/"
-    
-    # 가상환경 활성화 및 의존성 설치 (환경 변수 설정 포함)
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/ubuntu/ai-server/ai && source .venv/bin/activate && export PATH=$PATH:/home/ubuntu/.local/bin && uv pip install -e ."
-    
-    # AI 서버 재시작
+
+    # 3. 원격에서 의존성 설치 및 CUDA OpenCV 연동
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" '
+        cd /home/ubuntu/ai-server/ai &&
+        source .venv/bin/activate &&
+        export PATH=$PATH:/home/ubuntu/.local/bin &&
+        uv pip install -e . &&
+        # CUDA OpenCV .so를 Python 경로로 복사 (필요 시 경로 수정)
+        cp /usr/local/python/cv2/python-3.12/cv2*.so .venv/lib/python3.12/site-packages/
+      '
+
+    # 4. AI 서버 재시작
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "sudo systemctl restart ai-server"
-    
+
     - echo "✅ AI 서버 배포 완료"
