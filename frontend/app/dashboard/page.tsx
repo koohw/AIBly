@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Upload, Camera, Clock, FileText, AlertCircle, User, ChevronRight } from "lucide-react"
 import LoginRequiredModal from "@/components/start/login-required-modal"
 import { useTheme } from "../contexts/theme-context"
-import { Preferences } from '@capacitor/preferences'
+import { Preferences } from "@capacitor/preferences"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -20,37 +20,37 @@ export default function Dashboard() {
   // 인증 상태 확인
   useEffect(() => {
     async function checkAuth() {
-        setIsLoading(true)
+      setIsLoading(true)
 
-        // 1) Preferences에서 JWT 꺼내기
-        const { value: authToken } = await Preferences.get({ key: 'AUTH_TOKEN' })
+      // 1) Preferences에서 JWT 꺼내기
+      const { value: authToken } = await Preferences.get({ key: "AUTH_TOKEN" })
 
-        if (authToken) {
-          // 로그인된 사용자
-          setIsGuest(false)
-          setHasAnalysis(true)
+      if (authToken) {
+        // 로그인된 사용자
+        setIsGuest(false)
+        setHasAnalysis(true)
 
-          // (선택) 유효성 재검증이 필요하면 여기에 API 호출…
-          // await fetch(`${API_URL}/user/me`, { headers: { Authorization: `Bearer ${authToken}` } })
-        } else {
-          // 게스트 모드
-          setIsGuest(true)
-        }
-
-        // 2) 자동 감지 설정도 Preferences에서 꺼내기
-        const { value: autoDetect } = await Preferences.get({ key: 'AUTO_DETECT' })
-        if (autoDetect !== null) {
-          setAutoDetectEnabled(autoDetect === 'true')
-        }
-
-        setIsLoading(false)
+        // (선택) 유효성 재검증이 필요하면 여기에 API 호출…
+        // await fetch(`${API_URL}/user/me`, { headers: { Authorization: `Bearer ${authToken}` } })
+      } else {
+        // 게스트 모드
+        setIsGuest(true)
       }
-      checkAuth()
-   }, [router])
+
+      // 2) 자동 감지 설정도 Preferences에서 꺼내기
+      const { value: autoDetect } = await Preferences.get({ key: "AUTO_DETECT" })
+      if (autoDetect !== null) {
+        setAutoDetectEnabled(autoDetect === "true")
+      }
+
+      setIsLoading(false)
+    }
+    checkAuth()
+  }, [router])
 
   const handleLogout = () => {
-    Preferences.remove({ key: 'AUTH_TOKEN' })
-    localStorage.removeItem('auth_token')
+    Preferences.remove({ key: "AUTH_TOKEN" })
+    localStorage.removeItem("auth_token")
     router.push("/")
   }
 
@@ -72,19 +72,20 @@ export default function Dashboard() {
     if (isGuest) {
       // 게스트 사용자는 로그인 필요 모달 표시
       setShowLoginModal(true)
-    } else {// const token = localStorage.getItem("auth_token")
-    // const guestToken = localStorage.getItem("guest_token")
+    } else {
+      // const token = localStorage.getItem("auth_token")
+      // const guestToken = localStorage.getItem("guest_token")
 
-    // if (!token && !guestToken) {
-    //   router.push("/")
-    // } else {
-    //   setIsLoading(false)
-    //   setIsGuest(!token && !!guestToken)
+      // if (!token && !guestToken) {
+      //   router.push("/")
+      // } else {
+      //   setIsLoading(false)
+      //   setIsGuest(!token && !!guestToken)
 
-    //   // 로그인 사용자는 예시 분석 결과 표시
-    //   if (token) {
-    //     setHasAnalysis(true)
-    //   }
+      //   // 로그인 사용자는 예시 분석 결과 표시
+      //   if (token) {
+      //     setHasAnalysis(true)
+      //   }
       // 로그인 사용자는 업로드 페이지로 이동
       router.push("/upload")
     }
@@ -93,13 +94,16 @@ export default function Dashboard() {
   const handleViewAnalysis = () => {
     // /analysis?id=1 형태로 push
     router.push(`/analysis?id=1`)
-    // 나중에 API에서 받아온 동적 ID로 바꿀땐 아래와 같이 쓰면 됨
+    // 나중에 API에서 받아온 동적 ID로 바꿀땐 아래와 같이 쓰면 됨됨
     //router.push(`/analysis?id=${reportId}`)
   }
-  
 
   const handleAutoDetectSettings = () => {
     router.push("/profile")
+  }
+
+  const handleHistory = () => {
+    router.push("/history")
   }
 
   if (isLoading) {
@@ -197,7 +201,7 @@ export default function Dashboard() {
         <section>
           <div className="flex justify-between items-center mb-4">
             <h2 className="app-section-title">최근 분석</h2>
-            <Button variant="link" className="text-appblue p-0 hover:text-appblue-dark">
+            <Button variant="link" className="text-appblue p-0 hover:text-appblue-dark" onClick={handleHistory}>
               모두 보기
             </Button>
           </div>
@@ -245,7 +249,7 @@ export default function Dashboard() {
             <Upload size={20} className="text-appblue" />
             <span className="text-xs mt-1">업로드</span>
           </Button>
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3">
+          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleHistory}>
             <Clock size={20} className="text-muted-foreground" />
             <span className="text-xs mt-1">분석내역</span>
           </Button>

@@ -152,7 +152,7 @@ export default function LoginPage() {
           throw new Error('authToken이 응답에 없습니다');
         }
         
-        log(`[LoginPage] 🔑 서비스 JWT(authToken): ${authToken.substring(0, 10)}...`);
+        log(`[LoginPage] 🔑 서비스 JWT(authToken): ${authToken}`);
 
         // 3️⃣ 로컬 스토리지 대신 Capacitor Preferences 에 저장
         await Preferences.set({ key: 'AUTH_TOKEN', value: authToken });
