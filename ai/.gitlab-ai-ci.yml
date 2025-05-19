@@ -16,7 +16,7 @@ deploy-ai-server:
     # 1. 원격 서버에서 .venv 제외하고 ai 디렉토리 정리
     - >-
       ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" 
-      "find /home/ubuntu/ai-server/ai -mindepth 1 -not -path '*/\.venv*' -delete"
+      "find /home/ubuntu/ai-server/ai -mindepth 1 -not -path '*/.venv*' -delete"
 
     # 2. 로컬 ai 디렉토리를 .venv 제외하고 rsync 전송
     - >-
@@ -24,15 +24,17 @@ deploy-ai-server:
       ./ai/ "$DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/ai-server/ai/"
 
     # 3. 원격에서 의존성 설치 및 CUDA OpenCV 연동
-    - >-
-      ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" '
-      cd /home/ubuntu/ai-server/ai &&
-      source .venv/bin/activate &&
-      export PATH=$PATH:/home/ubuntu/.local/bin &&
-      uv pip install -e . &&
-      # CUDA OpenCV .so를 Python 경로로 복사 (필요 시 경로 수정)
-      cp /usr/local/python/cv2/python-3.12/cv2*.so .venv/lib/python3.12/site-packages/
-      '
+    - |
+      ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" << 'EOF'
+      cd /home/ubuntu/ai-server/ai
+      source .venv/bin/activate
+      export PATH=$PATH:/home/ubuntu/.local/bin
+      uv pip install -e .
+
+      # 실제 존재하는 경로로 복사
+      cp /usr/local/lib/python3.12/dist-packages/cv2/python-3.12/cv2*.so \
+         .venv/lib/python3.12/site-packages/
+      EOF
 
     # 4. AI 서버 재시작
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "sudo systemctl restart ai-server"
