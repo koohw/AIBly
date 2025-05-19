@@ -14,7 +14,7 @@ dependencies = [
     "tqdm>=4.66.0",
     "fastapi>=0.110.0",
     "uvicorn>=0.29.0",
-    "numpy"==1.26.4, # 버전관리
+    "numpy==1.26.4", # 버전관리
     "pandas>=2.0.0",
     "ultralytics>=8.0.0",  # YOLOv8용
     "matplotlib>=3.7.0",
