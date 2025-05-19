@@ -13,7 +13,7 @@ import type { AxiosError } from "axios"
 interface VideoSelectProps {
   selectedFile: File | null
   preview: string | null
-  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onFileChange: (file: File, previewUrl: string) => void
   onClearSelection: () => void
 }
 
@@ -31,6 +31,10 @@ export default function VideoSelect({
   const [thumbnail, setThumbnail] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+  console.log('▶️ video-select got preview prop:', preview)
+}, [preview])
 
   // Generate poster thumbnail
   useEffect(() => {
@@ -134,7 +138,7 @@ export default function VideoSelect({
             console.log('📄 보고서 상세:', report)
 
             setIsAnalyzing(false)
-            // router.push(`/analysis/${reportId}`)
+            router.push(`/analysis?id=${reportId}`)
           }
         } catch (e) {
           console.error('폴링 오류:', e)
@@ -158,31 +162,58 @@ export default function VideoSelect({
   }
 
   // 갤러리에서 선택
-  const openGalleryPicker = async () => {
-    try {
-      const result = await FilePicker.pickFiles({ types: ['video/*'], readData: true })
-      if (result.files.length > 0) {
-        const fileInfo: any = result.files[0]
-        const base64 = fileInfo.data as string
-        const mime = fileInfo.mimeType as string
-        const byteChars = atob(base64)
-        const byteNums = new Uint8Array(byteChars.length)
-        for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i)
-        const blob = new Blob([byteNums], { type: mime })
-        const fileName = fileInfo.name || `video.${mime.split('/')[1]}`
-        const file = new File([blob], fileName, { type: mime })
-        onFileChange({ target: { files: [file] } } as any)
-      }
-    } catch (error) {
-      console.error('Gallery picker error:', error)
+ // VideoSelect 컴포넌트 내부
+// VideoSelect 컴포넌트 내부
+const openGalleryPicker = async () => {
+  try {
+    const res = await FilePicker.pickFiles({
+      types: ['video/*'],
+      readData: true  // Base64 로 읽기
+    })
+    if (!res.files.length) return
+
+    const info = res.files[0] as any
+    const { data: base64, mimeType, name } = info
+
+    // 1) 업로드용 File 생성
+    const byteChars = atob(base64)
+    const byteNums = new Uint8Array(byteChars.length)
+    for (let i = 0; i < byteChars.length; i++) {
+      byteNums[i] = byteChars.charCodeAt(i)
     }
+    const blob = new Blob([byteNums], { type: mimeType })
+    const file = new File([blob], name, { type: mimeType })
+
+    // 2) 미리보기용 Blob URL 생성
+    const previewUrl = URL.createObjectURL(blob)
+
+    // 부모 콜백에 파일 + Blob URL 전달
+    onFileChange(file, previewUrl)
+  } catch (e) {
+    console.error('Gallery picker error:', e)
   }
+}
+
+
+
+
 
   return (
     <main className="app-container flex-1 flex flex-col">
       {isAnalyzing ? (
         <div className="flex-1 flex flex-col items-center justify-center">
           <h2 className="text-xl font-bold mb-2">AI 분석 중...</h2>
+
+          {/* 비디오 플레이어 추가 */}
+          <div className="w-full max-w-md aspect-video bg-black rounded-lg mb-4 overflow-hidden relative">
+            <video src={preview || undefined} className="w-full h-full object-contain" autoPlay muted loop />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            </div>
+          </div>
+          
           <Progress value={analyzeProgress} className="w-full max-w-md h-2 mb-2 bg-muted" />
           <p>{analyzeProgress}%</p>
         </div>

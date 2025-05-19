@@ -67,20 +67,14 @@ export default function AuthScreen() {
       title: "설치만 하세요, 나머지는 자동으로",
       description: "앱을 설치해 두면 사고 발생 시 블랙박스 영상을 자동으로 감지하고 분석 보고서를 생성합니다.",
       images: [
-        "/car-dashboard-view.png",
-        "/app-in-hand.png",
-        "/data-analysis-laptop.png",
-        "/digital-accident-report.png",
+        "/image/login.jpg",
       ],
     },
     {
       title: "실시간 분석, 즉각적인 결과",
       description: "블랙박스 영상을 업로드하면 AI가 즉시 분석하여 결과를 제공합니다.",
       images: [
-        "/ai-video-analysis.png",
-        "/intersection-incident.png",
-        "/troubleshooting-flowchart.png",
-        "/stamped-contract.png",
+        "image/robot.png"
       ],
     },
     {
@@ -284,7 +278,7 @@ export default function AuthScreen() {
       >
         <div className="w-full max-w-md">
           {/* 이미지 그리드 */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="mb-8">
             {slides[currentSlide].images.map((image, index) => (
               <motion.div
                 key={index}
@@ -355,9 +349,7 @@ export default function AuthScreen() {
             </>
           )}
         </button>
-        <button onClick={handleLogin}>
-          임시 로그인
-        </button>
+
 
         <div className="relative flex items-center justify-center">
           <div className="absolute inset-0 flex items-center">
