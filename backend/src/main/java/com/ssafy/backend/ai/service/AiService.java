@@ -7,10 +7,6 @@ import com.ssafy.backend.s3.service.S3UploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -27,7 +23,7 @@ public class AiService {
     private String aiServerUrl;
 
     public void requestAndHandleAnalysis(VideoFile videoFile) {
-        String presignedUrl = s3UploadService.generatePresignedUrl(videoFile.getS3Key(), videoFile.getContentType());
+        String presignedUrl = s3UploadService.getDownloadURL(videoFile.getUser().getId(), videoFile.getS3Key());
 
         AiRequestDto requestDto = new AiRequestDto(
                 videoFile.getUser().getId(),
@@ -37,7 +33,7 @@ public class AiService {
         );
 
         try {
-            JsonNode aiResponse = restTemplate.postForObject(aiServerUrl + "/analyze-test", requestDto, JsonNode.class);
+            JsonNode aiResponse = restTemplate.postForObject(aiServerUrl + "/analyze", requestDto, JsonNode.class);
             log.info("AI 서버 응답 수신 완료: videoId={}", videoFile.getId());
 
             aiAnalysisService.handleAiCallback(aiResponse, videoFile.getId());

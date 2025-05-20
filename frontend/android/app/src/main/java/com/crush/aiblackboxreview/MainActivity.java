@@ -466,7 +466,7 @@ public class MainActivity extends BridgeActivity {
                     } catch (Exception e) {
                         Log.e(TAG, "지연 이동 중 오류", e);
                     }
-                }, 500); // 500ms 후 실행
+                }, 1000); // 1000ms 후 실행
             }
         }
     }

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Pause, Calendar, Clock, Download, Share, AlertCircle } from "lucide-react"
 import { useTheme } from "@/app/contexts/theme-context"
+import { FormattedTexts } from "@/components/analysis/FormattedText"
 import { downloadReportPdf, getReportDetail, ReportDetailResponse } from "@/lib/api/Report"
 import { Capacitor } from "@capacitor/core"
 import { Browser } from "@capacitor/browser"
@@ -106,6 +107,21 @@ export default function ClientReport({ id }: { id: string }) {
     if (value === undefined) return "-";
     return value + "%";
   };
+
+    // id가 바뀔 때마다 상세 조회
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    getReportDetail(id)
+      .then((data) => {
+        setReport(data)
+      })
+      .catch((err) => {
+        console.error("보고서 상세 조회 실패:", (err as any).response?.data ?? err.message)
+        setError("보고서를 불러오는 중 오류가 발생했습니다.")
+      })
+      .finally(() => setLoading(false))
+  }, [id])
 
   const handleBack = () => router.back()
   const handlePlayPause = () => {

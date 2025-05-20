@@ -17,12 +17,15 @@ import com.ssafy.backend.video.dto.response.MyVideoResponseDto;
 import com.ssafy.backend.video.dto.response.UploadNotifyResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class VideoServiceImpl implements VideoService {
 
     private final VideoFileRepository videoFileRepository;
@@ -66,15 +69,43 @@ public class VideoServiceImpl implements VideoService {
 
         videoFileRepository.save(file);
 
-        // 6. AI 분석 요청 (영상인 경우에만)
+        // 6. AI 분석 요청 (영상인 경우에만) - 비동기로 처리
         if (fileType == FileType.VIDEO) {
-            aiService.requestAndHandleAnalysis(file);
+            log.info("비디오 ID: {}에 대한 AI 분석 요청을 비동기로 처리합니다.", file.getId());
+            requestAnalysisAsync(file.getId());
         }
 
-        // 7. 결과 반환
+        // 7. 결과 즉시 반환
         return new UploadNotifyResponseDto(file.getId(), file.getFileType(), file.getAnalysisStatus());
     }
 
+    // 비동기 분석 요청 메서드 추가
+    @Async
+    public void requestAnalysisAsync(Long videoId) {
+        try {
+            log.info("비동기 AI 분석 시작: 비디오 ID {}", videoId);
+            VideoFile file = videoFileRepository.findById(videoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.VIDEO_NOT_FOUND));
+            
+            aiService.requestAndHandleAnalysis(file);
+            log.info("비동기 AI 분석 요청 완료: 비디오 ID {}", videoId);
+        } catch (Exception e) {
+            // 비동기 처리 중 발생한 예외 로깅
+            log.error("AI 분석 요청 중 오류 발생 (비디오 ID: {}): {}", videoId, e.getMessage(), e);
+            
+            // 오류 상태로 업데이트
+            try {
+                VideoFile file = videoFileRepository.findById(videoId).orElse(null);
+                if (file != null) {
+                    file.setAnalysisStatus(AnalysisStatus.FAILED);
+                    videoFileRepository.save(file);
+                    log.info("비디오 ID: {}의 상태를 FAILED로 업데이트했습니다.", videoId);
+                }
+            } catch (Exception updateEx) {
+                log.error("상태 업데이트 중 오류 발생: {}", updateEx.getMessage(), updateEx);
+            }
+        }
+    }
 
     //FileType 분류
     private FileType determineFileType(String contentType) {
