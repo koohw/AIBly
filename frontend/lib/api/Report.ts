@@ -159,8 +159,16 @@ export async function getRecentReports(limit: number = 5): Promise<ReportListRes
     const token = localStorage.getItem('auth_token') || '토큰 없음';
     console.log(`🔑 현재 사용 중인 토큰(일부): ${token.substring(0, 15)}...`);
     
+    // 타임아웃 연장 설정으로 API 호출
     const res = await apiClient.get(
-      `/api/my/reports?limit=${limit}`
+      `/api/my/reports?limit=${limit}`,
+      { 
+        timeout: 10000, // 10초 타임아웃 설정 (기본값보다 길게)
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      }
     );
     
     console.log('✅ 최근 보고서 목록 조회 성공');
@@ -191,20 +199,36 @@ export async function getRecentReports(limit: number = 5): Promise<ReportListRes
     }
     
     // 데이터 내용 일부 로깅
-    console.log('처리된 응답 데이터 일부:', 
-      JSON.stringify(
-        Array.isArray(processedData) 
-          ? processedData.slice(0, 2) 
-          : processedData.reports.slice(0, 2)
-      )
-    );
+    if (Array.isArray(processedData) && processedData.length > 0) {
+      console.log('처리된 응답 데이터 일부:', JSON.stringify(processedData.slice(0, 2)));
+    } else if (!Array.isArray(processedData) && processedData.reports && processedData.reports.length > 0) {
+      console.log('처리된 응답 데이터 일부:', JSON.stringify(processedData.reports.slice(0, 2)));
+    } else {
+      console.log('처리된 데이터가 비어 있습니다');
+    }
     
     return processedData;
   } catch (error) {
     const err = error as AxiosError;
-    console.error('❌ 최근 보고서 목록 조회 실패:', err.response?.data || err.message);
-    console.error('에러 상태 코드:', err.response?.status);
-    console.error('에러 상세 정보:', err);
+    
+    // 에러 타입별 상세 메시지 제공
+    if (err.code === 'ECONNABORTED' || (err.message && err.message.includes('timeout'))) {
+      console.error('❌ 최근 보고서 목록 조회 실패: 요청 시간 초과');
+      console.error('네트워크 상태를 확인하고 다시 시도해주세요.');
+    } else if (!err.response) {
+      console.error('❌ 최근 보고서 목록 조회 실패: 서버 연결 실패');
+      console.error('서버 연결 상태를 확인하고 다시 시도해주세요.');
+    } else {
+      console.error('❌ 최근 보고서 목록 조회 실패:', err.response?.data || err.message);
+      console.error('에러 상태 코드:', err.response?.status);
+    }
+    
+    // 상세 에러 기록
+    console.error('에러 상세 정보:', {
+      message: err.message,
+      code: err.code,
+      status: err.response?.status,
+    });
     
     // 에러 발생 시 기본값 반환 (빈 배열)
     return [] as ReportListItem[];

@@ -19,145 +19,157 @@ export default function Dashboard() {
   const [newReports, setNewReports] = useState<ReportListItem[]>([]) // 새로운 보고서 목록
   const [recentReports, setRecentReports] = useState<ReportListItem[]>([]) // 최근 보고서 목록
   const [showNewReportAlert, setShowNewReportAlert] = useState(false) // 새 보고서 알림 표시 여부
+  const [loadError, setLoadError] = useState<string | null>(null) // 로딩 에러 상태 추가
   const { theme } = useTheme()
+
+  // 보고서 목록 조회 함수 - 별도 함수로 분리
+  const fetchReportList = async () => {
+    try {
+      console.log('보고서 목록 조회 시작');
+      const reportsData = await getRecentReports(5);
+      console.log('API 응답 데이터 형식:', typeof reportsData, Array.isArray(reportsData));
+      
+      // API 응답이 배열일 경우와 객체일 경우 모두 처리
+      let reportsList: ReportListItem[] = [];
+      
+      if (Array.isArray(reportsData)) {
+        reportsList = reportsData;
+      } else if (reportsData && typeof reportsData === 'object') {
+        // reports 속성이 있는지 확인
+        if ('reports' in reportsData && Array.isArray(reportsData.reports)) {
+          reportsList = reportsData.reports;
+        }
+      }
+      
+      console.log('처리된 보고서 목록 갯수:', reportsList.length);
+      
+      if (reportsList.length > 0) {
+        console.log('최근 보고서 목록 처리 완료, 상태 업데이트');
+        setHasAnalysis(true);
+        setRecentReports(reportsList);
+        setLoadError(null);
+        
+        // 로컬 스토리지에서 새 보고서 ID 목록 가져오기
+        const { value: newReportIdsStr } = await Preferences.get({ key: 'NEW_REPORT_IDS' });
+        const newReportIds = newReportIdsStr ? JSON.parse(newReportIdsStr) : [];
+        
+        if (newReportIds.length > 0) {
+          // 새 보고서 ID가 있는 보고서만 필터링
+          const newReportsList = reportsList.filter(report => 
+            newReportIds.includes(report.reportId.toString())
+          );
+          setNewReports(newReportsList);
+          setShowNewReportAlert(newReportsList.length > 0);
+        }
+        
+        return true;
+      } else {
+        console.log('보고서 목록이 비어있음');
+        setHasAnalysis(false);
+        setRecentReports([]);
+        return false;
+      }
+    } catch (error) {
+      console.error('보고서 목록 조회 실패:', error);
+      setHasAnalysis(false);
+      setRecentReports([]);
+      setLoadError('보고서 목록을 불러오는 중 오류가 발생했습니다');
+      return false;
+    }
+  };
 
   // 인증 상태 확인
   useEffect(() => {
     async function checkAuth() {
-      setIsLoading(true)
+      setIsLoading(true);
+      setLoadError(null);
 
-      // 1) Preferences에서 JWT 꺼내기
-      const { value: authToken } = await Preferences.get({ key: "AUTH_TOKEN" })
+      try {
+        // 1) Preferences에서 JWT 꺼내기
+        const { value: authToken } = await Preferences.get({ key: "AUTH_TOKEN" });
 
-      if (authToken) {
-        // 로그인된 사용자
-        setIsGuest(false)
-        
-        // FCM 토큰 콘솔에 출력 (디버그용)
-        if (process.env.NODE_ENV === 'development') {
-          try {
-            const { value: fcmToken } = await Preferences.get({ key: 'fcm_token' });
-            console.log('🔑 저장된 FCM 토큰:', fcmToken);
-            
-            // FCM 새 보고서 ID 목록 확인
-            const { value: newReportIdsStr } = await Preferences.get({ key: 'NEW_REPORT_IDS' });
-            console.log('📋 저장된 새 보고서 ID 목록:', newReportIdsStr);
-          } catch (e) {
-            console.error('FCM 토큰 확인 실패:', e);
-          }
-        }
-        
-        // 안드로이드 브릿지에서 새 보고서 목록 동기화
-        try {
-          if (typeof window !== 'undefined' && (window as any).androidFcmBridge) {
-            // 안드로이드 네이티브에서 새 보고서 ID 목록 가져오기
-            const newReportIdsJson = (window as any).androidFcmBridge.getNewReportIds();
-            console.log('안드로이드에서 가져온 새 보고서 ID 목록:', newReportIdsJson);
-            
-            // Capacitor Preferences에 저장
-            if (newReportIdsJson && newReportIdsJson !== '[]') {
-              await Preferences.set({ key: 'NEW_REPORT_IDS', value: newReportIdsJson });
-            }
-          }
-        } catch (error) {
-          console.error('네이티브 브릿지에서 새 보고서 ID 가져오기 실패:', error);
-        }
-        
-        try {
-          // 보고서 목록 가져오기
-          console.log('보고서 목록 조회 시작');
-          const reportsData = await getRecentReports(5);
-          console.log('API 응답 데이터 형식:', typeof reportsData, Array.isArray(reportsData));
-          console.log('원본 API 응답:', JSON.stringify(reportsData).substring(0, 200) + '...');
+        if (authToken) {
+          // 로그인된 사용자
+          setIsGuest(false);
           
-          // API 응답이 배열일 경우와 객체일 경우 모두 처리
-          let reportsList: ReportListItem[] = [];
-          
-          if (Array.isArray(reportsData)) {
-            reportsList = reportsData;
-          } else if (reportsData && typeof reportsData === 'object') {
-            // reports 속성이 있는지 확인
-            if ('reports' in reportsData && Array.isArray(reportsData.reports)) {
-              reportsList = reportsData.reports;
-            }
-          }
-          
-          console.log('처리된 보고서 목록 갯수:', reportsList.length);
-          console.log('처리된 보고서 목록 내용:', JSON.stringify(reportsList.slice(0, 2)));
-          
-          if (reportsList.length > 0) {
-            console.log('최근 보고서 목록 처리 완료, 상태 업데이트');
-            setHasAnalysis(true);
-            setRecentReports(reportsList);
-            
-            // 테스트용 코드: reportsList의 각 항목이 올바른 구조를 갖고 있는지 확인
-            reportsList.forEach((report, index) => {
-              console.log(`보고서 ${index + 1}:`, 
-                `ID=${report.reportId}`, 
-                `제목=${report.title}`, 
-                `생성일=${report.createdAt}`,
-                `타입=${report.accidentType}`);
-            });
-            
-            // 로컬 스토리지에서 새 보고서 ID 목록 가져오기
-            const { value: newReportIdsStr } = await Preferences.get({ key: 'NEW_REPORT_IDS' });
-            console.log('새 보고서 ID 문자열:', newReportIdsStr);
-            const newReportIds = newReportIdsStr ? JSON.parse(newReportIdsStr) : [];
-            console.log('파싱된 새 보고서 ID 목록:', newReportIds);
-            
-            if (newReportIds.length > 0) {
-              // 새 보고서 ID가 있는 보고서만 필터링
-              const newReportsList = reportsList.filter(report => 
-                newReportIds.includes(report.reportId.toString())
-              );
-              console.log('새 보고서로 필터링된 목록:', newReportsList.length);
-              setNewReports(newReportsList);
-              setShowNewReportAlert(newReportsList.length > 0);
-            }
-          } else {
-            console.log('보고서 목록이 비어있음');
-            setHasAnalysis(false);
-            
-            // 토큰 확인 및 로깅 (디버깅용)
-            const { value: authToken } = await Preferences.get({ key: 'AUTH_TOKEN' });
-            console.log('현재 저장된 토큰(일부):', authToken ? authToken.substring(0, 15) + '...' : '토큰 없음');
-            
-            // 게스트 모드인지 확인
-            const { value: guestToken } = await Preferences.get({ key: 'guest_token' });
-            console.log('게스트 토큰 존재:', !!guestToken);
-          }
-        } catch (error) {
-          console.error('보고서 목록 조회 실패:', error);
-          
-          // 에러 발생 시에도 UI 상태 업데이트
-          setHasAnalysis(false);
-          
-          // 페이지가 로드되었음을 표시
-          setIsLoading(false);
-          
-          // 오류 알림 표시 (선택적)
-          alert('보고서 목록을 불러오는 중 오류가 발생했습니다.');
-          
-          // 개발 모드에서만 콘솔에 자세한 오류 출력
+          // FCM 토큰 콘솔에 출력 (디버그용) - 복원
           if (process.env.NODE_ENV === 'development') {
-            console.error('상세 오류 정보:', error);
+            try {
+              const { value: fcmToken } = await Preferences.get({ key: 'fcm_token' });
+              console.log('🔑 저장된 FCM 토큰:', fcmToken);
+              
+              // FCM 새 보고서 ID 목록 확인
+              const { value: newReportIdsStr } = await Preferences.get({ key: 'NEW_REPORT_IDS' });
+              console.log('📋 저장된 새 보고서 ID 목록:', newReportIdsStr);
+            } catch (e) {
+              console.error('FCM 토큰 확인 실패:', e);
+            }
           }
+          
+          // 안드로이드 브릿지에서 새 보고서 목록 동기화
+          try {
+            if (typeof window !== 'undefined' && (window as any).androidFcmBridge) {
+              // 안드로이드 네이티브에서 새 보고서 ID 목록 가져오기
+              const newReportIdsJson = (window as any).androidFcmBridge.getNewReportIds();
+              console.log('안드로이드에서 가져온 새 보고서 ID 목록:', newReportIdsJson);
+              
+              // Capacitor Preferences에 저장
+              if (newReportIdsJson && newReportIdsJson !== '[]') {
+                await Preferences.set({ key: 'NEW_REPORT_IDS', value: newReportIdsJson });
+              }
+            }
+          } catch (error) {
+            console.error('네이티브 브릿지에서 새 보고서 ID 가져오기 실패:', error);
+          }
+          
+          // 보고서 목록 조회 - 3번 재시도 로직 추가
+          let retryCount = 0;
+          let success = false;
+          
+          while (retryCount < 3 && !success) {
+            if (retryCount > 0) {
+              console.log(`보고서 목록 조회 재시도... (${retryCount}/3)`);
+              await new Promise(resolve => setTimeout(resolve, 500)); // 재시도 전 잠시 대기
+            }
+            
+            success = await fetchReportList();
+            retryCount++;
+          }
+          
+          if (!success && retryCount >= 3) {
+            console.error('보고서 목록 조회 3회 실패');
+            setLoadError('보고서 목록을 불러올 수 없습니다. 다시 시도해주세요.');
+          }
+        } else {
+          // 게스트 모드
+          setIsGuest(true);
+          setHasAnalysis(false);
         }
-      } else {
-        // 게스트 모드
-        setIsGuest(true)
-      }
 
-      // 2) 자동 감지 설정도 Preferences에서 꺼내기
-      const { value: autoDetect } = await Preferences.get({ key: "AUTO_DETECT" })
-      if (autoDetect !== null) {
-        setAutoDetectEnabled(autoDetect === "true")
+        // 2) 자동 감지 설정도 Preferences에서 꺼내기
+        const { value: autoDetect } = await Preferences.get({ key: "AUTO_DETECT" });
+        if (autoDetect !== null) {
+          setAutoDetectEnabled(autoDetect === "true");
+        }
+      } catch (error) {
+        console.error('대시보드 초기화 오류:', error);
+        setLoadError('데이터를 불러오는 중 오류가 발생했습니다');
+        setHasAnalysis(false);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false)
     }
-    checkAuth()
-  }, [router])
+    
+    checkAuth();
+  }, [router]);
+
+  // 새로고침 함수 추가
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    await fetchReportList();
+    setIsLoading(false);
+  };
 
   const handleLogout = () => {
     Preferences.remove({ key: "AUTH_TOKEN" })
@@ -380,10 +392,32 @@ export default function Dashboard() {
         <section>
           <div className="flex justify-between items-center mb-4">
             <h2 className="app-section-title">최근 분석</h2>
-            <Button variant="link" className="text-appblue p-0 hover:text-appblue-dark" onClick={handleHistory}>
-              모두 보기
-            </Button>
+            <div className="flex items-center">
+              {!isGuest && !isLoading && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleRefresh} 
+                  className="mr-2 text-gray-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+                </Button>
+              )}
+              <Button variant="link" className="text-appblue p-0 hover:text-appblue-dark" onClick={handleHistory}>
+                모두 보기
+              </Button>
+            </div>
           </div>
+
+          {loadError && !isLoading && !isGuest && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-center">
+              <p className="text-sm text-red-600 dark:text-red-400 mb-2">{loadError}</p>
+              <Button size="sm" variant="outline" onClick={handleRefresh} className="text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+                다시 시도
+              </Button>
+            </div>
+          )}
 
           {hasAnalysis && recentReports.length > 0 ? (
             <div className="app-card overflow-hidden">
