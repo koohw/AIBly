@@ -15,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/user")
@@ -39,8 +40,17 @@ public class UserController extends BaseController {
                 .findByProviderAndProviderId(provider, providerId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 3) DTO로 변환해 반환
-        UserInfoDto dto = new UserInfoDto(user.getId(), user.getName(), user.getEmail());
+        // 3) 가입일 포맷 (yyyy-MM-dd HH:mm)
+        String formattedCreatedAt = user.getCreatedAt()
+                .format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+
+        // 4) DTO로 변환해 반환
+        UserInfoDto dto = new UserInfoDto(
+                user.getName(),
+                user.getEmail(),
+                formattedCreatedAt
+        );
+
         return ResponseEntity.ok(dto);
     }
 

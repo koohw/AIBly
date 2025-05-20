@@ -144,7 +144,7 @@ public class S3UploadServiceImpl implements S3UploadService {
 
 
     @Override
-    public String getOrCreateS3Key(String fileName, String contentType, Long userId) {
+    public String getOrCreateS3Key(String fileName, String contentType, Long userId, Integer locationType) {
         Optional<S3File> existing = s3FileRepository.findByFileNameAndContentTypeAndUserId(fileName, contentType, userId);
 
         if (existing.isPresent()) {
@@ -161,6 +161,7 @@ public class S3UploadServiceImpl implements S3UploadService {
                 .contentType(contentType)
                 .userId(userId)
                 .fileType(FileType.VIDEO)
+                .locationType(locationType)
                 .build();
 
         System.out.println("새 파일 저장 - fileName: " + fileName + ", s3Key: " + s3Key);
