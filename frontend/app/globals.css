@@ -4,67 +4,67 @@
 
 @layer base {
   :root {
-    /* 라이트 모드 색상 */
+    /* 라이트 모드 색상 - 아이콘 색상에 맞게 조정 */
     --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
+    --foreground: 215 35% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 215 35% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 215 35% 12%;
 
-    --primary: 217 89% 61%;
+    --primary: 40 78% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary-foreground: 215 35% 12%;
 
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
     --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 215 35% 12%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 217 89% 61%;
+    --ring: 40 78% 60%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    /* 다크 모드 색상 */
-    --background: 0 0% 0%;
+    /* 다크 모드 색상 - 아이콘 색상에 맞게 조정 */
+    --background: 215 35% 12%;
     --foreground: 210 40% 98%;
 
-    --card: 0 0% 4%;
+    --card: 215 40% 10%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 4%;
+    --popover: 215 40% 10%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 89% 61%;
+    --primary: 40 78% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
+    --secondary: 215 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
+    --muted: 215 33% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 217 33% 17%;
+    --accent: 215 33% 17%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 89% 61%;
+    --border: 215 33% 17%;
+    --input: 215 33% 17%;
+    --ring: 40 78% 60%;
   }
 
   * {
@@ -95,26 +95,26 @@
   }
 
   .app-header {
-    @apply p-4 border-b border-border flex justify-between items-center bg-appblue text-white;
+    @apply p-4 border-b border-border flex justify-between items-center bg-appnavy text-white;
   }
 
   .app-container {
     @apply p-4;
   }
-  
+
   /* 모바일 Safe Area 유틸리티 - 강화된 버전 */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 1.5rem) !important;
   }
-  
+
   .mb-safe {
     margin-bottom: env(safe-area-inset-bottom, 1.5rem) !important;
   }
-  
+
   .pt-safe {
     padding-top: env(safe-area-inset-top, 1.5rem) !important;
   }
-  
+
   .mt-safe {
     margin-top: env(safe-area-inset-top, 1.5rem) !important;
   }

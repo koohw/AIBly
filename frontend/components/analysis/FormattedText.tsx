@@ -4,7 +4,7 @@ interface FormattedTextProps {
   text: string;
 }
 
-export const FormattedTexts : React.FC<FormattedTextProps> = ({ text }) => {
+export const FormattedText : React.FC<FormattedTextProps> = ({ text }) => {
   // 텍스트를 개행 문자로 분리
   const lines = text.split('\n');
   let boldCount = 0;
