@@ -23,6 +23,10 @@ public enum LocationType {
         return description;
     }
 
+    public String getDisplayName() {
+        return description;
+    }
+
     public static String getDescriptionByCode(int code) {
         return Arrays.stream(values())
                 .filter(e -> e.code == code)
@@ -30,4 +34,12 @@ public enum LocationType {
                 .findFirst()
                 .orElse("기타");
     }
+
+    public static LocationType fromCode(int code) {
+        return Arrays.stream(values())
+                .filter(e -> e.code == code)
+                .findFirst()
+                .orElse(null); // 또는 throw new IllegalArgumentException(...) 해도 됨
+    }
+
 }
