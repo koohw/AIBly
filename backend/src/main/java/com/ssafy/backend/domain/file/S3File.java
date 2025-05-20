@@ -47,6 +47,9 @@ public class S3File {
     @Column(nullable = true)
     private Long size;
 
+    @Column(name = "location_type")
+    private Integer locationType; //장소 위치 0,1,2,3
+
     @PrePersist
     public void prePersist() {
         this.uploadDate = LocalDateTime.now();

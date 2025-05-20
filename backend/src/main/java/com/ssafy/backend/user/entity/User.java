@@ -2,6 +2,9 @@ package com.ssafy.backend.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;    // 또는 import lombok.* (버전에 따라 jakarta)
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users",
@@ -31,6 +34,11 @@ public class User {
 
     @Column(nullable = false)
     private String providerId; // 카카오 user id
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt; //생성 일자
+
 
 }
 

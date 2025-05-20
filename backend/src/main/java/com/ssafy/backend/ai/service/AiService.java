@@ -2,6 +2,7 @@ package com.ssafy.backend.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ssafy.backend.ai.dto.request.AiRequestDto;
+import com.ssafy.backend.domain.video.LocationType;
 import com.ssafy.backend.domain.video.VideoFile;
 import com.ssafy.backend.s3.service.S3UploadService;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +26,16 @@ public class AiService {
     public void requestAndHandleAnalysis(VideoFile videoFile) {
         String presignedUrl = s3UploadService.getDownloadURL(videoFile.getUser().getId(), videoFile.getS3Key());
 
+        Integer locationType = videoFile.getLocationType();
+        String locationName = LocationType.getDescriptionByCode(locationType);
+
         AiRequestDto requestDto = new AiRequestDto(
                 videoFile.getUser().getId(),
                 videoFile.getId(),
                 presignedUrl,
-                videoFile.getFileName()
+                videoFile.getFileName(),
+                videoFile.getLocationType(),
+                videoFile.getLocationName()
         );
 
         try {

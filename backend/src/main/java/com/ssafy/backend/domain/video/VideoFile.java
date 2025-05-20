@@ -56,6 +56,13 @@ public class VideoFile {
 
     private LocalDateTime uploadedAt;
 
+    @Column(name = "location_type")
+    private Integer locationType;
+
+    @Column(name = "location_name")
+    private String locationName;
+
+
     @PrePersist //DB에 저장되기 직전에 자동으로 업로드 시간을 현재 시각으로 만들어줌
     public void setUploadTime() {
         this.uploadedAt = LocalDateTime.now();
