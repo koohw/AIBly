@@ -138,7 +138,7 @@ class AccidentAnalyzer(private val context: Context) {
     }
 
     // 프레임 추출 및 분석 작업을 수행하는 보조 메소드
-    private suspend fun processVideoWithFrames(videoFile: File): Boolean {
+    private suspend fun processVideoWithFrames(videoFile: File): Pair<Boolean, Int> {
         // 비디오에서 프레임 추출 (3번까지 재시도)
         var frames = listOf<Bitmap>()
         var extractRetryCount = 0
@@ -158,12 +158,13 @@ class AccidentAnalyzer(private val context: Context) {
 
         if (frames.isEmpty()) {
             Log.e(TAG, "최대 재시도 횟수 초과, 프레임을 추출할 수 없습니다: ${videoFile.name}")
-            return false
+            return Pair(false, 0)
         }
 
         try {
             // 중후반부 프레임 우선 분석 전략 적용
             var isAccident = false
+            var locationCode = 0 // 기본값 (사고 아님)
 
             // 프레임의 분석 순서 설정 (중후반부 우선)
             val frameIndices = getPriorityFrameIndices(frames.size)
@@ -178,20 +179,22 @@ class AccidentAnalyzer(private val context: Context) {
 
                 try {
                     // 프레임 분석에 타임아웃 적용
-                    isAccident = withTimeoutOrNull(45 * 1000L) { // 45초 타임아웃
+                    val result = withTimeoutOrNull(45 * 1000L) { // 45초 타임아웃
                         openAIClient.analyzeTrafficAccident(frame)
                     } ?: run {
                         Log.e(TAG, "프레임[${index}] 분석 타임아웃 (45초 초과): ${videoFile.name}")
-                        false // 타임아웃 시 사고 아님으로 처리
+                        Pair(false, 0) // 타임아웃 시 사고 아님으로 처리
                     }
+                    isAccident = result.first
+                    locationCode = result.second
 
                     // 사고가 감지되면 알림 표시하고 중단
                     if (isAccident) {
-                        Log.d(TAG, "교통사고 감지됨! (프레임[${index}]): ${videoFile.name}")
+                        Log.d(TAG, "교통사고 감지됨! (프레임[${index}]): ${videoFile.name}, 위치 코드: $locationCode")
                         withContext(Dispatchers.Main) {
-                            sendAccidentNotification(videoFile)
+                            sendAccidentNotification(videoFile, locationCode)
                         }
-                        handleAnalysisResult(true, videoFile)
+                        handleAnalysisResult(true, videoFile, locationCode)
                         break
                     }
                 } catch (e: Exception) {
@@ -210,21 +213,23 @@ class AccidentAnalyzer(private val context: Context) {
 
                     try {
                         // 프레임 분석에 타임아웃 적용
-                        isAccident = withTimeoutOrNull(45 * 1000L) { // 45초 타임아웃
+                        val result = withTimeoutOrNull(45 * 1000L) { // 45초 타임아웃
                             openAIClient.analyzeTrafficAccident(frame)
                         } ?: run {
                             Log.e(TAG, "프레임[${index}] 분석 타임아웃 (45초 초과): ${videoFile.name}")
-                            false
+                            Pair(false, 0)
                         }
+                        isAccident = result.first
+                        locationCode = result.second
 
                         // 사고가 감지되면 알림 표시하고 중단
                         if (isAccident) {
-                            Log.d(TAG, "교통사고 감지됨! (프레임[${index}]): ${videoFile.name}")
+                            Log.d(TAG, "교통사고 감지됨! (프레임[${index}]): ${videoFile.name}, 위치 코드: $locationCode")
                             withContext(Dispatchers.Main) {
-                                sendAccidentNotification(videoFile)
+                                sendAccidentNotification(videoFile, locationCode)
                             }
 
-                            handleAnalysisResult(true, videoFile)
+                            handleAnalysisResult(true, videoFile, locationCode)
 
                             break
                         }
@@ -247,7 +252,7 @@ class AccidentAnalyzer(private val context: Context) {
             frames = emptyList()
             System.gc()
 
-            return isAccident
+            return Pair(isAccident, locationCode)
 
         } catch (e: Exception) {
             Log.e(TAG, "프레임 분석 중 예외 발생: ${e.message}", e)
@@ -261,7 +266,7 @@ class AccidentAnalyzer(private val context: Context) {
             frames = emptyList()
             System.gc()
 
-            return false
+            return Pair(false, 0)
         }
     }
 
@@ -473,7 +478,7 @@ class AccidentAnalyzer(private val context: Context) {
     }
 
     // 사고 감지 시 알림을 표시하는 메소드
-    private fun sendAccidentNotification(videoFile: File) {
+    private fun sendAccidentNotification(videoFile: File, locationCode: Int) {
         val accidentChannelId = "accident_channel"
 
         // 알림 채널 생성 (Android 8.0 이상)
@@ -498,11 +503,19 @@ class AccidentAnalyzer(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE
         )
 
+        // 위치 코드에 따른 문구
+        val locationText = when(locationCode) {
+            1 -> "직선도로"
+            2 -> "T자형교차로"
+            3 -> "주차장"
+            else -> "알 수 없음"
+        }
+
         // 알림 생성
         val builder = NotificationCompat.Builder(context, accidentChannelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("교통사고 감지")
-            .setContentText("블랙박스 영상에서 교통사고가 감지되었습니다: ${videoFile.name}")
+            .setContentText("블랙박스 영상에서 교통사고가 감지되었습니다: ${videoFile.name} (위치: $locationText)")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
@@ -520,14 +533,14 @@ class AccidentAnalyzer(private val context: Context) {
      * @param isAccident 사고 여부 (true: 사고, false: 정상)
      * @param videoFile 분석된 영상 파일
      */
-    private fun handleAnalysisResult(isAccident: Boolean, videoFile: File) {
+    private fun handleAnalysisResult(isAccident: Boolean, videoFile: File, locationCode: Int = 0) {
         // 분석 결과 로그 출력
-        Log.d(TAG, "사고 여부: $isAccident")
+        Log.d(TAG, "사고 여부: $isAccident, 위치 코드: $locationCode")
 
         // 사고로 판단된 경우 업로드 처리
         if (isAccident) {
             Log.d(TAG, "사고 영상 감지됨, 업로드 시작: ${videoFile.name}")
-            uploadManager.handleAccidentVideo(videoFile)
+            uploadManager.handleAccidentVideo(videoFile, locationCode)
         } else {
             Log.d(TAG, "정상 영상으로 판단됨, 업로드 없음: ${videoFile.name}")
         }
