@@ -27,12 +27,12 @@ public class AiService {
     private String aiServerUrl;
 
     public void requestAndHandleAnalysis(VideoFile videoFile) {
-        String downloadUrl = s3UploadService.getDownloadURL(videoFile.getUser().getId(), videoFile.getS3Key());
+        String presignedUrl = s3UploadService.getDownloadURL(videoFile.getUser().getId(), videoFile.getS3Key());
 
         AiRequestDto requestDto = new AiRequestDto(
                 videoFile.getUser().getId(),
                 videoFile.getId(),
-                downloadUrl,
+                presignedUrl,
                 videoFile.getFileName()
         );
 
