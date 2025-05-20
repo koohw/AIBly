@@ -35,7 +35,7 @@ public interface S3UploadService {
     //유저가 같은 파일을 올렸는지 파악함
     boolean isDuplicateFile(String fileName, String contentType, Long userId);
 
-    String getOrCreateS3Key(String fileName, String contentType, Long userId);
+    String getOrCreateS3Key(String fileName, String contentType, Long userId, Integer locationType);
 
     //userId + s3Key로 S3File을 찾는 메서드
     Optional<S3File> getS3FileByS3KeyAndUserId(String s3Key, Long userId);
