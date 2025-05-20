@@ -76,7 +76,8 @@ data class UploadCompleteRequest(
     val fileName: String,
     val s3Key: String,
     val contentType: String = "video/mp4",
-    val size: Long
+    val size: Long,
+    val locationType: Int? = null  // 위치 타입 필드 추가
 )
 
 /**

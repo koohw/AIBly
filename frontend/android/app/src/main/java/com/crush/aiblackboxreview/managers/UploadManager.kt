@@ -96,20 +96,13 @@ class UploadManager(
                 Log.d(TAG, "S3 업로드 결과: $uploadSuccess")
                 showUploadNotification(80)
 
-                // 3. 완료 알림
+                // 3. S3 업로드 성공 시 바로 완료 알림 표시
                 if (uploadSuccess) {
-                    Log.d(TAG, "업로드 완료 알림 시작: s3Key=${presignedUrlResponse.s3Key}")
-                    val notifySuccess = notifyUploadComplete(presignedUrlResponse.s3Key, videoFile)
-                    Log.d(TAG, "업로드 완료 알림 결과: $notifySuccess")
+                    // 업로드 성공 알림 즉시 표시
+                    showUploadCompleteNotification()
 
-                    if (notifySuccess) {
-                        // 업로드 및 알림 모두 성공 - 응답에서 analysisStatus를 가져와 표시할 수 있음
-                        // 이를 위해서는 notifyUploadComplete 메서드가 UploadCompleteResponse를 반환하도록 수정 필요
-                        showUploadCompleteNotification()
-                    } else {
-                        // 업로드는 성공했으나 완료 알림 실패
-                        showUploadFailedNotification("업로드 완료 알림 실패")
-                    }
+                    // 비동기로 서버에 업로드 완료 알림 (응답 대기하지 않음)
+                    sendUploadCompleteNotificationAsync(presignedUrlResponse.s3Key, videoFile, locationCode)
                 } else {
                     // S3 업로드 실패
                     showUploadFailedNotification("S3 업로드 실패")
@@ -118,6 +111,53 @@ class UploadManager(
                 // 예외 발생 시 로그 기록 및 실패 알림
                 Log.e(TAG, "사고 영상 처리 실패", e)
                 showUploadFailedNotification(e.message ?: "알 수 없는 오류")
+            }
+        }
+    }
+    /**
+     * 비동기로 업로드 완료 알림을 서버에 전송하는 메서드
+     * 응답을 기다리지 않고 별도 코루틴에서 실행
+     */
+    private fun sendUploadCompleteNotificationAsync(s3Key: String, videoFile: File, locationType: Int) {
+        scope.launch {
+            try {
+                // 업로드 완료 알림 요청 생성
+                val request = UploadCompleteRequest(
+                    fileName = videoFile.name,
+                    s3Key = s3Key,
+                    contentType = "video/mp4",
+                    size = videoFile.length(),
+                    locationType = locationType  // 위치 타입 추가
+                )
+
+                Log.d(TAG, "비동기 업로드 완료 알림 요청: $request")
+
+                // API 호출 (응답 처리는 로깅만)
+                val response = withTimeoutOrNull(30000) { // 30초 타임아웃 설정
+                    backendApiService.notifyUploadComplete(request)
+                }
+
+                // 응답 로깅 (성공/실패와 무관하게 사용자에게는 이미 성공 알림이 표시됨)
+                if (response != null) {
+                    Log.d(TAG, "비동기 업로드 완료 알림 응답 코드: ${response.code()}")
+
+                    if (response.isSuccessful) {
+                        val responseBody = response.body()
+                        Log.d(TAG, "비동기 업로드 완료 알림 응답: $responseBody")
+
+                        if (responseBody != null) {
+                            Log.d(TAG, "분석 상태: ${responseBody.analysisStatus}, 비디오 ID: ${responseBody.videoId}, 파일 타입: ${responseBody.fileType}")
+                        }
+                    } else {
+                        val errorBody = response.errorBody()?.string()
+                        Log.w(TAG, "비동기 업로드 완료 알림 실패 (${response.code()}): $errorBody")
+                    }
+                } else {
+                    Log.w(TAG, "비동기 업로드 완료 알림 타임아웃 (30초 초과)")
+                }
+            } catch (e: Exception) {
+                // 예외가 발생해도 사용자에게는 영향 없음 (이미 성공 알림이 표시됨)
+                Log.e(TAG, "비동기 업로드 완료 알림 중 예외 발생", e)
             }
         }
     }
@@ -250,75 +290,6 @@ class UploadManager(
         }
     }
 
-    /**
-     * 업로드 완료 알림 메서드
-     * 백엔드 API를 호출하여 업로드 완료를 알립니다.
-     *
-     * @param s3Key 업로드된 파일의 S3 키
-     * @return 알림 성공 여부 (true: 성공, false: 실패)
-     */
-    private suspend fun notifyUploadComplete(s3Key: String, videoFile: File): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                // 업로드 완료 알림 요청 생성 (Postman 형식과 일치시킴)
-                val request = UploadCompleteRequest(
-                    fileName = videoFile.name,
-                    s3Key = s3Key,
-                    contentType = "video/mp4",
-                    size = videoFile.length()
-                )
-
-                Log.d(TAG, "업로드 완료 알림 요청: $request")
-
-                // API 호출
-                val response = backendApiService.notifyUploadComplete(request)
-
-                // 응답 로깅
-                Log.d(TAG, "업로드 완료 알림 응답 코드: ${response.code()}")
-
-                // 응답 확인
-                if (!response.isSuccessful) {
-                    val errorBody = response.errorBody()?.string()
-
-                    // Gson을 사용하여 오류 응답 파싱
-                    val errorResponse = try {
-                        Gson().fromJson(errorBody, ErrorResponse::class.java)
-                    } catch (e: Exception) {
-                        null
-                    }
-
-                    // 오류 메시지 로깅 및 처리
-                    val errorMessage = when (response.code()) {
-                        400 -> {
-                            if (errorResponse?.message?.contains("사용자 없음") == true) {
-                                "사용자 정보를 찾을 수 없습니다: ${errorResponse.message}"
-                            } else {
-                                "요청 오류: ${errorResponse?.message ?: errorBody ?: "알 수 없는 오류"}"
-                            }
-                        }
-                        409 -> "이미 업로드된 파일입니다: ${errorResponse?.message ?: errorBody ?: "중복 파일"}"
-                        502 -> "AI 분석 요청 실패: ${errorResponse?.message ?: errorBody ?: "AI 서버 연결 문제"}"
-                        else -> "업로드 완료 알림 실패 (${response.code()}): ${errorResponse?.message ?: errorBody ?: "알 수 없는 오류"}"
-                    }
-
-                    Log.e(TAG, errorMessage)
-                    return@withContext false
-                }
-
-                val responseBody = response.body()
-                Log.d(TAG, "업로드 완료 알림 응답: $responseBody")
-
-                if (responseBody != null) {
-                    Log.d(TAG, "분석 상태: ${responseBody.analysisStatus}, 비디오 ID: ${responseBody.videoId}, 파일 타입: ${responseBody.fileType}")
-                }
-
-                true  // 성공 반환
-            } catch (e: Exception) {
-                Log.e(TAG, "업로드 완료 알림 실패", e)
-                false  // 예외 발생 시 실패 반환
-            }
-        }
-    }
     /**
      * 업로드 진행 알림 표시 메서드
      *
