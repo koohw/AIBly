@@ -37,7 +37,7 @@ public class AiService {
         );
 
         try {
-            JsonNode aiResponse = restTemplate.postForObject(aiServerUrl + "/analyze-test", requestDto, JsonNode.class);
+            JsonNode aiResponse = restTemplate.postForObject(aiServerUrl + "/analyze", requestDto, JsonNode.class);
             log.info("AI 서버 응답 수신 완료: videoId={}", videoFile.getId());
 
             aiAnalysisService.handleAiCallback(aiResponse, videoFile.getId());
