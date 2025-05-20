@@ -121,15 +121,16 @@ class VideoContentObserver(
                 MediaStore.Video.Media.DISPLAY_NAME
             )
 
-            // 효율적인 SQL 쿼리로 DCIM 폴더의 MP4 파일만 필터링
+            // 효율적인 SQL 쿼리로 DCIM 폴더의 MP4, AVI 파일만 필터링
             val selection = "${MediaStore.Video.Media.DATE_ADDED} >= ? AND " +
                     "${MediaStore.Video.Media.DATA} LIKE ? AND " +
-                    "${MediaStore.Video.Media.DATA} LIKE ?"
+                    "(${MediaStore.Video.Media.DATA} LIKE ? OR ${MediaStore.Video.Media.DATA} LIKE ?)"
 
             val selectionArgs = arrayOf(
                 tenMinutesAgo.toString(),
                 "$targetFolderPath%",  // DCIM 폴더 및 모든 하위 폴더
-                "%.mp4"                // MP4 파일만
+                "%.mp4",               // MP4 파일
+                "%.avi"                // AVI 파일 추가
             )
 
             context.contentResolver.query(
@@ -221,10 +222,10 @@ class VideoContentObserver(
                         synchronized(processLock) {
                             if (filePath != null &&
                                 filePath.startsWith(targetFolderPath) &&
-                                filePath.lowercase().endsWith(".mp4") &&
+                                (filePath.lowercase().endsWith(".mp4") || filePath.lowercase().endsWith(".avi")) &&
                                 !processedFiles.contains(filePath)
                             ) {
-                                Log.d(TAG, "새 MP4 파일 감지됨 (URI 직접 확인): $filePath")
+                                Log.d(TAG, "새 비디오 파일 감지됨 (URI 직접 확인): $filePath")
 
                                 showVideoDetectedNotification(fileName, filePath)
                                 addToProcessedFiles(filePath)
@@ -233,12 +234,12 @@ class VideoContentObserver(
                             } else if (filePath != null) {
                                 // 처리되지 않은 이유 로그
                                 val inDCIM = filePath.startsWith(targetFolderPath)
-                                val isMP4 = filePath.lowercase().endsWith(".mp4")
+                                val isVideoFormat = filePath.lowercase().endsWith(".mp4") || filePath.lowercase().endsWith(".avi")
                                 val isProcessed = processedFiles.contains(filePath)
 
                                 Log.d(
                                     TAG,
-                                    "파일 처리 안됨: $filePath (DCIM폴더=$inDCIM, MP4=$isMP4, 이미처리=$isProcessed)"
+                                    "파일 처리 안됨: $filePath (DCIM폴더=$inDCIM, 비디오포맷=$isVideoFormat, 이미처리=$isProcessed)"
                                 )
                             }
                         }
@@ -265,7 +266,8 @@ class VideoContentObserver(
         val selectionArgs = arrayOf(
             fiveMinutesAgo.toString(),
             "$targetFolderPath%",
-            "%.mp4"
+            "%.mp4",
+            "%.avi"
         )
 
         try {

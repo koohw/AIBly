@@ -121,11 +121,17 @@ class UploadManager(
     private fun sendUploadCompleteNotificationAsync(s3Key: String, videoFile: File, locationType: Int) {
         scope.launch {
             try {
+                // 파일 확장자에 따른 contentType 결정
+                val contentType = when {
+                    videoFile.name.lowercase().endsWith(".mp4") -> "video/mp4"
+                    videoFile.name.lowercase().endsWith(".avi") -> "video/x-msvideo"
+                    else -> "video/mp4" // 기본값
+                    }
                 // 업로드 완료 알림 요청 생성
                 val request = UploadCompleteRequest(
                     fileName = videoFile.name,
                     s3Key = s3Key,
-                    contentType = "video/mp4",
+                    contentType = contentType,
                     size = videoFile.length(),
                     locationType = locationType  // 위치 타입 추가
                 )
@@ -178,14 +184,21 @@ class UploadManager(
                 // 타임스탬프를 포함한 고유한 파일명 생성
                 val fileName = "accident_${System.currentTimeMillis()}_${videoFile.name}"
 
+                // 파일 확장자에 따른 contentType 결정
+                val contentType = when {
+                    videoFile.name.lowercase().endsWith(".mp4") -> "video/mp4"
+                    videoFile.name.lowercase().endsWith(".avi") -> "video/x-msvideo"
+                    else -> "video/mp4" // 기본값
+                }
+
                 // API 명세서에 맞게 요청 객체 생성 (필드 3개만 포함)
                 val request = PresignedUrlRequest(
                     fileName = fileName,
-                    contentType = "video/mp4",
+                    contentType = contentType,
                     locationType = locationType  // 위치 타입 추가
                 )
 
-                Log.d(TAG, "Presigned URL 요청: fileName=$fileName, contentType=video/mp4, locationType=$locationType")
+                Log.d(TAG, "Presigned URL 요청: fileName=$fileName, contentType=$contentType, locationType=$locationType")
 
                 // API 호출
                 val response = backendApiService.getPresignedUrl(request)
@@ -266,13 +279,19 @@ class UploadManager(
                 Log.d(TAG, "S3 업로드 URL: ${presignedUrl.take(50)}...")
                 Log.d(TAG, "파일 정보: 이름=${videoFile.name}, 크기=${videoFile.length()}bytes")
 
+                // 파일 확장자에 따른 contentType 결정
+                val contentType = when {
+                    videoFile.name.lowercase().endsWith(".mp4") -> "video/mp4"
+                    videoFile.name.lowercase().endsWith(".avi") -> "video/x-msvideo"
+                    else -> "video/mp4" // 기본값
+                }
                 // 대용량 파일 업로드를 위한 OkHttp 클라이언트 설정
                 val client = OkHttpClient.Builder()
                     .writeTimeout(15, TimeUnit.MINUTES)  // 15분 타임아웃 (대용량 파일 고려)
                     .build()
 
-                // 파일을 RequestBody로 변환
-                val requestBody = videoFile.asRequestBody("video/mp4".toMediaType())
+                // 파일을 RequestBody로 변환 - 동적 contentType 사용
+                val requestBody = videoFile.asRequestBody(contentType.toMediaType())
 
                 // PUT 요청 생성 (S3 Presigned URL은 PUT 메서드 사용)
                 val request = Request.Builder()

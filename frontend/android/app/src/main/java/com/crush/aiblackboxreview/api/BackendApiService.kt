@@ -40,7 +40,7 @@ interface BackendApiService {
  * Presigned URL 요청을 위한 데이터 모델
  *
  * @property fileName 업로드할 파일 이름 (예: 'accident_1234567890.mp4')
- * @property contentType 파일의 MIME 타입 (예: 'video/mp4')
+ * @property contentType 파일의 MIME 타입 (예: 'video/mp4' 또는 'video/x-msvideo')
  * @property locationType 위치 타입 (1: 직선도로, 2: T자형교차로, 3: 주차장)
  */
 data class PresignedUrlRequest(

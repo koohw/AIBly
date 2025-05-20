@@ -159,7 +159,7 @@ class VideoMonitoringService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("AI블리 실행 중")
-            .setContentText("DCIM 폴더의 MP4 영상 모니터링 중입니다.")
+            .setContentText("DCIM 폴더의 비디오 영상 모니터링 중입니다.")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
             .build()
