@@ -5,6 +5,7 @@ import com.ssafy.backend.common.exception.CustomException;
 import com.ssafy.backend.common.exception.ErrorCode;
 import com.ssafy.backend.domain.report.Report;
 import com.ssafy.backend.domain.report.ReportRepository;
+import com.ssafy.backend.domain.video.LocationType;
 import com.ssafy.backend.s3.service.S3UploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
@@ -81,9 +82,17 @@ public class PdfServiceImpl implements PdfService {
         variables.put("laws", report.getLaws());
         variables.put("decisions", report.getDecisions());
         variables.put("createdAt", report.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        // locationType이 null이거나 유효하지 않으면 기본값 2번 (T자형교차로)
+        int locationTypeCode = 2; // 기본값
+        if (report.getVideoFile() != null && report.getVideoFile().getLocationType() != null) {
+            locationTypeCode = report.getVideoFile().getLocationType();
+        }
+
+        String locationName = LocationType.fromCode(locationTypeCode).getDescription();
+        variables.put("locationName", locationName);
+
         return variables;
     }
-
     /**
      * HTML 템플릿 치환
      */
