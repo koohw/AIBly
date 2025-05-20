@@ -5,6 +5,7 @@ import com.ssafy.backend.common.exception.CustomException;
 import com.ssafy.backend.common.exception.ErrorCode;
 import com.ssafy.backend.domain.file.*;
 import com.ssafy.backend.domain.report.ReportRepository;
+import com.ssafy.backend.domain.video.LocationType;
 import com.ssafy.backend.domain.video.VideoFile;
 import com.ssafy.backend.domain.video.VideoFileRepository;
 import com.ssafy.backend.s3.service.S3UploadService;
@@ -62,6 +63,8 @@ public class VideoServiceImpl implements VideoService {
                 .fileType(fileType)
                 .analysisStatus(AnalysisStatus.ANALYZING)
                 .user(user)
+                .locationType(s3File.getLocationType())
+                .locationName(LocationType.fromCode(s3File.getLocationType()).getDisplayName())
                 .build();
 
         videoFileRepository.save(file);
