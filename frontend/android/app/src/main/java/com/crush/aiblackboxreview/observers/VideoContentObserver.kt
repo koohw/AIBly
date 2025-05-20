@@ -112,9 +112,9 @@ class VideoContentObserver(
         }
 
         try {
-            // 최근 24시간 내 추가된 MP4 파일만 검색
-            val oneDayAgo = (System.currentTimeMillis() / 1000) - (1 * 60 * 60)
-
+            // 최근 10분 내 추가된 MP4 파일만 검색으로 변경
+            val tenMinutesAgo = (System.currentTimeMillis() / 1000) - (10 * 60) // 10분 = 600초
+            Log.d(TAG, "최근 10분 내 추가된 파일 스캔 시작")
             val projection = arrayOf(
                 MediaStore.Video.Media.DATA,
                 MediaStore.Video.Media.DATE_ADDED,
@@ -127,7 +127,7 @@ class VideoContentObserver(
                     "${MediaStore.Video.Media.DATA} LIKE ?"
 
             val selectionArgs = arrayOf(
-                oneDayAgo.toString(),
+                tenMinutesAgo.toString(),
                 "$targetFolderPath%",  // DCIM 폴더 및 모든 하위 폴더
                 "%.mp4"                // MP4 파일만
             )
@@ -140,7 +140,7 @@ class VideoContentObserver(
                 "${MediaStore.Video.Media.DATE_ADDED} DESC"
             )?.use { cursor ->
                 val count = cursor.count
-                Log.d(TAG, "최근 24시간 내 DCIM 폴더의 MP4 파일 수: $count")
+                Log.d(TAG, "최근 10분 내 DCIM 폴더의 MP4 파일 수: $count")
 
                 var processedCount = 0
 
