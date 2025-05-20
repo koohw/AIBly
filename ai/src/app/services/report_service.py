@@ -6,7 +6,8 @@ import os
 import time
 from ..config import Config
 from .predict import (
-    extract_frames, 
+    extract_frames,
+    generate_background_subtraction,
     run_yolo_inference, 
     generate_timeline_log,
     run_lstm_inference,
@@ -14,6 +15,7 @@ from .predict import (
     generate_traffic_light_info,
     generate_inferred_meta,
     generate_vtn_input,
+    estimate_vehicleA_trajectory,
     infer_vtn,
     generate_accident_type_from_csv,
     generate_final_report
@@ -66,7 +68,18 @@ class ReportService:
         elapsed = time.time() - start_time
         logger.info(f"프레임 추출 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 2. run_yolo_inference
+        # 2. generate_background_subtraction
+        start_time = time.time()
+        logger.info(f"배경 제거 시작")
+        try:
+            bg_output_dir = generate_background_subtraction.generate_background_subtraction(frames_dir)
+            result["bg_output_dir"] = bg_output_dir
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"배경 제거 중 오류 발생: {str(e)}")
+        elapsed = time.time() - start_time
+        logger.info(f"배경 제거 완료 (소요시간: {elapsed:.2f}초)")
+
+        # 3. run_yolo_inference
         start_time = time.time()
         logger.info(f"YOLO 객체 탐지 시작")
         try:
@@ -77,7 +90,7 @@ class ReportService:
         elapsed = time.time() - start_time
         logger.info(f"YOLO 객체 탐지 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 3. run_lstm_inference
+        # 4. run_lstm_inference(+ extract_bbox_sequence)
         start_time = time.time()
         logger.info(f"LSTM 방향 추론 시작")
         try:
@@ -88,18 +101,41 @@ class ReportService:
         elapsed = time.time() - start_time
         logger.info(f"LSTM 방향 추론 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 4. generate_timeline_log
+        # 5. generate_timeline_log
         start_time = time.time()
         logger.info(f"타임라인 생성 시작")
         try:
-            timeline_data = generate_timeline_log.generate_timeline_log(yolo_results, request.videoId, result["lstm_analysis"]["direction"])
+            timeline_data = generate_timeline_log.generate_timeline_log(
+                yolo_results=result["yolo_analysis"], 
+                video_id=request.videoId, 
+                direction=result["lstm_analysis"]["direction"],
+                bg_dir=result["bg_output_dir"]
+                # skip_frames, post_offset, iou_threshold는 기본값 사용
+            )
             result["timeline_analysis"] = timeline_data
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"타임라인 생성 중 오류 발생: {str(e)}")
         elapsed = time.time() - start_time
         logger.info(f"타임라인 생성 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 5. generate_traffic_light_events
+        # 6. generate_traffic_light_info
+        start_time = time.time()
+        logger.info(f"교통 신호등 정보 생성 시작")
+        try:
+            # 필요한 데이터 구성
+            traffic_light_data = {
+                "yolo_results": result["yolo_analysis"],
+                "accident_frame_idx": result["timeline_analysis"]["timeline"]["accident_frame_idx"]
+            }
+            
+            traffic_light_info = generate_traffic_light_info.generate_traffic_light_info(traffic_light_data)
+            result["traffic_light_info"] = traffic_light_info
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"교통 신호등 정보 생성 중 오류 발생: {str(e)}")
+        elapsed = time.time() - start_time
+        logger.info(f"교통 신호등 정보 생성 완료 (소요간: {elapsed:.2f}초)")
+
+        # 7. generate_traffic_light_events
         start_time = time.time()
         logger.info(f"교통 신호등 이벤트 생성 시작")
         try:
@@ -110,33 +146,18 @@ class ReportService:
         elapsed = time.time() - start_time
         logger.info(f"교통 신호등 이벤트 생성 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 6. generate_traffic_light_info
+        # 8. estimate_vehicleA_trajectory
         start_time = time.time()
-        logger.info(f"교통 신호등 정보 생성 시작")
+        logger.info(f"차량A 궤적 추정 시작")
         try:
-            # accident_frame_idx 정보 추가
-            traffic_light_events_data = result["traffic_light_events"]
-            traffic_light_events_data["accident_frame_idx"] = result["timeline_analysis"]["timeline"]["accident_frame_idx"]
-            
-            traffic_light_info = generate_traffic_light_info.generate_traffic_light_info(traffic_light_events_data)
-            result["traffic_light_info"] = traffic_light_info
+            vehicleA_trajectory = estimate_vehicleA_trajectory.estimate_vehicleA_trajectory(result)
+            result["vehicleA_trajectory"] = vehicleA_trajectory
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"교통 신호등 정보 생성 중 오류 발생: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"차량A 궤적 추정 중 오류 발생: {str(e)}")
         elapsed = time.time() - start_time
-        logger.info(f"교통 신호등 정보 생성 완료 (소요시간: {elapsed:.2f}초)")
+        logger.info(f"차량A 궤적 추정 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 7. generate_inferred_meta
-        start_time = time.time()
-        logger.info(f"추론된 메타 정보 생성 시작")
-        try:
-            inferred_meta = generate_inferred_meta.generate_inferred_meta(result)
-            result["inferred_meta"] = inferred_meta
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"추론된 메타 정보 생성 중 오류 발생: {str(e)}")
-        elapsed = time.time() - start_time
-        logger.info(f"추론된 메타 정보 생성 완료 (소요시간: {elapsed:.2f}초)")
-
-        # 8. generate_vtn_input
+        # 9. generate_vtn_input
         start_time = time.time()
         logger.info(f"VTN 입력 생성 시작")
         try:
@@ -147,7 +168,7 @@ class ReportService:
         elapsed = time.time() - start_time
         logger.info(f"VTN 입력 생성 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 9. infer_vtn
+        # 10. infer_vtn
         start_time = time.time()
         logger.info(f"VTN 추론 시작")
         try:
@@ -157,8 +178,19 @@ class ReportService:
             raise HTTPException(status_code=500, detail=f"VTN 추론 중 오류 발생: {str(e)}")
         elapsed = time.time() - start_time
         logger.info(f"VTN 추론 완료 (소요시간: {elapsed:.2f}초)")
+        
+        # 11. generate_inferred_meta
+        start_time = time.time()
+        logger.info(f"추론된 메타 정보 생성 시작")
+        try:
+            inferred_meta = generate_inferred_meta.generate_inferred_meta(result)
+            result["inferred_meta"] = inferred_meta
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"추론된 메타 정보 생성 중 오류 발생: {str(e)}")
+        elapsed = time.time() - start_time
+        logger.info(f"추론된 메타 정보 생성 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 10 generate_accident_type_from_csv
+        # 12. generate_accident_type_from_csv
         start_time = time.time()
         logger.info(f"CSV 기반 사고 유형 생성 시작")
         try:
@@ -169,7 +201,7 @@ class ReportService:
         elapsed = time.time() - start_time
         logger.info(f"CSV 기반 사고 유형 생성 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 11. generate_final_report
+        # 13. generate_final_report
         start_time = time.time()
         logger.info(f"최종 보고서 생성 시작")
         try:

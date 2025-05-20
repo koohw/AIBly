@@ -24,7 +24,7 @@ public class AccidentDefinitionLoader {
 
     @PostConstruct
     public void load() {
-        log.info("🚀 AccidentDefinitionLoader.load() 시작됨");
+        log.info("AccidentDefinitionLoader.load() 시작됨");
         try (
                 InputStream in = getClass().getResourceAsStream("/static/case_data.csv");
                 InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8);
@@ -42,8 +42,8 @@ public class AccidentDefinitionLoader {
                         row.put(header[i].trim(), parts.length > i ? parts[i].trim() : "null");
                     }
 
-                    log.info("현재 사고 유형: {}", row.get("사고 유형"));
-                    log.info("과실 A: {}, 과실 B: {}", row.get("과실 비율 A"), row.get("과실 비율 B"));
+                    //log.info("현재 사고 유형: {}", row.get("사고 유형"));
+                    //log.info("과실 A: {}, 과실 B: {}", row.get("과실 비율 A"), row.get("과실 비율 B"));
 
                     int code = Integer.parseInt(row.get("사고 유형"));
                     AccidentDefinitionDto def = new AccidentDefinitionDto(
@@ -62,9 +62,9 @@ public class AccidentDefinitionLoader {
                     log.warn("CSV 한 줄 파싱 실패: {}", Arrays.toString(parts), e);
                 }
             }
-            log.info("🗺️ 최종 등록된 accidentMap 키 목록: {}", accidentMap.keySet());
+            //log.info("최종 등록된 accidentMap 키 목록: {}", accidentMap.keySet());
             for (Map.Entry<Integer, AccidentDefinitionDto> entry : accidentMap.entrySet()) {
-                log.info("📌 사고 코드 {} → faultA={}, faultB={}", entry.getKey(), entry.getValue().getFaultA(), entry.getValue().getFaultB());
+                //log.info("📌 사고 코드 {} → faultA={}, faultB={}", entry.getKey(), entry.getValue().getFaultA(), entry.getValue().getFaultB());
             }
 
         } catch (IOException | CsvException e) {

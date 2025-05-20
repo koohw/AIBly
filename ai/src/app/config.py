@@ -32,5 +32,11 @@ class Config:
     # VTN Model 경로
     VTN_MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(APP_PATH))), "vtn_model")
 
+    # label_map.json 경로
+    LABEL_MAP_PATH = os.path.join(RESOURCES_PATH, "label_maps", "label_map.json")
+
     # accident_data 경로
     ACCIDENT_DATA_CSV_PATH = os.path.join(RESOURCES_PATH, "accident_datas", "accident_data.csv")
+
+    # trajectory 경로
+    TRAJECTORY_PATH = os.path.join(RESOURCES_PATH, "trajectory")

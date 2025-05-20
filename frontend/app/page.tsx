@@ -124,6 +124,10 @@ if (fcmRegistered !== "true") {
     router.push("/profile")
   }
 
+  const handleHistory = () => {
+    router.push("/history")
+  }
+
   // 로딩 중이면 로딩 화면 표시
   if (isLoading) {
     return (
@@ -226,7 +230,7 @@ if (fcmRegistered !== "true") {
         <section>
           <div className="flex justify-between items-center mb-4">
             <h2 className="app-section-title">최근 분석</h2>
-            <Button variant="link" className="text-appblue p-0 hover:text-appblue-dark">
+            <Button variant="link" className="text-appblue p-0 hover:text-appblue-dark" onClick={handleHistory}>
               모두 보기
             </Button>
           </div>
@@ -274,7 +278,7 @@ if (fcmRegistered !== "true") {
             <Upload size={20} className="text-appblue" />
             <span className="text-xs mt-1">업로드</span>
           </Button>
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3">
+          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleHistory}>
             <Clock size={20} className="text-muted-foreground" />
             <span className="text-xs mt-1">분석내역</span>
           </Button>

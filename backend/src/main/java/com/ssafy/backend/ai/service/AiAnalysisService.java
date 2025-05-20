@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -54,10 +55,13 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         // AI JSON 기반 동적 데이터
         int accidentTypeCode = json.path("accidentType").asInt();
         log.info("📥 handleAiCallback에서 받은 accidentTypeCode: {}", accidentTypeCode);
-        String carA = json.path("carAProgress").asText("");
-        String carB = json.path("carBProgress").asText("");
+
+        String carA = convertDirectionCode(json.path("carAProgress").asText(""), true);
+        String carB = convertDirectionCode(json.path("carBProgress").asText(""), false);
+
         String damageLocation = json.path("damageLocation").asText("");
-        String timelineJson = convertEventTimelineToJson(json.path("eventTimeline"));  // ✅ 여기서 JSON으로 변환
+        String timelineJson = convertEventTimelineToJson(json.path("eventTimeline"));  // 프론트 JSON용
+        String timelineHtml = convertEventTimelineToHtmlText(json.path("eventTimeline")); // PDF 출력용
 
         // CSV 기반 정적 데이터
         AccidentDefinitionDto definition = accidentDefinitionLoader.get(accidentTypeCode);
@@ -82,6 +86,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                 .faultA(faultA)
                 .faultB(faultB)
                 .mainEvidence(timelineJson)
+                .mainEvidenceHtml(timelineHtml)
                 .createdAt(LocalDateTime.now())
                 .analysisStatus(AnalysisStatus.COMPLETED)
                 .build();
@@ -94,20 +99,17 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
         UploadType uploadType = videoFile.getUploadType();
         log.info("업로드 타입 확인: videoId={}, uploadType={}", videoId, uploadType);
 
-        if (uploadType == UploadType.AUTO) {
-            String fcmToken = userService.getUserFcmTokenByVideoId(videoId);
-            if (fcmToken == null || fcmToken.isBlank()) {
-                log.info("FCM 토큰 없음 - FCM 발송 없음: videoId={}", videoId);
-            } else {
-                try {
-                    fcmService.sendFCM(fcmToken, report.getId()); //FCM 발송 처리
-                    log.info("FCM 발송 성공: videoId={}, reportId={}", videoId, report.getId());
-                } catch (Exception e) {
-                    log.error("FCM 발송 실패: videoId={}, error={}", videoId, e.getMessage(), e);
-                }
-            }
+        // 모든 업로드 타입에서 FCM 발송
+        String fcmToken = userService.getUserFcmTokenByVideoId(videoId);
+        if (fcmToken == null || fcmToken.isBlank()) {
+            log.info("FCM 토큰 없음 - FCM 발송 없음: videoId={}", videoId);
         } else {
-            log.info("수동 업로드 - FCM 발송 없음: videoId={}", videoId);
+            try {
+                fcmService.sendFCM(fcmToken, report.getId()); //FCM 발송 처리
+                log.info("FCM 발송 성공: videoId={}, reportId={}, uploadType={}", videoId, report.getId(), uploadType);
+            } catch (Exception e) {
+                log.error("FCM 발송 실패: videoId={}, error={}", videoId, e.getMessage(), e);
+            }
         }
 
         return report.getId();
@@ -124,10 +126,15 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                     String event = entry.path("event").asText();
                     int frame = entry.path("frameIdx").asInt();
                     double seconds = Math.round(frame * 0.68 * 100.0) / 100.0; // 소수점 둘째 자리 반올림
-                    return new EventLogDto(event, seconds + "초");
+                    String eventText = switch (event) {
+                        case "vehicle_B_first_seen" -> "상대 차량 최초 인식";
+                        case "aftermath" -> "사고 발생 시점";
+                        default -> "동작 없음";
+                    };
+
+                    return new EventLogDto(eventText, seconds + "초");
                 })
                 .collect(Collectors.toList());
-
         try {
             return objectMapper.writeValueAsString(timelineList);
         } catch (Exception e) {
@@ -135,6 +142,41 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
             return "[]";
         }
     }
+
+    private String convertEventTimelineToHtmlText(JsonNode eventTimeline) {
+        if (eventTimeline == null || !eventTimeline.isArray()) {
+            return "";
+        }
+
+        return StreamSupport.stream(eventTimeline.spliterator(), false)
+                .map(entry -> {
+                    String event = entry.path("event").asText();
+                    int frame = entry.path("frameIdx").asInt();
+                    double seconds = Math.round(frame * 0.68 * 100.0) / 100.0;
+                    return switch (event) {
+                        case "vehicle_B_first_seen" -> "상대 차량 최초 인식 " + seconds + "초";
+                        case "aftermath" -> "사고 발생 시점 " + seconds + "초";
+                        default -> null;
+                    };
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("<br/>")); // 줄바꿈 포함된 HTML 문자열로
+    }
+
+
+    //한글 치환
+    private String convertDirectionCode(String code, boolean isA) {
+        return switch (code) {
+            case "move_left" -> isA ? "좌회전" : "좌측에서 진입";
+            case "move_right" -> isA ? "우회전" : "우측에서 진입";
+            case "go_straight" -> isA ? "직진" : "정면에서 진입";
+            case "from_left" -> "왼쪽에서 진입";
+            case "from_right" -> "오른쪽에서 진입";
+            case "center", "unknown" -> "중앙선 침범";
+            default -> isA ? "내 차량 진행 방향 알 수 없음" : "상대 차량 진행 방향 알 수 없음";
+        };
+    }
+
 
 }
 

@@ -1,36 +1,56 @@
 import torch
 import os
 import pickle
+import json
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from ...config import Config
+import logging
+
+logger = logging.getLogger(__name__)
 
 def infer_vtn(result_data):
-
     """
     VTN 모델을 사용하여 사고 유형을 추론합니다.
+    
+    Args:
+        result_data: 이전 단계에서 생성된 분석 결과 데이터
+        
+    Returns:
+        dict: 추론된 사고 유형 정보
     """
     # VTN 입력 데이터 추출
     video_id = result_data.get("videoId")
     vtn_pkl_path = os.path.join(Config.VTN_PKL_PATH, f'{video_id}_vtn_input.pkl')
-    # 모델 경로
-    model_dir = os.path.join(Config.VTN_MODEL_PATH)
+    
+    # 모델 및 라벨 맵 경로
+    model_dir = Config.VTN_MODEL_PATH
+    label_map_path = Config.LABEL_MAP_PATH
     
     # 1. 모델 및 토크나이저 로드
     model = AutoModelForSequenceClassification.from_pretrained(model_dir)
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     model.eval()
     
-    # 2. 입력 로드
-    with open(vtn_pkl_path, 'rb') as f:
-        vtn_input = pickle.load(f)
+    # 2. label_map.json 로드
+    if os.path.exists(label_map_path):
+        with open(label_map_path, 'r', encoding='utf-8') as f:
+            raw_map = json.load(f)
+        label_map = {int(k): v for k, v in raw_map.items()}
+        logger.info(f"Label map loaded: {label_map}")
+    else:
+        logger.warning(f"Label map not found at {label_map_path}, using indices directly")
+        label_map = {}
     
-    # 3. bbox_sequence + category_tensor를 텍스트 시퀀스로 변환
-    # 예시: "0.1 0.3 0.5 0.7 | 0.2 0.4 0.6 0.8 ..." + " [SEP] 0 0 1"
-    bbox_seq_str = " ".join([" ".join(map(str, b)) for b in vtn_input["bbox_sequence"]])
-    cat_str = " ".join(map(str, vtn_input["category_tensor"]))
+    # 3. VTN 입력 로드
+    with open(vtn_pkl_path, 'rb') as f:
+        data = pickle.load(f)
+    
+    # 4. 시퀀스 → 텍스트
+    bbox_seq_str = " ".join(" ".join(map(str, b)) for b in data['bbox_sequence'])
+    cat_str = " ".join(map(str, data['category_tensor']))
     input_text = bbox_seq_str + " [SEP] " + cat_str
     
-    # 4. 토크나이저 인코딩
+    # 5. 토크나이징
     inputs = tokenizer(
         input_text,
         return_tensors="pt",
@@ -39,12 +59,17 @@ def infer_vtn(result_data):
         max_length=512
     )
     
-    # 5. 추론
+    # 6. 추론
     with torch.no_grad():
         outputs = model(**inputs)
-        pred_class = torch.argmax(outputs.logits, dim=1).item()
+        pred_index = torch.argmax(outputs.logits, dim=1).item()
     
-    # 6. 결과 반환
+    # 7. 실제 class로 매핑
+    pred_class = label_map.get(pred_index, pred_index)
+    
+    logger.info(f"VTN 추론 완료: accident_type={pred_class}")
+    
+    # 8. 결과 반환
     return {
         "accident_type": pred_class
     }

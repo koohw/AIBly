@@ -14,6 +14,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.io.File;
 
 @Slf4j
 @Service
@@ -63,7 +64,17 @@ public class FcmServiceImpl implements FcmService {
     }
 
     private String getAccessToken() throws IOException {
-        try (FileInputStream serviceAccountStream = new FileInputStream(serviceAccountJsonPath)) {
+        log.info("FCM 서비스 계정 경로: {}", serviceAccountJsonPath);
+        
+        File pathFile = new File(serviceAccountJsonPath);
+        String actualPath = serviceAccountJsonPath;
+        
+        if (pathFile.isDirectory()) {
+            actualPath = new File(pathFile, "ablri-b137e-638caf50f016.json").getAbsolutePath();
+            log.info("FCM 서비스 계정 파일 전체 경로로 수정: {}", actualPath);
+        }
+        
+        try (FileInputStream serviceAccountStream = new FileInputStream(actualPath)) {
             GoogleCredentials googleCredentials = GoogleCredentials
                     .fromStream(serviceAccountStream)
                     .createScoped(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
