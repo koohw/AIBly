@@ -78,10 +78,6 @@ export default function VideoSelect({
   console.log('▶️ video-select got preview prop:', preview)
 }, [preview])
 
-  useEffect(() => {
-  console.log('▶️ video-select got preview prop:', preview)
-}, [preview])
-
   // Generate poster thumbnail
   useEffect(() => {
     if (!preview) {

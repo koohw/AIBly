@@ -14,7 +14,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark") // 기본값을 다크 모드로 설정
+  const [theme, setTheme] = useState<Theme>("light") // 기본값을 다크 모드로 설정
 
   useEffect(() => {
     // 로컬 스토리지에서 테마 설정 불러오기
