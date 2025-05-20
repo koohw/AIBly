@@ -81,10 +81,7 @@ export default function AuthScreen() {
       title: "법적 근거와 함께 제공되는 결과",
       description: "모든 분석 결과는 대한민국 교통법규에 기반한 법적 근거와 함께 제공됩니다.",
       images: [
-        "/balanced-justice.png",
-        "/korean-traffic-law-book-cover.png",
-        "/accident-analysis-pie-charts.png",
-        "/business-deal-clinch.png",
+        "/image/law.jpg"
       ],
     },
   ]
@@ -308,7 +305,7 @@ export default function AuthScreen() {
           </motion.div>
 
           {/* 슬라이드 인디케이터 및 네비게이션 */}
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center">
             <button onClick={handlePrevSlide} className="p-2 text-gray-400 hover:text-white" aria-label="이전 슬라이드">
               <ChevronLeft size={20} />
             </button>

@@ -25,10 +25,9 @@ export default function Dashboard() {
   useEffect(() => {
     async function checkAuth() {
       setIsLoading(true)
-      setIsLoading(true)
 
       // 1) Preferences에서 JWT 꺼내기
-      const { value: authToken } = await Preferences.get({ key: 'AUTH_TOKEN' })
+      const { value: authToken } = await Preferences.get({ key: "AUTH_TOKEN" })
 
       if (authToken) {
         // 로그인된 사용자
@@ -150,9 +149,9 @@ export default function Dashboard() {
       }
 
       // 2) 자동 감지 설정도 Preferences에서 꺼내기
-      const { value: autoDetect } = await Preferences.get({ key: 'AUTO_DETECT' })
+      const { value: autoDetect } = await Preferences.get({ key: "AUTO_DETECT" })
       if (autoDetect !== null) {
-        setAutoDetectEnabled(autoDetect === 'true')
+        setAutoDetectEnabled(autoDetect === "true")
       }
 
       setIsLoading(false)
@@ -244,6 +243,7 @@ export default function Dashboard() {
       </span>
     );
   }
+
 
   if (isLoading) {
     return (

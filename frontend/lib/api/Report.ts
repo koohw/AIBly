@@ -36,6 +36,28 @@ export async function getReportList(): Promise<ReportListResponse[]> {
  */
 // lib/api/Report.ts
 
+/** 🚩 1) 원시(raw) DTO: eventTimeline이 아직 문자열 */
+interface ReportDetailDTO {
+  id: number;
+  title: string;
+  accidentType: string;
+  laws: string;
+  precedents: string;
+  carAProgress: string;
+  carBProgress: string;
+  faultA: number;
+  faultB: number;
+  createdAt: string;
+  damageLocation: string | null;
+  eventTimeline: string;           // 여기만 string
+  // …필요한 다른 필드
+}
+
+// 1) 배열 요소 타입 정의
+interface EventTimelineItem {
+  event: string
+  timeInSeconds: string
+}
 export interface ReportDetailResponse {
   id: number
   title: string
@@ -48,7 +70,7 @@ export interface ReportDetailResponse {
   faultB: number
   createdAt: string
   damageLocation: string | null
-  eventTimeline: string    // 필요한 경우 JSON.parse로 파싱
+  eventTimeline: EventTimelineItem[]    // 필요한 경우 JSON.parse로 파싱
   // …필요한 다른 필드들도 여기 추가
 }
 
@@ -93,14 +115,32 @@ export async function getReportDetail(
 ): Promise<ReportDetailResponse> {
   try {
     console.log(`🎯 보고서 상세 조회 요청: reportId=${reportId}`);
-    const res = await apiClient.get<ReportDetailResponse>(
+
+    // 1) 제네릭을 DTO로 바꿔줍니다
+    const res = await apiClient.get<ReportDetailDTO>(
       `/api/my/reports/${reportId}`
     );
-    console.log('✅ 보고서 상세 조회 성공:', res.data);
-    return res.data;
+
+    // 2) 데이터 꺼내고
+    const dto = res.data;
+
+    // 3) eventTimeline 파싱
+    const timeline: EventTimelineItem[] = JSON.parse(dto.eventTimeline);
+
+    // 4) 최종 Response 객체로 변환
+    const detail: ReportDetailResponse = {
+      ...dto,
+      eventTimeline: timeline,
+    };
+
+    console.log('✅ 보고서 상세 조회 성공:', detail);
+    return detail;
   } catch (error) {
     const err = error as AxiosError;
-    console.error('❌ 보고서 상세 조회 실패:', err.response?.data || err.message);
+    console.error(
+      '❌ 보고서 상세 조회 실패:',
+      err.response?.data || err.message
+    );
     throw err;
   }
 }
