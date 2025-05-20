@@ -12,10 +12,8 @@ import com.ssafy.backend.domain.video.VideoFile;
 import com.ssafy.backend.domain.video.VideoFileRepository;
 import com.ssafy.backend.fcm.service.FcmService;
 import com.ssafy.backend.user.service.UserService;
-import com.ssafy.backend.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

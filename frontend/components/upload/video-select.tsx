@@ -157,23 +157,27 @@ export default function VideoSelect({
 
       // 2) S3 업로드
       await uploadToS3(presignedUrl, selectedFile, setUploadProgress)
+      
+      // 업로드 완료되면 바로 완료 상태로 변경 (버튼 두개 보이게 함)
       setIsUploading(false)
-
-       // 3) DB 수동 업로드 알림
+      setIsUploadComplete(true)
+      
+      // 3) DB 수동 업로드 알림 (백그라운드에서 처리)
       console.log('📫 DB 수동 업로드 알림 요청 중...')
-      const { videoId: uploadedVideoId  } = await notifyManualUpload({
+      notifyManualUpload({
         fileName: selectedFile.name,
         s3Key,
         contentType: selectedFile.type,
         size: selectedFile.size,
+      }).then(({ videoId: uploadedVideoId }) => {
+        console.log(`✅ DB 알림 완료, 비디오 ID 수신: ${uploadedVideoId}`)
+        console.log(`ℹ️ 백엔드에서 비동기로 AI 분석 진행 중 (videoId=${uploadedVideoId})`)
+        setVideoId(uploadedVideoId)
+      }).catch(error => {
+        console.error('DB 알림 실패:', error)
       })
-      console.log(`✅ DB 알림 완료, 분석 준비 완료: videoId=${uploadedVideoId}`)
       
-      // 업로드 완료 상태로 변경
-      setVideoId(uploadedVideoId)
-      setIsUploadComplete(true)
-      
-      // 기존 폴링 코드 주석 처리 - 더 이상 필요없음
+      // 폴링 코드는 더 이상 필요 없음 - 백엔드에서 비동기로 처리
       /*
       setIsAnalyzing(true)
       console.log('🔄 상태 폴링 시작: videoId=', videoId )
