@@ -56,6 +56,9 @@ public class VideoServiceImpl implements VideoService {
         // 4. 파일 타입 자동 분류
         FileType fileType = determineFileType(s3File.getContentType());
 
+        Integer locationType = dto.getLocationType();
+        String locationName = LocationType.fromCode(locationType).getDescription();
+
         // 5. VideoFile 생성
         VideoFile file = VideoFile.builder()
                 .fileName(dto.getFileName())
@@ -66,8 +69,8 @@ public class VideoServiceImpl implements VideoService {
                 .fileType(fileType)
                 .analysisStatus(AnalysisStatus.ANALYZING)
                 .user(user)
-                .locationType(s3File.getLocationType())
-                .locationName(LocationType.fromCode(s3File.getLocationType()).getDisplayName())
+                .locationType(locationType)
+                .locationName(locationName)
                 .build();
 
         videoFileRepository.save(file);

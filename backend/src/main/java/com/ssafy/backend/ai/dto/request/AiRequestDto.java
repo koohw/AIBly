@@ -16,6 +16,5 @@ public class AiRequestDto {
     private String presignedUrl; //AI 서버는 presigned URL을 통해 S3에서 영상을 가져가서 분석
     private String fileName;
     private Integer locationType; //장소 번호
-    private String locationName; //장소 이름
 }
 //백엔드에서  ai서버로 분석 요청
