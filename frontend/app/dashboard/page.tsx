@@ -483,40 +483,41 @@ export default function Dashboard() {
       </main>
 
       {/* 하단 네비게이션 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="flex justify-around">
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleUpload}>
-            <Upload size={20} className="text-appblue" />
-            <span className="text-xs mt-1">업로드</span>
-          </Button>
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleHistory}>
-            <Clock size={20} className="text-muted-foreground" />
-            <span className="text-xs mt-1">분석내역</span>
-          </Button>
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleAutoDetectSettings}>
-            <div className="relative">
-              {autoDetectEnabled ? (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
-              ) : null}
-              <FileText size={20} className={autoDetectEnabled ? "text-appblue" : "text-muted-foreground"} />
-            </div>
-            <span className="text-xs mt-1">자동감지</span>
-          </Button>
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleProfileClick}>
-            {isGuest ? (
-              <>
-                <User size={20} className="text-muted-foreground" />
-                <span className="text-xs mt-1">로그인</span>
-              </>
-            ) : (
-              <>
-                <User size={20} className="text-appblue" />
-                <span className="text-xs mt-1">프로필</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </nav>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-border h-20 z-50">
+  <div className="flex justify-around items-center h-full">
+    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 h-full py-2" onClick={handleUpload}>
+      <Upload size={18} className="text-appblue" />
+      <span className="text-[10px]">업로드</span>
+    </Button>
+    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 h-full py-2" onClick={handleHistory}>
+      <Clock size={18} className="text-muted-foreground" />
+      <span className="text-[10px]">분석내역</span>
+    </Button>
+    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 h-full py-2" onClick={handleAutoDetectSettings}>
+      <div className="relative">
+        {autoDetectEnabled && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+        )}
+        <FileText size={18} className={autoDetectEnabled ? "text-appblue" : "text-muted-foreground"} />
+      </div>
+      <span className="text-[10px]">자동감지</span>
+    </Button>
+    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 h-full py-2" onClick={handleProfileClick}>
+      {isGuest ? (
+        <>
+          <User size={18} className="text-muted-foreground" />
+          <span className="text-[10px]">로그인</span>
+        </>
+      ) : (
+        <>
+          <User size={18} className="text-appblue" />
+          <span className="text-[10px]">프로필</span>
+        </>
+      )}
+    </Button>
+  </div>
+</nav>
+
 
       {/* 로그인 필요 모달 */}
       <LoginRequiredModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />

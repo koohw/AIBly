@@ -282,7 +282,7 @@ public class MainActivity extends BridgeActivity {
                         getResources().getIdentifier("navigation_bar_height", "dimen", "android")
                 );
 
-                marginParams.bottomMargin = navBarHeight; // ✅ 여기가 문제!
+                marginParams.bottomMargin = navBarHeight + 30; // ✅ 여기가 문제!
 
                 webView.setLayoutParams(marginParams);
             }
