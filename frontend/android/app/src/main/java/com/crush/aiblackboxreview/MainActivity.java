@@ -271,35 +271,24 @@ public class MainActivity extends BridgeActivity {
      */
     private void setupWebViewLayout() {
         try {
-            // 웹뷰 참조 가져오기
             WebView webView = (WebView) this.getBridge().getWebView();
-            
-            // 웹뷰 레이아웃 파라미터 조정
             ViewGroup.LayoutParams params = webView.getLayoutParams();
+
             if (params instanceof ViewGroup.MarginLayoutParams) {
                 ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) params;
-                // 하단 마진 설정 (네비게이션 바 높이를 고려)
-                marginParams.bottomMargin = getResources().getDimensionPixelSize(
-                    getResources().getIdentifier("navigation_bar_height", "dimen", "android")
+
+                // 기존 코드에서 navigation_bar_height를 쓰고 있다면 아래처럼 보일 것임
+                int navBarHeight = getResources().getDimensionPixelSize(
+                        getResources().getIdentifier("navigation_bar_height", "dimen", "android")
                 );
+
+                marginParams.bottomMargin = navBarHeight; // ✅ 여기가 문제!
+
                 webView.setLayoutParams(marginParams);
-                Log.d(TAG, "웹뷰 하단 마진 설정 완료: " + marginParams.bottomMargin + "px");
             }
-            
-            // 웹뷰 스타일 조정
-            webView.getSettings().setJavaScriptEnabled(true);
-            webView.getSettings().setDomStorageEnabled(true);
-            webView.getSettings().setAllowFileAccess(true);
-            
-            // 네이티브 환경임을 알리는 자바스크립트 주입
-            webView.evaluateJavascript(
-                "document.documentElement.setAttribute('data-native-app', 'true');", 
-                null
-            );
-            
-            Log.d(TAG, "웹뷰 레이아웃 설정 완료");
+
         } catch (Exception e) {
-            Log.e(TAG, "웹뷰 레이아웃 설정 실패", e);
+            Log.e("WebViewSetup", "웹뷰 레이아웃 설정 실패", e);
         }
     }
 

@@ -70,8 +70,8 @@ class OpenAIClient {
         }
     }
 
-    // 이미지 분석 함수
-    suspend fun analyzeTrafficAccident(frame: Bitmap): Boolean {
+    // analyzeTrafficAccident 함수 수정 - 반환 타입 변경
+    suspend fun analyzeTrafficAccident(frame: Bitmap): Pair<Boolean, Int> {
         return try {
             // 전체 API 호출 과정에 타임아웃 적용
             withTimeout(API_TIMEOUT) {
@@ -79,15 +79,15 @@ class OpenAIClient {
             }
         } catch (e: TimeoutCancellationException) {
             Log.e(TAG, "API 호출 타임아웃 발생 (${API_TIMEOUT}ms 초과)")
-            false
+            Pair(false, 0) // 실패 시 사고 아님(false)과 위치 0 반환
         } catch (e: Exception) {
             Log.e(TAG, "이미지 분석 과정 에러: ${e.javaClass.simpleName} - ${e.message}")
             e.printStackTrace()
-            false
+            Pair(false, 0) // 실패 시 사고 아님(false)과 위치 0 반환
         }
     }
     // 실제 API 호출 로직 분리
-    private suspend fun executeAnalysis(frame: Bitmap): Boolean {
+    private suspend fun executeAnalysis(frame: Bitmap): Pair<Boolean, Int> {
         try {
             Log.d(TAG, "API 호출 준비 - 이미지 크기: ${frame.width}x${frame.height}")
 
@@ -105,7 +105,7 @@ class OpenAIClient {
                         content = listOf(
                             Content(
                                 type = "text",
-                                text = "You are an AI specialized in detecting car crashes from dashcam footage. Be liberal in your detection - if you see any sign that might indicate a collision, classify it as a crash (true). Respond only with 'true' or 'false'."
+                                text = "You are an AI specialized in detecting car crashes from dashcam footage and classifying the location type. Be liberal in your detection - if you see any sign that might indicate a collision, classify it as a crash."
                             )
                         )
                     ),
@@ -116,23 +116,30 @@ class OpenAIClient {
                             Content(
                                 type = "text",
                                 text = """
-Analyze this dashcam frame and determine if it shows evidence of a vehicle-to-vehicle crash.
+Analyze this dashcam frame and determine:
+1. If it shows evidence of a vehicle-to-vehicle crash
+2. The type of location where the incident occurred
 
-This frame is taken from near the end of a 10-second dashcam video.
-
-Return "true" if you see:
+Part 1: Crash Detection
+Return "CRASH: true" if you see:
 - Any signs of impact, camera shake, or abnormal movement
 - Reactionary motion from the vehicle (e.g., sudden lurching or angle change)
 - Signs of collision even without seeing the other vehicle (especially from the side or rear)
 - Obscured view due to potential impact
 
-Return "false" only if the image clearly shows normal, uninterrupted driving with no anomalies.
+Return "CRASH: false" only if the image clearly shows normal, uninterrupted driving with no anomalies.
 
-IMPORTANT: If uncertain, lean towards saying "true". It’s better to detect a possible crash than to miss one.
+Part 2: Location Classification
+If a crash is detected, classify the location as ONE of the following categories:
+- LOCATION: 1 (for crashes on straight road sections)
+- LOCATION: 2 (for crashes at T-shaped intersections)
+- LOCATION: 3 (for crashes in parking areas)
 
-Respond only with:
-- true
-- false
+Format your response exactly as:
+CRASH: true/false
+LOCATION: 1/2/3
+
+IMPORTANT: If uncertain about crash, lean towards saying "CRASH: true". If you cannot determine the location type, choose the most likely option based on visual cues.
 """.trimIndent()
                             ),
                             Content(
@@ -141,10 +148,8 @@ Respond only with:
                             )
                         )
                     )
-
                 )
             )
-
 
             Log.d(TAG, "API 요청 생성 완료")
             val startTime = System.currentTimeMillis()
@@ -162,39 +167,30 @@ Respond only with:
             Runtime.getRuntime().gc()
 
             // 응답 처리
-            val result = response.choices.firstOrNull()?.message?.content ?: "false"
-            Log.d(TAG, "OpenAI 응답: $result")
+            val content = response.choices.firstOrNull()?.message?.content ?: "CRASH: false\nLOCATION: 1"
+            Log.d(TAG, "OpenAI 응답: $content")
 
-            // 결과가 "true"를 포함하는지 확인
-            return result.lowercase().contains("true")
+            // 결과 파싱
+            val lines = content.split("\n")
+            val isCrash = lines.firstOrNull { it.startsWith("CRASH:") }?.contains("true") ?: false
 
-        } catch (e: retrofit2.HttpException) {
-            // HTTP 에러 자세히 로깅
-            val code = e.code()
-            Log.e(TAG, "HTTP 에러 발생 (코드: $code)")
-
-            try {
-                val errorBody = e.response()?.errorBody()?.string()
-                Log.e(TAG, "에러 응답 내용: $errorBody")
-
-                // 특정 에러 코드에 따른 처리
-                when (code) {
-                    429 -> Log.e(TAG, "비율 제한 초과 (Rate limit exceeded)")
-                    500, 502, 503, 504 -> Log.e(TAG, "서버 오류 발생")
-                }
-            } catch (e2: Exception) {
-                Log.e(TAG, "에러 응답 파싱 실패")
+            // 위치 코드 추출 (1, 2, 3)
+            val locationCode = if (isCrash) {
+                lines.firstOrNull { it.startsWith("LOCATION:") }
+                    ?.replace("LOCATION:", "")
+                    ?.trim()
+                    ?.toIntOrNull() ?: 1
+            } else {
+                0 // 사고 아닌 경우 0 (처리 안함)
             }
-            throw e
-        } catch (e: java.net.SocketTimeoutException) {
-            Log.e(TAG, "네트워크 타임아웃 발생")
-            throw e
-        } catch (e: java.io.IOException) {
-            Log.e(TAG, "네트워크 I/O 에러 발생: ${e.message}")
-            throw e
+
+            return Pair(isCrash, locationCode)
+
         } catch (e: Exception) {
+            // 예외 처리 로직
             Log.e(TAG, "예상치 못한 에러 발생: ${e.javaClass.simpleName} - ${e.message}")
             throw e
         }
     }
+
 }
