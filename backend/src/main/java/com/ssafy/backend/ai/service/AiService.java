@@ -27,17 +27,17 @@ public class AiService {
     private String aiServerUrl;
 
     public void requestAndHandleAnalysis(VideoFile videoFile) {
-        String presignedUrl = s3UploadService.generatePresignedUrl(videoFile.getS3Key(), videoFile.getContentType());
+        String downloadUrl = s3UploadService.getDownloadURL(videoFile.getUser().getId(), videoFile.getS3Key());
 
         AiRequestDto requestDto = new AiRequestDto(
                 videoFile.getUser().getId(),
                 videoFile.getId(),
-                presignedUrl,
+                downloadUrl,
                 videoFile.getFileName()
         );
 
         try {
-            JsonNode aiResponse = restTemplate.postForObject(aiServerUrl + "/analyze-test", requestDto, JsonNode.class);
+            JsonNode aiResponse = restTemplate.postForObject(aiServerUrl + "/analyze", requestDto, JsonNode.class);
             log.info("AI 서버 응답 수신 완료: videoId={}", videoFile.getId());
 
             aiAnalysisService.handleAiCallback(aiResponse, videoFile.getId());
