@@ -41,13 +41,12 @@ interface BackendApiService {
  *
  * @property fileName 업로드할 파일 이름 (예: 'accident_1234567890.mp4')
  * @property contentType 파일의 MIME 타입 (예: 'video/mp4')
+ * @property locationType 위치 타입 (1: 직선도로, 2: T자형교차로, 3: 주차장)
  */
-
 data class PresignedUrlRequest(
     val fileName: String,
     val contentType: String,
-    val size: Long,              // 추가: 파일 크기
-    val fileHash: String         // 추가: 파일 해시값
+    val locationType: Int  // 위치 타입 파라미터 추가
 )
 
 /**

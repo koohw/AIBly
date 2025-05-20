@@ -19,10 +19,26 @@ export default function Dashboard() {
   const [newReports, setNewReports] = useState<ReportListItem[]>([]) // 새로운 보고서 목록
   const [recentReports, setRecentReports] = useState<ReportListItem[]>([]) // 최근 보고서 목록
   const [showNewReportAlert, setShowNewReportAlert] = useState(false) // 새 보고서 알림 표시 여부
+  const [navBarHeight, setNavBarHeight] = useState(0)
   const { theme } = useTheme()
 
   // 인증 상태 확인
   useEffect(() => {
+    // 네이티브 앱 환경인지 확인
+    const isNativeApp = document.documentElement.getAttribute('data-native-app') === 'true' ||
+                         (typeof window !== 'undefined' && (window as any).androidFcmBridge);
+    
+    if (isNativeApp) {
+      // 네이티브 환경일 때 하단 패딩 추가 (네비게이션 바 높이)
+      const navBarHeightInPx = 90; // 네비게이션 바 높이 (dp)
+      setNavBarHeight(navBarHeightInPx);
+      
+      // body에 패딩 추가
+      document.body.style.paddingBottom = `${navBarHeightInPx}px`;
+      
+      console.log('네이티브 앱 환경 감지: 하단 패딩 설정됨', navBarHeightInPx);
+    }
+
     async function checkAuth() {
       setIsLoading(true)
       setIsLoading(true)
@@ -245,7 +261,7 @@ export default function Dashboard() {
     );
   }
 
-  if (isLoading) {
+ if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="w-8 h-8 border-4 border-appblue border-t-transparent rounded-full animate-spin" />
@@ -448,41 +464,43 @@ export default function Dashboard() {
         </section>
       </main>
 
-      {/* 하단 네비게이션 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="flex justify-around">
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleUpload}>
-            <Upload size={20} className="text-appblue" />
-            <span className="text-xs mt-1">업로드</span>
-          </Button>
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleHistory}>
-            <Clock size={20} className="text-muted-foreground" />
-            <span className="text-xs mt-1">분석내역</span>
-          </Button>
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleAutoDetectSettings}>
-            <div className="relative">
-              {autoDetectEnabled ? (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
-              ) : null}
-              <FileText size={20} className={autoDetectEnabled ? "text-appblue" : "text-muted-foreground"} />
-            </div>
-            <span className="text-xs mt-1">자동감지</span>
-          </Button>
-          <Button variant="ghost" className="flex-1 flex flex-col items-center py-3" onClick={handleProfileClick}>
-            {isGuest ? (
-              <>
-                <User size={20} className="text-muted-foreground" />
-                <span className="text-xs mt-1">로그인</span>
-              </>
-            ) : (
-              <>
-                <User size={20} className="text-appblue" />
-                <span className="text-xs mt-1">프로필</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </nav>
+{/* 하단 네비게이션 바 */}
+<nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-border h-20 z-50">
+  <div className="flex justify-around items-center h-full">
+    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 h-full py-2" onClick={handleUpload}>
+      <Upload size={16} className="text-appblue" />
+      <span className="text-[10px]">업로드</span>
+    </Button>
+    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 h-full py-2" onClick={handleHistory}>
+      <Clock size={16} className="text-muted-foreground" />
+      <span className="text-[10px]">분석내역</span>
+    </Button>
+    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 h-full py-2" onClick={handleAutoDetectSettings}>
+      <div className="relative">
+        {autoDetectEnabled && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+        )}
+        <FileText size={16} className={autoDetectEnabled ? "text-appblue" : "text-muted-foreground"} />
+      </div>
+      <span className="text-[10px]">자동감지</span>
+    </Button>
+    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 h-full py-2" onClick={handleProfileClick}>
+      {isGuest ? (
+        <>
+          <User size={16} className="text-muted-foreground" />
+          <span className="text-[10px]">로그인</span>
+        </>
+      ) : (
+        <>
+          <User size={16} className="text-appblue" />
+          <span className="text-[10px]">프로필</span>
+        </>
+      )}
+    </Button>
+  </div>
+</nav>
+
+
 
       {/* 로그인 필요 모달 */}
       <LoginRequiredModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
