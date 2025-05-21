@@ -56,8 +56,10 @@ public class VideoServiceImpl implements VideoService {
         // 4. 파일 타입 자동 분류
         FileType fileType = determineFileType(s3File.getContentType());
 
-        Integer locationType = dto.getLocationType();
+        // locationType이 null이면 기본값 2번 (T_INTERSECTION)으로 대체
+        Integer locationType = dto.getLocationType() != null ? dto.getLocationType() : LocationType.T_INTERSECTION.getCode();
         String locationName = LocationType.fromCode(locationType).getDescription();
+
 
         // 5. VideoFile 생성
         VideoFile file = VideoFile.builder()
