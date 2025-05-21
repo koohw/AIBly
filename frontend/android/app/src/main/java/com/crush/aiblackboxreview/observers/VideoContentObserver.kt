@@ -309,7 +309,7 @@ class VideoContentObserver(
                 }
             }
         } catch (e: Exception) {
-                Log.e(TAG, "새 비디오 확인 중 오류 발생", e)
+            Log.e(TAG, "새 비디오 확인 중 오류 발생", e)
         }
 
     }

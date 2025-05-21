@@ -126,7 +126,7 @@ class UploadManager(
                     videoFile.name.lowercase().endsWith(".mp4") -> "video/mp4"
                     videoFile.name.lowercase().endsWith(".avi") -> "video/x-msvideo"
                     else -> "video/mp4" // 기본값
-                    }
+                }
                 // 업로드 완료 알림 요청 생성
                 val request = UploadCompleteRequest(
                     fileName = videoFile.name,
