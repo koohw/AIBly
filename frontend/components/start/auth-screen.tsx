@@ -191,10 +191,21 @@ export default function AuthScreen() {
       // [추가] FCM 토큰 등록 - 이 부분이 중요합니다!
       try {
         console.log('[AuthScreen] FCM 토큰 등록 시도 시작');
-        await registerFcmToken(authToken);
-        console.log('[AuthScreen] FCM 토큰 등록 요청 완료');
-        // FCM 토큰 등록 상태 저장
-        await Preferences.set({ key: 'fcm_token_registered', value: 'true' });
+        // 인증 토큰 저장 확인
+        await Preferences.set({ key: 'AUTH_TOKEN', value: authToken });
+        const { value: savedToken } = await Preferences.get({ key: 'AUTH_TOKEN' });
+        console.log('[AuthScreen] 인증 토큰 저장 완료', savedToken ? (savedToken.substring(0, 10) + '...') : '없음');
+        
+        // 토큰 등록 자체는 약간의 지연 후 실행하여 네이티브 영역에 토큰이 저장될 시간 제공
+        setTimeout(async () => {
+          try {
+            await registerFcmToken(authToken);
+            console.log('[AuthScreen] FCM 토큰 등록 요청 완료');
+            await Preferences.set({ key: 'fcm_token_registered', value: 'true' });
+          } catch (delayedError) {
+            console.error('[AuthScreen] 지연된 FCM 토큰 등록 실패:', delayedError);
+          }
+        }, 1000);
       } catch (fcmError: any) {
         console.error('[AuthScreen] FCM 토큰 등록 중 오류:', fcmError.message || fcmError);
         // FCM 오류가 발생해도 로그인 진행
@@ -242,10 +253,20 @@ export default function AuthScreen() {
         // FCM 토큰 등록
         try {
           console.log('[AuthScreen] 임시 로그인 - FCM 토큰 등록 시도');
-          await registerFcmToken(token);
-          console.log('[AuthScreen] 임시 로그인 - FCM 토큰 등록 완료');
-          // FCM 토큰 등록 상태 저장
-          await Preferences.set({ key: 'fcm_token_registered', value: 'true' });
+          // 인증 토큰 저장 확인
+          const { value: savedToken } = await Preferences.get({ key: 'AUTH_TOKEN' });
+          console.log('[AuthScreen] 임시 로그인 - 인증 토큰 확인:', savedToken ? (savedToken.substring(0, 10) + '...') : '없음');
+          
+          // 토큰 등록은 약간 지연 후 실행
+          setTimeout(async () => {
+            try {
+              await registerFcmToken(token);
+              console.log('[AuthScreen] 임시 로그인 - FCM 토큰 등록 완료');
+              await Preferences.set({ key: 'fcm_token_registered', value: 'true' });
+            } catch (delayedError) {
+              console.error('[AuthScreen] 임시 로그인 - 지연된 FCM 등록 실패:', delayedError);
+            }
+          }, 1000);
         } catch (fcmError: any) {
           console.error('[AuthScreen] 임시 로그인 - FCM 토큰 등록 오류:', fcmError.message || fcmError);
           // FCM 등록 실패해도 계속 진행
