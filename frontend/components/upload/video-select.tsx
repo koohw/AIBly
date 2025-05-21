@@ -147,6 +147,7 @@ export default function VideoSelect({
       const { presignedUrl, s3Key }: PresignedUrlResponse = await getPresignedUrl({
         fileName: selectedFile.name,
         contentType: selectedFile.type,
+        locationType: 2
       })
       console.log(`✅ Presigned URL 발급 성공: key=${s3Key}`)
       console.log(`🔗 Upload URL: ${presignedUrl}`)

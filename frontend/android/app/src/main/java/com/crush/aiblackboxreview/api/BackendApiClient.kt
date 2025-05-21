@@ -17,9 +17,6 @@ object BackendApiClient {
     // 백엔드 서버 기본 URL (실제 서버 URL로 변경 필요)
     private const val BASE_URL = "https://k12e203.p.ssafy.io/"
 
-    // 테스트용 임시 토큰 (실제 배포 전에 반드시 변경 필요)
-    private const val AUTH_TOKEN =
-        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrYWthbzo0MjUxNzkzNzA2IiwidXNlcklkIjoxMSwiaWF0IjoxNzQ3Mjg5NzkwLCJleHAiOjE3NDczNzYxOTB9.FJ8gEd7DF1mqB4KpzgavwJzLt7vdha4ni1yugowe8JU"
 
     // BackendApiClient.kt - getAuthToken 메서드 수정
     private fun getAuthToken(context: Context): String {
@@ -43,10 +40,17 @@ object BackendApiClient {
         }
 
         // Capacitor 토큰 우선, 없으면 네이티브 토큰, 모두 없으면 기본 토큰
-        val selectedToken = capacitorToken ?: nativeToken ?: AUTH_TOKEN
-        Log.d("TokenDebug", "선택된 인증 토큰: ${selectedToken.substring(0, 20)}...")
+        val selectedToken = capacitorToken ?: nativeToken
 
-        return selectedToken
+        if (selectedToken != null) {
+            Log.d("TokenDebug", "선택된 인증 토큰: ${selectedToken.substring(0, Math.min(selectedToken.length, 20))}...")
+            return selectedToken
+        } else {
+            // 토큰이 없는 경우 처리
+            Log.e("TokenDebug", "인증 토큰을 찾을 수 없음")
+            throw Exception("인증 토큰을 찾을 수 없습니다. 로그인이 필요합니다.")
+        }
+
     }
     // 동적 인증 인터셉터 생성
     private fun createAuthInterceptor(authToken: String): Interceptor {
@@ -89,9 +93,6 @@ object BackendApiClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
-
-    // 기본 인증 토큰을 사용한 정적 Retrofit 인스턴스
-    private val defaultRetrofit = createRetrofit(createOkHttpClient(AUTH_TOKEN))
 
     /**
      * 백엔드 API 서비스 인스턴스

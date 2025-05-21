@@ -12,6 +12,7 @@ import { Preferences } from '@capacitor/preferences'
 import { App } from '@capacitor/app'
 import { registerFcmToken } from '@/lib/api/Fcm' // FCM 토큰 등록 유틸리티 import
 import { Capacitor } from '@capacitor/core'
+import KakaoLogo from "@/public/image/kakao-logo.png"
 
 export default function AuthScreen() {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -341,7 +342,13 @@ export default function AuthScreen() {
             <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <Image src="/kakao-logo.png" alt="Kakao" width={24} height={24} className="mr-2" />
+            <img
+              src={KakaoLogo.src}
+              alt="upload"
+              width={24}
+              height={24}
+              className="object-contain magin-right-5"/>
+              {/* <Image src="/kakao-logo.png" alt="Kakao" width={24} height={24} className="mr-2" /> */}
               카카오톡으로 로그인하기
             </>
           )}

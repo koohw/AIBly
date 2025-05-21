@@ -50,7 +50,7 @@ interface ReportDetailDTO {
   createdAt: string;
   damageLocation: string | null;
   eventTimeline: string;           // 여기만 string
-  // …필요한 다른 필드
+  videoUrl : string;
 }
 
 // 1) 배열 요소 타입 정의
@@ -71,7 +71,7 @@ export interface ReportDetailResponse {
   createdAt: string
   damageLocation: string | null
   eventTimeline: EventTimelineItem[]    // 필요한 경우 JSON.parse로 파싱
-  // …필요한 다른 필드들도 여기 추가
+  videoUrl : string
 }
 
 

@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react"
 import type { AnalysisHistory } from "@/types/analysis"
+import Accident from "@/public/image/accident.jpg"
 
 interface HistoryListProps {
   items: AnalysisHistory[]
@@ -19,8 +20,8 @@ export default function HistoryList({ items, onItemClick }: HistoryListProps) {
         >
           <div className="w-16 h-16 bg-muted rounded-md mr-3 flex-shrink-0 overflow-hidden relative">
             <img
-              src={item.thumbnail || "/image/accident.jpg"}
-              alt={`${item.title} 썸네일`}
+              src={Accident.src}
+              alt="사고이미지"
               className="w-full h-full object-cover"
             />
             {item.status === "processing" && (
