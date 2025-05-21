@@ -166,6 +166,20 @@ export default function LoginPage() {
           log(`[LoginPage] FCM 토큰 등록 중 오류 (로그인은 계속 진행됨): ${fcmError.message || fcmError}`);
         }
 
+        // [추가] 네이티브 비디오 모니터링 서비스 시작 요청
+        try {
+          // @ts-ignore - 타입 정의가 없지만 네이티브 브릿지 호출
+          if (window.androidServiceBridge) {
+            // @ts-ignore
+            const result = window.androidServiceBridge.startMonitoringService();
+            log(`[LoginPage] 네이티브 서비스 시작 요청 결과: ${result ? '성공' : '실패'}`);
+          } else {
+            log('[LoginPage] 네이티브 서비스 브릿지를 찾을 수 없음');
+          }
+        } catch (serviceError: any) {
+          log(`[LoginPage] 네이티브 서비스 시작 중 오류: ${serviceError.message || serviceError}`);
+        }
+
         // 4️⃣ 대시보드 페이지로 이동
         log('[LoginPage] 대시보드로 이동 시작');
         router.replace('/dashboard');

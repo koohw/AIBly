@@ -35,8 +35,13 @@ import com.crush.aiblackboxreview.plugins.FcmTokenPlugin;
 import com.crush.aiblackboxreview.notifications.ReportNotificationManager;
 import com.crush.aiblackboxreview.managers.FcmTokenManager;
 import com.crush.aiblackboxreview.managers.FcmTokenManager;
+import com.crush.aiblackboxreview.api.BackendApiClient;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -56,6 +61,12 @@ public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int ALL_FILES_ACCESS_REQUEST_CODE = 101;
+    
+    // 인증 토큰 변경 감지를 위한 SharedPreferences 리스너
+    private SharedPreferences.OnSharedPreferenceChangeListener authTokenListener;
+    
+    // 서비스 실행 상태 추적 변수
+    private boolean isServiceRunning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +90,9 @@ public class MainActivity extends BridgeActivity {
 
         // 웹뷰 레이아웃 설정
         setupWebViewLayout();
+        
+        // 인증 토큰 변경 감지 리스너 등록
+        setupAuthTokenListener();
 
         // Capacitor UI 초기화 이후 권한 확인을 안전하게
         getWindow().getDecorView().post(this::checkAndRequestPermissions);
@@ -108,6 +122,53 @@ public class MainActivity extends BridgeActivity {
 
         // 알림에서 열린 경우 처리
         handleNotificationIntent(getIntent());
+        
+        // 초기 로그인 상태 확인 및 서비스 시작
+        checkLoginAndStartService();
+    }
+    
+    /**
+     * 로그인 상태 변경 감지를 위한 리스너 설정
+     */
+    private void setupAuthTokenListener() {
+        try {
+            // Capacitor 저장소 참조
+            SharedPreferences capacitorPrefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE);
+            
+            // 리스너 생성 및 등록
+            authTokenListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+                @Override
+                public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                    if ("AUTH_TOKEN".equals(key)) {
+                        Log.d(TAG, "AUTH_TOKEN 변경 감지됨, 서비스 상태 확인");
+                        checkLoginAndStartService();
+                    }
+                }
+            };
+            
+            // 리스너 등록
+            capacitorPrefs.registerOnSharedPreferenceChangeListener(authTokenListener);
+            Log.d(TAG, "인증 토큰 변경 감지 리스너 등록 완료");
+        } catch (Exception e) {
+            Log.e(TAG, "인증 토큰 리스너 설정 실패", e);
+        }
+    }
+    
+    /**
+     * 로그인 상태를 확인하고 서비스를 시작하는 메서드
+     */
+    private void checkLoginAndStartService() {
+        boolean isLoggedIn = BackendApiClient.INSTANCE.isLoggedIn(this);
+        Log.d(TAG, "로그인 상태 확인: " + (isLoggedIn ? "로그인됨" : "로그인되지 않음"));
+        
+        if (isLoggedIn && !isServiceRunning) {
+            Log.d(TAG, "로그인 확인됨, 서비스 시작");
+            startVideoMonitoringService();
+            isServiceRunning = true;
+        } else if (!isLoggedIn && isServiceRunning) {
+            Log.d(TAG, "로그아웃 확인됨, 서비스 상태 재설정");
+            isServiceRunning = false;
+        }
     }
     
     /**
@@ -121,9 +182,48 @@ public class MainActivity extends BridgeActivity {
             // FCM 브릿지 객체 추가
             webView.addJavascriptInterface(new FcmBridge(), "androidFcmBridge");
             
+            // 서비스 브릿지 객체 추가 (로그인 후 서비스 시작을 위한 브릿지)
+            webView.addJavascriptInterface(new ServiceBridge(), "androidServiceBridge");
+            
             Log.d(TAG, "자바스크립트 인터페이스 설정 완료 - FCM 브릿지 등록됨");
         } catch (Exception e) {
             Log.e(TAG, "자바스크립트 인터페이스 설정 실패", e);
+        }
+    }
+    
+    /**
+     * 서비스 제어를 위한 자바스크립트 브릿지 클래스
+     */
+    private class ServiceBridge {
+        @JavascriptInterface
+        public boolean startMonitoringService() {
+            Log.d(TAG, "🌉 자바스크립트에서 startMonitoringService() 호출됨");
+            
+            try {
+                // 로그인 상태 확인 후 서비스 시작
+                if (BackendApiClient.INSTANCE.isLoggedIn(MainActivity.this)) {
+                    Log.d(TAG, "JS 브릿지: 로그인 확인됨, 서비스 시작");
+                    
+                    // UI 스레드에서 서비스 시작
+                    runOnUiThread(() -> {
+                        startVideoMonitoringService();
+                        isServiceRunning = true;
+                    });
+                    
+                    return true;
+                } else {
+                    Log.d(TAG, "JS 브릿지: 로그인되지 않음, 서비스 시작 불가");
+                    return false;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "JS 브릿지: 서비스 시작 실패", e);
+                return false;
+            }
+        }
+        
+        @JavascriptInterface
+        public boolean isServiceRunning() {
+            return isServiceRunning;
         }
     }
     
@@ -331,8 +431,8 @@ public class MainActivity extends BridgeActivity {
         }
 
         if (permissionsToRequest.isEmpty()) {
-            Log.d(TAG, "모든 권한이 이미 부여됨. 서비스 시작");
-            startVideoMonitoringService();
+            Log.d(TAG, "모든 권한이 이미 부여됨. 서비스 시작 확인");
+            checkLoginAndStartService();
         } else {
             Log.d(TAG, "권한 요청: " + permissionsToRequest);
             ActivityCompat.requestPermissions(
@@ -365,8 +465,8 @@ public class MainActivity extends BridgeActivity {
             }
 
             if (allGranted) {
-                Log.d(TAG, "모든 권한이 허용됨. 서비스 시작");
-                startVideoMonitoringService();
+                Log.d(TAG, "모든 권한이 허용됨. 로그인 및 서비스 시작 확인");
+                checkLoginAndStartService();
             } else {
                 Log.d(TAG, "일부 권한이 거부됨. 서비스를 시작할 수 없음");
                 // 사용자에게 알림
@@ -407,10 +507,12 @@ public class MainActivity extends BridgeActivity {
                     startService(serviceIntent);
                 }
                 Log.d(TAG, "비디오 모니터링 서비스 시작 성공");
+                isServiceRunning = true;
             }, 500); // 0.5초 정도 지연
 
         } catch (Exception e) {
             Log.e(TAG, "서비스 시작 실패: " + e.getMessage(), e);
+            isServiceRunning = false;
         }
     }
 
@@ -484,5 +586,30 @@ public class MainActivity extends BridgeActivity {
 
         // 알림에서 열린 경우도 처리
         handleNotificationIntent(intent);
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(TAG, "앱이 포그라운드로 돌아옴, 로그인 및 서비스 상태 확인");
+        
+        // 앱이 포그라운드로 돌아올 때마다 로그인 상태 확인
+        checkLoginAndStartService();
+    }
+    
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        
+        // 리스너 정리
+        try {
+            if (authTokenListener != null) {
+                SharedPreferences capacitorPrefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE);
+                capacitorPrefs.unregisterOnSharedPreferenceChangeListener(authTokenListener);
+                Log.d(TAG, "인증 토큰 리스너 정리 완료");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "인증 토큰 리스너 정리 중 오류", e);
+        }
     }
 }

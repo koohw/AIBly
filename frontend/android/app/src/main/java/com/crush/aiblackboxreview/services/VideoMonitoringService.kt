@@ -14,11 +14,13 @@ import com.crush.aiblackboxreview.R
 import com.crush.aiblackboxreview.observers.VideoContentObserver
 import android.content.pm.ServiceInfo
 import com.crush.aiblackboxreview.analysis.AccidentAnalyzer
+import com.crush.aiblackboxreview.api.BackendApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
+import android.widget.Toast
 
 class VideoMonitoringService : Service() {
 
@@ -66,6 +68,14 @@ class VideoMonitoringService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "서비스 onCreate 호출됨")
+
+        // 인증 토큰 확인 - 없으면 서비스 실행하지 않고 종료
+        val authToken = BackendApiClient.getAuthToken(this)
+        if (authToken == null) {
+            Log.e(TAG, "인증 토큰이 없어 서비스를 시작할 수 없습니다. 로그인이 필요합니다.")
+            stopSelf() // 서비스 종료
+            return
+        }
 
         // 사고 분석기 초기화
         accidentAnalyzer = AccidentAnalyzer(this)
@@ -116,7 +126,9 @@ class VideoMonitoringService : Service() {
         Log.d(TAG, "서비스 onDestroy 호출됨")
 
         // ContentObserver 해제
-        contentResolver.unregisterContentObserver(contentObserver)
+        if (::contentObserver.isInitialized) {
+            contentResolver.unregisterContentObserver(contentObserver)
+        }
 
         // 주기적 스캔 중지
         handler.removeCallbacks(scanRunnable)

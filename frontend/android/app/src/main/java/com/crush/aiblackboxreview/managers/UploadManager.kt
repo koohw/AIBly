@@ -29,7 +29,7 @@ import kotlin.math.pow
  */
 class UploadManager(
     private val context: Context,
-    private val backendApiService: BackendApiService = BackendApiClient.getBackendApiService(context)
+    private val backendApiService: BackendApiService? = null
 ) {
     // 코루틴 스코프 - IO 스레드에서 네트워크 작업 수행
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -38,11 +38,28 @@ class UploadManager(
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private val notificationId = 1001
 
+    // 인증 토큰이 있는지 확인하여 백엔드 API 서비스 설정
+    private val apiService: BackendApiService? = backendApiService ?: try {
+        // 인증 토큰이 있는 경우 BackendApiService 생성
+        BackendApiClient.getBackendApiService(context)
+    } catch (e: Exception) {
+        // 인증 토큰이 없는 경우 null 설정
+        Log.e(TAG, "인증 토큰이 없어 BackendApiService를 생성할 수 없습니다.", e)
+        null
+    }
+
     /**
      * 초기화 블록 - 알림 채널 생성
      */
     init {
         createNotificationChannel()
+        
+        // 백엔드 API 서비스 초기화 상태 로깅
+        if (apiService == null) {
+            Log.w(TAG, "UploadManager가 인증 없이 초기화되었습니다. 업로드 기능이 제한됩니다.")
+        } else {
+            Log.d(TAG, "UploadManager가 성공적으로 초기화되었습니다.")
+        }
     }
 
     /**
@@ -73,6 +90,13 @@ class UploadManager(
      * @param locationCode 위치 코드 (1: 직선도로, 2: T자형교차로, 3: 주차장)
      */
     fun handleAccidentVideo(videoFile: File, locationCode: Int = 0) {
+        // API 서비스가 초기화되지 않았으면 (인증 토큰 없음) 처리하지 않음
+        if (apiService == null) {
+            Log.e(TAG, "백엔드 API 서비스가 초기화되지 않았습니다. 로그인이 필요합니다.")
+            showUploadFailedNotification("로그인이 필요합니다")
+            return
+        }
+        
         // locationCode가 0인 경우(사고 아님) 처리하지 않음
         if (locationCode <= 0) {
             Log.w(TAG, "위치 코드가 유효하지 않음 ($locationCode). 사고가 아니거나 위치를 식별할 수 없어 업로드하지 않습니다.")
@@ -119,6 +143,12 @@ class UploadManager(
      * 응답을 기다리지 않고 별도 코루틴에서 실행
      */
     private fun sendUploadCompleteNotificationAsync(s3Key: String, videoFile: File, locationType: Int) {
+        // API 서비스가 초기화되지 않았으면 (인증 토큰 없음) 처리하지 않음
+        if (apiService == null) {
+            Log.e(TAG, "백엔드 API 서비스가 초기화되지 않았습니다. 로그인이 필요합니다.")
+            return
+        }
+        
         scope.launch {
             try {
                 // 파일 확장자에 따른 contentType 결정
@@ -140,7 +170,7 @@ class UploadManager(
 
                 // API 호출 (응답 처리는 로깅만)
                 val response = withTimeoutOrNull(30000) { // 30초 타임아웃 설정
-                    backendApiService.notifyUploadComplete(request)
+                    apiService.notifyUploadComplete(request)
                 }
 
                 // 응답 로깅 (성공/실패와 무관하게 사용자에게는 이미 성공 알림이 표시됨)
@@ -179,6 +209,11 @@ class UploadManager(
      * @throws Exception API 호출 실패 시 예외 발생
      */
     private suspend fun getPresignedUrl(videoFile: File, locationType: Int): PresignedUrlResponse {
+        // API 서비스가 초기화되지 않았으면 (인증 토큰 없음) 예외 발생
+        if (apiService == null) {
+            throw Exception("백엔드 API 서비스가 초기화되지 않았습니다. 로그인이 필요합니다.")
+        }
+        
         return withContext(Dispatchers.IO) {
             try {
                 // 타임스탬프를 포함한 고유한 파일명 생성
@@ -201,7 +236,7 @@ class UploadManager(
                 Log.d(TAG, "Presigned URL 요청: fileName=$fileName, contentType=$contentType, locationType=$locationType")
 
                 // API 호출
-                val response = backendApiService.getPresignedUrl(request)
+                val response = apiService.getPresignedUrl(request)
                 // 응답 상태 로깅
                 Log.d(TAG, "Presigned URL 응답 코드: ${response.code()}")
 

@@ -171,6 +171,7 @@ export default function VideoSelect({
         setVideoId(uploadedVideoId)
       }).catch(error => {
         console.error('DB 알림 실패:', error)
+        showToast('업로드 알림 실패: 서버 통신 중 오류가 발생했습니다.', 'error')
       })
       
       // 폴링 코드는 더 이상 필요 없음 - 백엔드에서 비동기로 처리

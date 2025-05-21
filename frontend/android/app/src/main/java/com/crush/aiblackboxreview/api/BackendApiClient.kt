@@ -40,7 +40,7 @@ object BackendApiClient {
             Log.d("TokenDebug", "네이티브에서 저장한 토큰을 찾음: ${nativeToken.substring(0, Math.min(nativeToken.length, 20))}...")
         }
 
-        // Capacitor 토큰 우선, 없으면 네이티브 토큰, 모두 없으면 기본 토큰
+        // Capacitor 토큰 우선, 없으면 네이티브 토큰, 모두 없으면 null 반환
         val selectedToken = capacitorToken ?: nativeToken
 
         if (selectedToken != null) {
@@ -49,7 +49,7 @@ object BackendApiClient {
         } else {
             // 토큰이 없는 경우 처리
             Log.e("TokenDebug", "인증 토큰을 찾을 수 없음")
-            throw Exception("인증 토큰을 찾을 수 없습니다. 로그인이 필요합니다.")
+            return null // 예외 발생 대신 null 반환
         }
     }
     // 동적 인증 인터셉터 생성

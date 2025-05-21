@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.crush.aiblackboxreview.services.VideoMonitoringService
+import com.crush.aiblackboxreview.api.BackendApiClient
 import java.io.File
 
 class BootCompletedReceiver : BroadcastReceiver() {
@@ -19,14 +20,20 @@ class BootCompletedReceiver : BroadcastReceiver() {
             // 대상 폴더 존재 여부 확인 및 생성
             ensureTargetDirectoryExists()
 
-            // 서비스 시작
-            val serviceIntent = Intent(context, VideoMonitoringService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
+            // 인증 토큰이 있는지 확인
+            if (BackendApiClient.isLoggedIn(context)) {
+                Log.d(TAG, "인증 토큰이 존재합니다. 서비스를 시작합니다.")
+                // 서비스 시작
+                val serviceIntent = Intent(context, VideoMonitoringService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
+                Log.d(TAG, "부팅 후 서비스 시작 요청 완료")
             } else {
-                context.startService(serviceIntent)
+                Log.d(TAG, "인증 토큰이 없습니다. 서비스를 시작하지 않습니다.")
             }
-            Log.d(TAG, "부팅 후 서비스 시작 요청 완료")
         }
     }
 

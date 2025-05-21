@@ -31,7 +31,6 @@ class FcmTokenManager(private val context: Context) {
     fun registerTokenToServer(token: String) {
         Log.e(TAG, "🚀 FCM 토큰 등록 시작: ${token.substring(0, 20)}...")
 
-
         // 두 곳에서 인증 토큰 확인 시도
         val authPrefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
         var authToken = authPrefs.getString("auth_token", null)
@@ -39,10 +38,10 @@ class FcmTokenManager(private val context: Context) {
         if (authToken != null) {
             Log.e(TAG, "🔑 네이티브 저장소에서 인증 토큰 찾음: ${authToken.substring(0, 10)}...")
         } else {
-            // Capacitor 저장소 확인
+            // Capacitor 저장소 확인 - 수정된 부분: 올바른 키 "AUTH_TOKEN" 사용
             val capacitorPrefs =
                 context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-            authToken = capacitorPrefs.getString("auth_token", null)
+            authToken = capacitorPrefs.getString("AUTH_TOKEN", null)
 
             if (authToken != null) {
                 Log.e(TAG, "🔑 Capacitor 저장소에서 인증 토큰 찾음: ${authToken.substring(0, 10)}...")
