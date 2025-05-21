@@ -19,7 +19,7 @@ object BackendApiClient {
 
 
     // BackendApiClient.kt - getAuthToken 메서드 수정
-    private fun getAuthToken(context: Context): String {
+    private fun getAuthToken(context: Context): String? {
         // 두 저장소 모두에서 토큰을 찾음
 
         // 1. Capacitor 저장소 확인
@@ -39,7 +39,7 @@ object BackendApiClient {
             Log.d("TokenDebug", "네이티브에서 저장한 토큰을 찾음: ${nativeToken.substring(0, 20)}...")
         }
 
-        // Capacitor 토큰 우선, 없으면 네이티브 토큰, 모두 없으면 기본 토큰
+        // Capacitor 토큰 우선, 없으면 네이티브 토큰, 모두 없으면 null 반환
         val selectedToken = capacitorToken ?: nativeToken
 
         if (selectedToken != null) {
@@ -48,26 +48,29 @@ object BackendApiClient {
         } else {
             // 토큰이 없는 경우 처리
             Log.e("TokenDebug", "인증 토큰을 찾을 수 없음")
-            throw Exception("인증 토큰을 찾을 수 없습니다. 로그인이 필요합니다.")
+            return null // 토큰이 없는 경우 null 반환
         }
-
     }
     // 동적 인증 인터셉터 생성
-    private fun createAuthInterceptor(authToken: String): Interceptor {
+    private fun createAuthInterceptor(authToken: String?): Interceptor {
         return Interceptor { chain ->
-            val request = chain.request().newBuilder()
-                .addHeader("Authorization", "Bearer $authToken")
+            val requestBuilder = chain.request().newBuilder()
                 .addHeader("Content-Type", "application/json") // Content-Type 헤더 추가
                 .addHeader("Accept", "application/json") // Accept 헤더 추가
-                .build()
-            chain.proceed(request)
+            
+            // 토큰이 있는 경우에만 Authorization 헤더 추가
+            if (authToken != null) {
+                requestBuilder.addHeader("Authorization", "Bearer $authToken")
+            }
+            
+            chain.proceed(requestBuilder.build())
         }
     }
     /**
      * API 요청을 위한 OkHttp 클라이언트 설정
      * 대용량 영상 파일 업로드를 고려하여 타임아웃 시간을 넉넉하게 설정
      */
-    private fun createOkHttpClient(authToken: String): OkHttpClient {
+    private fun createOkHttpClient(authToken: String?): OkHttpClient {
         // 로깅 인터셉터 추가
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY // 바디 내용 포함 로깅
@@ -113,5 +116,13 @@ object BackendApiClient {
         val client = createOkHttpClient(authToken)
         val retrofit = createRetrofit(client)
         return retrofit.create(FcmTokenApiService::class.java)
+    }
+    
+    /**
+     * 사용자가 로그인했는지 확인하는 메서드
+     * @return 로그인한 상태면 true, 아니면 false
+     */
+    fun isLoggedIn(context: Context): Boolean {
+        return getAuthToken(context) != null
     }
 }
