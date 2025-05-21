@@ -10,6 +10,8 @@ import { getReportDetail, ReportDetailResponse, downloadReportPdf } from "@/lib/
 import { FormattedText } from "@/components/analysis/FormattedText"
 import { Capacitor } from "@capacitor/core"
 import { Browser } from "@capacitor/browser"
+import Car from "@/public/image/car.png"
+import Image from "next/image"
 
 export default function ClientReport({ id }: { id: string }) {
   const router = useRouter()
@@ -21,10 +23,22 @@ export default function ClientReport({ id }: { id: string }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const videoTotalDuration = 30
   const [downloading, setDownloading] = useState(false)
 
-
+  const damageImageMap: Record<string, string> = {
+  "1":   "/car/1.png",
+  "2":   "/car/2.png",
+  "3":   "/car/3.png",
+  "4":   "/car/4.png",
+  "5":   "/car/5.png",
+  "6":   "/car/6.png",
+  "7":   "/car/7.png",
+  "8":   "/car/8.png",
+  "1,2": "/car/12.png",
+  "2,3": "/car/23.png",
+  "1,4": "/car/14.png",
+  "3,5": "/car/35.png",
+}
 
     // id가 바뀔 때마다 상세 조회
   useEffect(() => {
@@ -156,33 +170,7 @@ export default function ClientReport({ id }: { id: string }) {
                 console.error('video error:', v.error)
               }}
             />
-            {/* <div className="absolute inset-0 flex items-center justify-center">
-              <button
-                onClick={handlePlayPause}
-                className="bg-appblue rounded-full w-12 h-12 flex items-center justify-center"
-              >
-                {isPlaying ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white" />}
-              </button>
-            </div> */}
           </div>
-    
-          {/* 비디오 컨트롤 */}
-          {/* <div className="mx-4 mb-4 flex items-center">
-            <button onClick={handlePlayPause} className="mr-2 text-muted-foreground">
-              {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-            </button>
-            <input
-              type="range"
-              min="0"
-              max={videoTotalDuration}
-              value={currentTime}
-              onChange={handleSeek}
-              className="flex-1 mx-2 accent-appblue bg-muted h-1 rounded-full"
-            />
-            <span className="text-xs text-muted-foreground">
-              {formatTime(currentTime)} / {formatTime(videoTotalDuration)}
-            </span>
-          </div> */}
     
           {/* 탭 콘텐츠 */}
           <div className="flex-1 mx-4 mb-4">
@@ -282,14 +270,37 @@ export default function ClientReport({ id }: { id: string }) {
                       </li>
                     </ul>
                   </div>
+
+                  <div className="app-card p-4">
+                    <h3 className="font-medium mb-2 text-foreground">차량 이동 동선</h3>
+                    <ul className="space-y-2 text-sm">
+                      <li className="pb-2 border-b border-border">
+                        <span className="text-appblue font-medium">A 차량 </span> {report.carAProgress}
+                      </li>
+                      <li className="pb-2 border-b border-border">
+                        <span className="text-red-500 font-medium">B 차량  </span> {report.carBProgress}
+                      </li>
+                    </ul>
+                  </div>
     
                   <div className="app-card p-4">
                     <h3 className="font-medium mb-3 text-foreground">사고 분석 결과</h3>
-                    <div className="grid grid-cols-3 gap-2 mb-4">
-                      <div className="bg-muted p-3 rounded text-center text-sm text-foreground">사고 모형파악</div>
-                      <div className="bg-muted p-3 rounded text-center text-sm text-foreground">AI 분석 요약 결과</div>
-                      <div className="bg-muted p-3 rounded text-center text-sm text-foreground">자료</div>
-                    </div>
+                    {/* ────── 충돌 위치 오버레이 ────── */}
+                      {report.damageLocation && damageImageMap[report.damageLocation] && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium mb-2 text-foreground">충돌 위치</h4>
+                        <div className="relative w-full h-48 rounded overflow-hidden">
+                          {/* 배경 차 이미지 */}
+                          <Image
+                            src={damageImageMap[report.damageLocation]}
+                            alt={`충돌 위치 ${report.damageLocation}`}
+                            fill
+                          className="object-contain"
+                           />
+                        </div>
+                      </div>
+                      )}
+                          
                     <ul className="list-disc pl-5 text-sm space-y-1 text-foreground">
                       <li>사고 발생 위치: 교차로 중앙</li>
                       <li>분석 결과 추가: 신호 위반 확인됨</li>
