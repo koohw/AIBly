@@ -228,58 +228,60 @@ export default function Home() {
             </div>
 
             <div className="w-48 h-48 relative">
-              <img
-                src={RobotBgRemove.src}
-                alt="AI 로봇"
-                width={200}
-                height={200}
-                className="object-contain"
-              />
+              <div className="flex items-center justify-center h-full animate-pulse-slow">
+                <img
+                  src={RobotBgRemove.src}
+                  alt="AI 로봇"
+                  width={200}
+                  height={200}
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
 
           {/* 3개 메뉴 버튼 */}
-          <div className="bg-appblue rounded-2xl p-0 grid grid-cols-3 gap-0 mb-8">
+          <div className="grid grid-cols-3 gap-4 mb-8">
             <Button
-              variant="ghost"
-              className="flex flex-col items-center justify-center py-8 rounded-xl hover:bg-appblue text-black h-44"
+              variant="outline"
+              className="flex flex-col items-center justify-center py-4 rounded-xl bg-appblue hover:bg-gray-100 text-black h-28 border-2 border-appblue shadow-md"
               onClick={handleUpload}
             >
               <img
                 src={Uploade.src}
                 alt="upload"
-                width={30}
-                height={30}
+                width={18}
+                height={18}
                 className="object-contain mb-5"/>
-              <h4 className="text-[25px]">업로드</h4>
+              <h4 className="text-[15px]">업로드</h4>
             </Button>
 
             <Button
-              variant="ghost"
-              className="flex flex-col items-center justify-center py-8 rounded-xl hover:bg-appblue text-black h-44"
+              variant="outline"
+              className="flex flex-col items-center justify-center py-4 rounded-xl bg-appblue hover:bg-gray-100 text-black h-28 border-2 border-appblue shadow-md"
               onClick={handleHistory}
             >
               <img
               src={FileText.src}
-              alt="upload"
-              width={30}
-              height={30}
+              alt="file"
+              width={18}
+              height={18}
               className="object-contain mb-5"/>
-              <h4 className="text-[25px]">분석내역</h4>
+              <h4 className="text-[15px]">분석내역</h4>
             </Button>
 
             <Button
-              variant="ghost"
-              className="flex flex-col items-center justify-center py-8 rounded-xl hover:bg-appblue text-black h-44"
+              variant="outline"
+              className="flex flex-col items-center justify-center py-4 rounded-xl bg-appblue hover:bg-gray-100 text-black h-28 border-2 border-appblue shadow-md"
               onClick={handleProfileClick}
             >
               <img
               src={User.src}
-              alt="upload"
-              width={30}
-              height={30}
+              alt="user"
+              width={18}
+              height={18}
               className="object-contain mb-5"/>
-              <h4 className="text-[25px]">프로필</h4>
+              <h4 className="text-[15px]">프로필</h4>
             </Button>
           </div>
 

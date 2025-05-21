@@ -2,11 +2,13 @@
 
 import { ChevronRight } from "lucide-react"
 import type { AnalysisHistory } from "@/types/analysis"
+import type { ReportListResponse } from "@/lib/api/Report"
 import Accident from "@/public/image/accident.jpg"
 
 interface HistoryListProps {
-  items: AnalysisHistory[]
-  onItemClick: (id: string) => void
+  // items: AnalysisHistory[]
+  items: ReportListResponse[]
+  onItemClick: (id: number) => void
 }
 
 export default function HistoryList({ items, onItemClick }: HistoryListProps) {
@@ -24,22 +26,22 @@ export default function HistoryList({ items, onItemClick }: HistoryListProps) {
               alt="사고이미지"
               className="w-full h-full object-cover"
             />
-            {item.status === "processing" && (
+            {/* {item.status === "processing" && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
               </div>
-            )}
+            )} */}
           </div>
           <div className="flex-1">
             <h3 className="font-medium">{item.title}</h3>
-            <p className="text-xs text-muted-foreground">{item.date}</p>
+            <p className="text-xs text-muted-foreground">{item.createdAt}</p>
             <div className="flex mt-1">
-              {item.faultA && (
+
                 <span className="text-xs bg-appblue/20 text-appblue px-2 py-0.5 rounded mr-1">
                   과실비율 {item.faultA} : {item.faultB}
                 </span>
-              )}
-              {item.tags.map((tag, index) => (
+            
+              {/* {item.tags.map((tag, index) => (
                 <span
                   key={index}
                   className={`text-xs px-2 py-0.5 rounded mr-1 ${
@@ -50,7 +52,7 @@ export default function HistoryList({ items, onItemClick }: HistoryListProps) {
                 >
                   {tag}
                 </span>
-              ))}
+              ))} */}
             </div>
           </div>
           <ChevronRight size={20} className="text-muted-foreground" />

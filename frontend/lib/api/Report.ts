@@ -9,6 +9,9 @@ export interface ReportListResponse {
   title: string;
   accidentCode: string;
   createdAt: string;
+  faultA: number;
+  faultB: number;
+  fileName: string;
 }
 
 
