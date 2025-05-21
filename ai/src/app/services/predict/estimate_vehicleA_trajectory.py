@@ -219,6 +219,113 @@ def estimate_vehicleA_trajectory(analysis_result):
         "collision_idx":  ens_coll
     }).to_csv(os.path.join(out_dir, "ensemble_trajectory.csv"), index_label="frame")
 
+    # 새 코드 로직 추가: first_seen과 accident 사이의 차량A 궤적 추출
+    try:
+        # 1) 타임라인 정보 확인
+        if "timeline_analysis" not in analysis_result:
+            logger.warning("타임라인 데이터가 없어 차량A 세부 궤적을 계산할 수 없습니다")
+            # 디버깅: 사용 가능한 키 로깅
+            logger.info(f"사용 가능한 키: {list(analysis_result.keys())}")
+        else:
+            # 디버깅: 타임라인 데이터 구조 로깅
+            timeline_data = analysis_result["timeline_analysis"]
+            logger.info(f"타임라인 데이터 키: {list(timeline_data.keys())}")
+            
+            # 2) 첫 등장 & 사고 시점 추출
+            try:
+                # generate_timeline_log 반환 구조 확인: "timeline"."event_timeline"
+                timeline_data = analysis_result["timeline_analysis"]
+                
+                # 타임라인에서 event_timeline 가져오기
+                event_timeline = None
+                
+                # 1. 표준 구조 시도: timeline.event_timeline
+                if "timeline" in timeline_data and "event_timeline" in timeline_data["timeline"]:
+                    event_timeline = timeline_data["timeline"]["event_timeline"]
+                    logger.info("표준 구조에서 이벤트 타임라인을 찾았습니다")
+                # 2. 대체 구조 시도: event_timeline
+                elif "event_timeline" in timeline_data:
+                    event_timeline = timeline_data["event_timeline"]
+                    logger.info("대체 구조에서 이벤트 타임라인을 찾았습니다")
+                # 3. accident_frame, first_seen_idx 정보 사용 시도
+                elif "timeline" in timeline_data and "accident_frame_idx" in timeline_data["timeline"] and "first_seen_idx" in timeline_data["timeline"]:
+                    logger.info("타임라인에서 직접 프레임 인덱스를 추출합니다")
+                    accident = timeline_data["timeline"]["accident_frame_idx"]
+                    first_seen = timeline_data["timeline"]["first_seen_idx"]
+                    
+                    # 처리 플래그 설정 - 다음 단계로 진행
+                    continue_processing = True
+                else:
+                    logger.warning("지원되는 타임라인 구조를 찾을 수 없습니다")
+                    event_timeline = []
+                    continue_processing = False
+                
+                # event_timeline을 사용한 처리 (이벤트 타임라인이 있는 경우)
+                if event_timeline and "continue_processing" not in locals():
+                    logger.info(f"이벤트 타임라인에서 프레임 인덱스 추출 (이벤트 수: {len(event_timeline)})")
+                    # 이벤트 출력
+                    event_types = [e.get('event', 'unknown') for e in event_timeline]
+                    logger.info(f"이벤트 유형: {event_types}")
+                    
+                    try:
+                        first_seen = next(e['frame_idx'] for e in event_timeline if e['event'] == "vehicle_B_first_seen")
+                        accident = next(e['frame_idx'] for e in event_timeline if e['event'] == "accident_estimated")
+                        continue_processing = True
+                    except StopIteration:
+                        logger.warning("타임라인에서 필요한 이벤트를 찾을 수 없습니다")
+                        continue_processing = False
+                elif "continue_processing" not in locals():
+                    logger.warning("이벤트 타임라인이 비어 있거나 사용할 수 없습니다")
+                    continue_processing = False
+                
+                # 공통 처리 로직 - 필요한 데이터가 준비된 경우만 실행
+                if "continue_processing" in locals() and continue_processing:
+                    # 3) 부호 반전 및 첫 등장-사고 구간 추출
+                    ego_lat = -ens_traj  # 부호 반전
+                    ego_pos = np.cumsum(ego_lat)
+                    
+                    try:
+                        # 슬라이싱 가능한지 확인
+                        if first_seen <= accident and first_seen < len(ego_pos) and accident < len(ego_pos):
+                            # 슬라이싱 (first_seen부터 accident까지)
+                            sub_pos = ego_pos[first_seen:accident+1].copy()
+                            
+                            # 첫 등장 위치를 0으로 맞추기
+                            sub_pos = sub_pos - sub_pos[0]
+                            
+                            # 인덱스 생성 (first_seen부터 accident까지)
+                            idx = np.arange(first_seen, accident+1)
+                            
+                            # 4) 저장 - 새 코드와 동일한 형식으로
+                            ego_csv_path = os.path.join(out_dir, "vehicle_A_trajectory.csv")
+                            os.makedirs(os.path.dirname(ego_csv_path), exist_ok=True)
+                            
+                            # DataFrame 생성 후 저장
+                            df_out = pd.DataFrame({"ego_pos": sub_pos}, index=idx)
+                            df_out.index.name = "frame"
+                            df_out.to_csv(ego_csv_path)
+                            
+                            logger.info(f"✅ 차량A 궤적 저장 완료: {ego_csv_path}")
+                            logger.info(f"   프레임: {first_seen} → {accident}")
+                            logger.info(f"   총 이동거리: {sub_pos[-1]:.2f} px")
+                            
+                            # 결과에 세부 정보 추가
+                            analysis_result["vehicle_A_trajectory"] = {
+                                "csv_path": ego_csv_path,
+                                "first_seen": int(first_seen),
+                                "accident": int(accident),
+                                "total_displacement": float(sub_pos[-1])
+                            }
+                        else:
+                            logger.warning(f"프레임 범위 오류: first_seen={first_seen}, accident={accident}, len(ego_pos)={len(ego_pos)}")
+                    except Exception as e:
+                        logger.error(f"차량A 궤적 슬라이싱 오류: {str(e)}")
+            except Exception as e:
+                logger.error(f"차량A 세부 궤적 계산 중 오류: {str(e)}")
+    except Exception as e:
+        logger.error(f"차량A 세부 궤적 계산 중 오류: {str(e)}")
+    
+    # 결과 반환
     return {
         "ensemble_trajectory": ens_traj.tolist(),
         "collision_idx":       ens_coll,

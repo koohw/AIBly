@@ -1,9 +1,10 @@
-def generate_traffic_light_info(traffic_light_events_data):
+def generate_traffic_light_info(traffic_light_events_data, traffic_light_classes=None):
     """
     신호등 이벤트 데이터와 사고 프레임 정보를 기반으로 신호등 감지 정보를 생성합니다.
     
     Args:
         traffic_light_events_data: 이전 단계에서 생성된 신호등 이벤트 데이터
+        traffic_light_classes: 신호등으로 간주할 YOLO 클래스 ID 리스트 (기본값: [2, 3])
         
     Returns:
         dict: 신호등 감지 정보
@@ -15,7 +16,8 @@ def generate_traffic_light_info(traffic_light_events_data):
     accident_frame_idx = traffic_light_events_data.get("accident_frame_idx", 0)
     
     # YOLO 클래스 번호: 2 = traffic-light-red, 3 = traffic-light-green
-    traffic_light_classes = [2, 3]
+    if traffic_light_classes is None:
+        traffic_light_classes = [2, 3]
     
     # 사고 이전 프레임에서 신호등 감지 여부 확인
     traffic_light_visible = False

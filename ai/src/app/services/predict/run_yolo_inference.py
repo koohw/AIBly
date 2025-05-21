@@ -58,6 +58,8 @@ def run_yolo_inference(frames_dir: str) -> list:
 
             for box in pred.boxes.data.tolist():
                 x1, y1, x2, y2, score, cls = box
+                if int(cls) == 0:
+                    cls = 1
                 frame_result["boxes"].append({
                     "bbox": [x1, y1, x2, y2],
                     "score": score,

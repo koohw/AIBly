@@ -1,5 +1,8 @@
 import json
 from ...config import Config
+import logging
+
+logger = logging.getLogger(__name__)    
 
 def generate_final_report(result_data):
     """
@@ -13,9 +16,14 @@ def generate_final_report(result_data):
     """
     # 타임라인 데이터 추출
     timeline_data = result_data.get("timeline_analysis", {})
-    timeline = timeline_data.get("timeline", {})
-    # 이벤트 타임라인 처리
-    event_timeline = timeline.get("event_timeline", [])
+    
+    # 새 코드 방식으로 타임라인 처리 
+    # 타임라인 데이터가 다양한 구조로 제공될 수 있음
+    timeline = timeline_data.get("timeline", timeline_data)
+    
+    # 일부 타임라인 파일은 event_timeline 아래에 이벤트를 중첩시킴
+    # 없으면 timeline 자체를 이벤트 리스트로 간주
+    event_timeline = timeline.get("event_timeline", timeline)
     
     # 추론된 메타 정보 추출
     inferred_meta_data = result_data.get("inferred_meta", {})
@@ -40,7 +48,7 @@ def generate_final_report(result_data):
         "fault_description": fault.get("description"),
         "event_timeline": event_timeline
     }
-    
+    logger.info(f"최종 보고서 생성 완료: {report}")
     return {
         "final_report": report
     }
