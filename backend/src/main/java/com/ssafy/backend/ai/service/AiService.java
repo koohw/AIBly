@@ -26,16 +26,12 @@ public class AiService {
     public void requestAndHandleAnalysis(VideoFile videoFile) {
         String presignedUrl = s3UploadService.getDownloadURL(videoFile.getUser().getId(), videoFile.getS3Key());
 
-        Integer locationType = videoFile.getLocationType();
-        String locationName = LocationType.getDescriptionByCode(locationType);
-
         AiRequestDto requestDto = new AiRequestDto(
                 videoFile.getUser().getId(),
                 videoFile.getId(),
                 presignedUrl,
                 videoFile.getFileName(),
-                videoFile.getLocationType(),
-                videoFile.getLocationName()
+                videoFile.getLocationType()
         );
 
         try {

@@ -1,6 +1,7 @@
 package com.ssafy.backend.report.dto.response;
 
 import com.ssafy.backend.domain.report.Report;
+import com.ssafy.backend.domain.video.LocationType;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -27,7 +28,7 @@ public class ReportDetailResponseDto {
     private String eventTimeline;
     private String createdAt;
     private String videoUrl;
-
+    private String locationName;
 
 
     //Report Entity를 ReportDetailResponseDto로 변환해주는 정적 메서드
@@ -48,6 +49,7 @@ public class ReportDetailResponseDto {
                 .eventTimeline(report.getMainEvidence())
                 .createdAt(report.getCreatedAt().format(formatter))
                 .videoUrl(videoUrl)
+                .locationName(LocationType.fromCode(report.getVideoFile().getLocationType()).getDescription())
                 .build();
     }
 

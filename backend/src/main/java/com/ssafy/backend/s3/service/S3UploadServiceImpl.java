@@ -161,8 +161,7 @@ public class S3UploadServiceImpl implements S3UploadService {
                 .contentType(contentType)
                 .userId(userId)
                 .fileType(FileType.VIDEO)
-                .locationType(locationType)
-                .build();
+                .build(); //S3File에 locationType을 저장하지 않음
 
         System.out.println("새 파일 저장 - fileName: " + fileName + ", s3Key: " + s3Key);
         s3FileRepository.save(file);

@@ -22,23 +22,39 @@ def infer_damage_location_from_direction(direction):
     pair = tuple(sorted(base))
     return ",".join(map(str, pair)) if pair in ALLOWED_COMBINATIONS else str(base[0])
 
-def infer_vehicleA_direction(csv_path, accident_idx, window=10, threshold=5):
+def normalize_dir(raw):
+    """방향 이름을 표준화합니다."""
+    if raw == "left":      return "from_left"
+    if raw == "right":     return "from_right"
+    return raw
+
+def infer_vehicleA_direction(csv_path, accident_idx, window=10):
     """
     차량 A의 사고 발생 전 window 프레임 동안의 횡방향 변위를 분석하여 방향 추론
     """
     df = pd.read_csv(csv_path, index_col="frame")
+    
     # 분석 대상 프레임 선택
     start = max(0, accident_idx - window)
-    sub = df.loc[start:accident_idx, "ensemble_traj"].astype(float)
-    # ego lateral = -ensemble_traj
-    ego_lat = -sub
-    # 분석 구간 순 변위
-    disp = ego_lat.iloc[-1] - ego_lat.iloc[0]
-    if disp > threshold:
-        return "move_left"
-    if disp < -threshold:
-        return "move_right"
-    return "go_straight"
+    
+    # 새 코드 방식: ego_pos 기준 (궤적 누적값)
+    if "ego_pos" in df.columns:
+        lat = df.loc[start:accident_idx, "ego_pos"].astype(float)
+    else:
+        # 기존 코드 호환성 유지: ensemble_traj 사용
+        sub = df.loc[start:accident_idx, "ensemble_traj"].astype(float)
+        lat = -sub  # ego lateral = -ensemble_traj
+    
+    # 분석 구간 순 변위 계산
+    disp = lat.iloc[-1] - lat.iloc[0]
+    
+    # 새 코드 방식: 단순 부호 비교
+    if disp > 0:
+        return "left"
+    elif disp < 0:
+        return "right"
+    else:
+        return "go_straight"
 
 def generate_inferred_meta(result_data):
     """
@@ -60,12 +76,16 @@ def generate_inferred_meta(result_data):
         vehicleA_data = result_data.get("vehicleA_trajectory", {})
         if vehicleA_data and "csv_path" in vehicleA_data:
             ego_flow_csv = vehicleA_data["csv_path"]
-            vehicle_A_direction = infer_vehicleA_direction(
+            
+            # 차량 A 방향 추론
+            raw_A = infer_vehicleA_direction(
                 ego_flow_csv,
                 accident_frame_idx,
-                window=10,
-                threshold=5
+                window=10
             )
+            
+            # 방향 정규화
+            vehicle_A_direction = normalize_dir(raw_A)
         else:
             # vehicleA_trajectory 결과가 없는 경우 기본값 사용
             vehicle_A_direction = "go_straight"
@@ -76,6 +96,9 @@ def generate_inferred_meta(result_data):
     # 2) 차량 B 방향 로드
     lstm_data = result_data.get("lstm_analysis", {})
     vehicle_B_direction = lstm_data.get("direction", "unknown")
+    
+    # 방향 정규화
+    vehicle_B_direction = normalize_dir(vehicle_B_direction)
     
     # 3) 신호등 정보 로드
     traffic_light_info = result_data.get("traffic_light_info", {})
@@ -91,7 +114,18 @@ def generate_inferred_meta(result_data):
         damage_location = infer_damage_location_from_direction(vehicle_B_direction)
     
     # 5) 사고 유형 키 생성
-    location = "t_junction"
+    # locationType에 따른 위치 타입 매핑
+    LOCATION_TYPE_MAP = {
+        1: "straight_road",
+        2: "t_junction",
+        3: "crossroad",
+        4: "roundabout"
+    }
+    
+    # locationType이 있으면 해당 값을 사용, 없으면 기본값 사용
+    location_type = result_data.get("locationType", 2)  # 기본값 2 = t_junction
+    location = LOCATION_TYPE_MAP.get(location_type, "t_junction")
+    
     accident_type_key = f"{location}_{vehicle_A_direction}_{vehicle_B_direction}_{traffic_light}"
     
     # 6) 메타 데이터 구성
