@@ -30,8 +30,8 @@ export default function HistoryPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
-  const [historyItems, setHistoryItems] = useState<AnalysisHistory[]>([]);
-  const [filteredItems, setFilteredItems] = useState<AnalysisHistory[]>([]);
+  const [historyItems, setHistoryItems] = useState<ReportListResponse[]>([]);
+  const [filteredItems, setFilteredItems] = useState<ReportListResponse[]>([]);
   const [autoDetectEnabled, setAutoDetectEnabled] = useState(true);
 
   useEffect(() => {
@@ -60,25 +60,10 @@ export default function HistoryPage() {
       // 3) 보고서 목록 API 호출
       if (authToken) {
         try {
-          const list: ReportListResponse[] = await getReportList();
+          const list = await getReportList();
+           setHistoryItems(list);
+           setFilteredItems(list);
           // ReportListResponse -> AnalysisHistory 매핑
-          const mapped: AnalysisHistory[] = list.map((r) => ({
-            id: r.id.toString(),
-            title: r.title,
-            date: new Date(r.createdAt).toLocaleString("ko-KR", {
-              year: "numeric",
-              month: "numeric",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            thumbnail: "/placeholder.svg", // 썸네일 URL이 있으면 교체
-            faultRatio: undefined, // API에 없으면 비워두거나 따로 호출
-            tags: [r.accidentCode],
-            status: "completed", // API에 status가 있으면 그에 맞게
-          }));
-          setHistoryItems(mapped);
-          setFilteredItems(mapped);
         } catch (e) {
           console.error("보고서 목록 로드 실패", e);
           setHistoryItems([]);
@@ -93,24 +78,24 @@ export default function HistoryPage() {
   }, [router]);
 
   // 검색·필터링
-  useEffect(() => {
-    let results = [...historyItems];
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      results = results.filter(
-        (it) =>
-          it.title.toLowerCase().includes(q) ||
-          it.tags.some((t) => t.toLowerCase().includes(q))
-      );
-    }
-    if (selectedFilter) {
-      results = results.filter((it) => it.status === selectedFilter);
-    }
-    setFilteredItems(results);
-  }, [searchQuery, selectedFilter, historyItems]);
+  // useEffect(() => {
+  //   let results = [...historyItems];
+  //   if (searchQuery) {
+  //     const q = searchQuery.toLowerCase();
+  //     results = results.filter(
+  //       (it) =>
+  //         it.title.toLowerCase().includes(q) ||
+  //         it.tags.some((t) => t.toLowerCase().includes(q))
+  //     );
+  //   }
+  //   if (selectedFilter) {
+  //     results = results.filter((it) => it.status === selectedFilter);
+  //   }
+  //   setFilteredItems(results);
+  // }, [searchQuery, selectedFilter, historyItems]);
 
   const handleBack = () => router.back();
-  const handleItemClick = (id: string) => router.push(`/analysis?id=${id}`);
+  const handleItemClick = (id: number) => router.push(`/analysis?id=${id}`);
   const handleUpload = () => router.push("/upload");
   const handleProfileClick = () =>
     isGuest ? router.push("/login") : router.push("/profile");
