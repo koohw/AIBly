@@ -24,11 +24,6 @@ export default function ClientReport({ id }: { id: string }) {
   const videoTotalDuration = 30
   const [downloading, setDownloading] = useState(false)
 
-  // 과실 비율을 문자열로 변환
-  const formatFaultRatio = (value: number | undefined) => {
-    if (value === undefined) return "-";
-    return value + "%";
-  };
 
 
     // id가 바뀔 때마다 상세 조회
@@ -48,6 +43,7 @@ export default function ClientReport({ id }: { id: string }) {
 
   
   const handleBack = () => router.back()
+  
   const handlePlayPause = () => {
     if (!videoRef.current) return
     isPlaying ? videoRef.current.pause() : videoRef.current.play()
@@ -95,6 +91,11 @@ export default function ClientReport({ id }: { id: string }) {
   if (error || !report) {
     return <div className="p-4 text-center text-red-500">{error}</div>
   }
+
+  // ⚙️ 비율 계산
+  const totalFault = report.faultA + report.faultB
+  const percentA = totalFault > 0 ? (report.faultA / totalFault) * 100 : 0
+  const percentB = totalFault > 0 ? (report.faultB / totalFault) * 100 : 0
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -146,6 +147,14 @@ export default function ClientReport({ id }: { id: string }) {
               onEnded={() => setIsPlaying(false)}
               controls
               playsInline
+              onLoadedMetadata={e => {
+                const v = e.currentTarget
+                console.log('loaded metadata:', v.duration)
+              }}
+              onError={e => {
+                const v = e.currentTarget
+                console.error('video error:', v.error)
+              }}
             />
             {/* <div className="absolute inset-0 flex items-center justify-center">
               <button
@@ -207,17 +216,41 @@ export default function ClientReport({ id }: { id: string }) {
     
               {/* 과실비율 탭 */}
               <TabsContent value="fault" className="mt-4">
-                <div className="space-y-4">
-                  <div className="bg-appblue text-white p-3 rounded-md flex justify-between items-center">
-                    <span>A 차량</span>
-                    <span className="font-bold">{report.faultA}</span>
+                <div className="space-y-6">
+                  {/* A 차량 */}
+                  <div>
+                    <div className="flex justify-between mb-1 text-sm">
+                      <span>A 차량</span>
+                      <span className="font-bold">
+                        {report.faultA} ({percentA.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        className="bg-appblue h-full"
+                        style={{ width: `${percentA}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="bg-muted text-foreground p-3 rounded-md flex justify-between items-center">
-                    <span>B 차량</span>
-                    <span className="font-bold">{report.faultB}</span>
+
+                  {/* B 차량 */}
+                  <div>
+                    <div className="flex justify-between mb-1 text-sm">
+                      <span>B 차량</span>
+                      <span className="font-bold">
+                        {report.faultB} ({percentB.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        className="bg-red-500 h-full"
+                        style={{ width: `${percentB}%` }}
+                      />
+                    </div>
                   </div>
+                </div>
     
-                  <div className="mt-6">
+                  {/* <div className="mt-6">
                     <h3 className="text-sm font-medium mb-2 text-foreground">참조 판례 / 법률 근거</h3>
                     <div className="space-y-2">
                       <div className="flex items-start p-3 border border-border rounded-md bg-card">
@@ -229,8 +262,7 @@ export default function ClientReport({ id }: { id: string }) {
                         <span className="text-foreground">도로교통법 제15조: 차량차선 규정</span>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </div> */}
               </TabsContent>
     
               {/* 해설 탭 */}
