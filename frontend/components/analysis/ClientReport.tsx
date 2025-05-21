@@ -147,18 +147,18 @@ export default function ClientReport({ id }: { id: string }) {
               controls
               playsInline
             />
-            <div className="absolute inset-0 flex items-center justify-center">
+            {/* <div className="absolute inset-0 flex items-center justify-center">
               <button
                 onClick={handlePlayPause}
                 className="bg-appblue rounded-full w-12 h-12 flex items-center justify-center"
               >
                 {isPlaying ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white" />}
               </button>
-            </div>
+            </div> */}
           </div>
     
           {/* 비디오 컨트롤 */}
-          <div className="mx-4 mb-4 flex items-center">
+          {/* <div className="mx-4 mb-4 flex items-center">
             <button onClick={handlePlayPause} className="mr-2 text-muted-foreground">
               {isPlaying ? <Pause size={20} /> : <Play size={20} />}
             </button>
@@ -173,7 +173,7 @@ export default function ClientReport({ id }: { id: string }) {
             <span className="text-xs text-muted-foreground">
               {formatTime(currentTime)} / {formatTime(videoTotalDuration)}
             </span>
-          </div>
+          </div> */}
     
           {/* 탭 콘텐츠 */}
           <div className="flex-1 mx-4 mb-4">
