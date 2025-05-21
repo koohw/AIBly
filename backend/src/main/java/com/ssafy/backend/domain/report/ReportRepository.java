@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReportRepository extends JpaRepository<Report, Long> {
-    // 목록 조회 (Entity 리턴, 필요한 경우 where 조건만 유지)
-    @Query("SELECT r FROM Report r WHERE r.videoFile.user.id = :userId")
+    // 목록 조회 (최신순)
+    @Query("SELECT r FROM Report r WHERE r.videoFile.user.id = :userId ORDER BY r.createdAt DESC")
     List<Report> findAllByUserId(@Param("userId") Long userId);
 
     // 상세 조회 (Entity 직접 리턴)
