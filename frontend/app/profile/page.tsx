@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { useTheme } from "../contexts/theme-context"
 import { Preferences } from '@capacitor/preferences'
 import WhithdrawButton from "@/components/profile/whithdraw"
+import { getUserMe } from "@/lib/api/User"
 
 
 export default function ProfilePage() {
@@ -17,6 +18,9 @@ export default function ProfilePage() {
   const { theme, setTheme } = useTheme()
   const [notifications, setNotifications] = useState(true)
   const [autoDetect, setAutoDetect] = useState(true)
+  const [userName, setUserName] = useState("사용자")
+  const [userEmail, setUserEmail] = useState("example@naver.com")
+  const [userCreatAt, setUserCreatAt] = useState("2025.05.22")
 
   // 인증 상태 확인
   useEffect(() => {
@@ -26,6 +30,13 @@ export default function ProfilePage() {
       router.push("/login")
     } else {
       setIsLoading(false)
+
+      const user = await getUserMe()
+      setUserName(user.name)
+      setUserEmail(user.email)
+      setUserCreatAt(user.createdAt)
+      console.log('[Home] 유저 정보:', user)
+
 
       // Preferences에서 자동 감지 설정 불러오기
       const { value: savedAutoDetect } = await Preferences.get({ key: 'AUTO_DETECT' })
@@ -94,8 +105,8 @@ export default function ProfilePage() {
           <User size={32} className="text-muted-foreground" />
         </div>
         <div>
-          <h2 className="text-lg font-bold">사용자</h2>
-          <p className="text-sm text-muted-foreground">user@example.com</p>
+          <h2 className="text-lg font-bold">{userName}</h2>
+          <p className="text-sm text-muted-foreground">{userEmail}</p>
         </div>
       </div>
 
@@ -125,20 +136,20 @@ export default function ProfilePage() {
                 <div className="space-y-3">
                   <div>
                     <label className="text-sm text-muted-foreground">이름</label>
-                    <p className="font-medium">사용자</p>
+                    <p className="font-medium">{userName}</p>
                   </div>
                   <div>
                     <label className="text-sm text-muted-foreground">이메일</label>
-                    <p className="font-medium">user@example.com</p>
+                    <p className="font-medium">{userEmail}</p>
                   </div>
                   <div>
                     <label className="text-sm text-muted-foreground">가입일</label>
-                    <p className="font-medium">2025년 1월 15일</p>
+                    <p className="font-medium">{userCreatAt}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="app-card p-4">
+              {/* <div className="app-card p-4">
                 <h3 className="font-medium mb-4">차량 정보</h3>
                 <div className="space-y-3">
                   <div>
@@ -150,7 +161,7 @@ export default function ProfilePage() {
                     <p className="font-medium">현대 아반떼</p>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </TabsContent>
 
@@ -215,9 +226,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="app-card p-4">
-                <h3 className="font-medium mb-4">계정</h3>
-              </div>
+              
                 <Button
                   variant="destructive"
                   className="w-full flex items-center justify-center"
