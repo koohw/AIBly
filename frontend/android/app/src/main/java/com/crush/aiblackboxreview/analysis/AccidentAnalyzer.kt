@@ -301,13 +301,25 @@ class AccidentAnalyzer(private val context: Context) {
         }
 
 
-        // 첫 번째 방법: 직접 경로 사용
-        if (!extractFramesWithDirectPath(videoPath, frames)) {
-            Log.d(TAG, "직접 경로 방식 실패, 파일 디스크립터 방식 시도: $videoPath")
-            // 두 번째 방법: 파일 디스크립터 사용
-            extractFramesWithFileDescriptor(videoPath, frames)
-        }
+        // 파일 확장자 확인
+        val extension = videoPath.substringAfterLast('.', "").lowercase()
 
+        // 확장자에 따라 다른 처리 방법 적용
+        if (extension == "mov") {
+            // MOV 파일은 파일 디스크립터 방식으로 먼저 시도
+            Log.d(TAG, "MOV 파일 감지됨, 파일 디스크립터 방식 우선 시도: $videoPath")
+            if (!extractFramesWithFileDescriptor(videoPath, frames)) {
+                Log.d(TAG, "파일 디스크립터 방식 실패, 직접 경로 방식 시도: $videoPath")
+                extractFramesWithDirectPath(videoPath, frames)
+            }
+        } else {
+            // MP4 등 다른 파일은 기존 방식대로 직접 경로 먼저 시도
+            Log.d(TAG, "$extension 파일 감지됨, 직접 경로 방식 우선 시도: $videoPath")
+            if (!extractFramesWithDirectPath(videoPath, frames)) {
+                Log.d(TAG, "직접 경로 방식 실패, 파일 디스크립터 방식 시도: $videoPath")
+                extractFramesWithFileDescriptor(videoPath, frames)
+            }
+        }
         Log.d(TAG, "총 ${frames.size}개의 프레임을 추출했습니다")
         return frames
     }

@@ -14,6 +14,7 @@ import com.crush.aiblackboxreview.R
 import com.crush.aiblackboxreview.observers.VideoContentObserver
 import android.content.pm.ServiceInfo
 import com.crush.aiblackboxreview.analysis.AccidentAnalyzer
+import com.crush.aiblackboxreview.api.BackendApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -66,6 +67,13 @@ class VideoMonitoringService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "서비스 onCreate 호출됨")
+
+        // 인증 상태 확인
+        if (!BackendApiClient.isLoggedIn(this)) {
+            Log.d(TAG, "사용자가 로그인하지 않은 상태입니다. 서비스를 시작하지 않습니다.")
+            stopSelf()
+            return
+        }
 
         // 사고 분석기 초기화
         accidentAnalyzer = AccidentAnalyzer(this)

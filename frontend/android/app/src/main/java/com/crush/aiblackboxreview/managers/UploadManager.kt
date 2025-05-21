@@ -25,11 +25,11 @@ import kotlin.math.pow
  * - 알림(Notification) 관리
  *
  * @param context 애플리케이션 컨텍스트 (알림 표시용)
- * @param backendApiService 백엔드 API 서비스 인스턴스 (기본값: BackendApiClient.backendApiService)
+ * @param backendApiService 백엔드 API 서비스 인스턴스 (선택적 매개변수)
  */
 class UploadManager(
     private val context: Context,
-    private val backendApiService: BackendApiService = BackendApiClient.getBackendApiService(context)
+    private var backendApiService: BackendApiService? = null
 ) {
     // 코루틴 스코프 - IO 스레드에서 네트워크 작업 수행
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -43,6 +43,21 @@ class UploadManager(
      */
     init {
         createNotificationChannel()
+        
+        // 백엔드 API 서비스 초기화
+        if (backendApiService == null) {
+            try {
+                // 로그인 상태 확인
+                if (BackendApiClient.isLoggedIn(context)) {
+                    backendApiService = BackendApiClient.getBackendApiService(context)
+                    Log.d(TAG, "백엔드 API 서비스가 성공적으로 초기화되었습니다.")
+                } else {
+                    Log.w(TAG, "로그인되지 않은 상태입니다. 백엔드 API 서비스를 초기화할 수 없습니다.")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "백엔드 API 서비스 초기화 중 오류가 발생했습니다.", e)
+            }
+        }
     }
 
     /**
@@ -77,6 +92,25 @@ class UploadManager(
         if (locationCode <= 0) {
             Log.w(TAG, "위치 코드가 유효하지 않음 ($locationCode). 사고가 아니거나 위치를 식별할 수 없어 업로드하지 않습니다.")
             return
+        }
+        
+        // 백엔드 API 서비스가 초기화되지 않은 경우 처리
+        if (backendApiService == null) {
+            // 다시 초기화 시도
+            if (BackendApiClient.isLoggedIn(context)) {
+                try {
+                    backendApiService = BackendApiClient.getBackendApiService(context)
+                    Log.d(TAG, "백엔드 API 서비스를 재초기화했습니다.")
+                } catch (e: Exception) {
+                    Log.e(TAG, "백엔드 API 서비스 재초기화 실패", e)
+                    showUploadFailedNotification("인증 오류: 로그인이 필요합니다")
+                    return
+                }
+            } else {
+                Log.e(TAG, "로그인되지 않은 상태입니다. 업로드할 수 없습니다.")
+                showUploadFailedNotification("인증 오류: 로그인이 필요합니다")
+                return
+            }
         }
 
         scope.launch {
@@ -121,6 +155,12 @@ class UploadManager(
     private fun sendUploadCompleteNotificationAsync(s3Key: String, videoFile: File, locationType: Int) {
         scope.launch {
             try {
+                // 백엔드 API 서비스 확인
+                if (backendApiService == null) {
+                    Log.e(TAG, "백엔드 API 서비스가 초기화되지 않았습니다. 업로드 완료 알림을 전송할 수 없습니다.")
+                    return@launch
+                }
+                
                 // 파일 확장자에 따른 contentType 결정
                 val contentType = when {
                     videoFile.name.lowercase().endsWith(".mp4") -> "video/mp4"
@@ -140,7 +180,7 @@ class UploadManager(
 
                 // API 호출 (응답 처리는 로깅만)
                 val response = withTimeoutOrNull(30000) { // 30초 타임아웃 설정
-                    backendApiService.notifyUploadComplete(request)
+                    backendApiService?.notifyUploadComplete(request)
                 }
 
                 // 응답 로깅 (성공/실패와 무관하게 사용자에게는 이미 성공 알림이 표시됨)
@@ -159,7 +199,7 @@ class UploadManager(
                         Log.w(TAG, "비동기 업로드 완료 알림 실패 (${response.code()}): $errorBody")
                     }
                 } else {
-                    Log.w(TAG, "비동기 업로드 완료 알림 타임아웃 (30초 초과)")
+                    Log.w(TAG, "비동기 업로드 완료 알림 타임아웃 (30초 초과) 또는 API 서비스가 null입니다.")
                 }
             } catch (e: Exception) {
                 // 예외가 발생해도 사용자에게는 영향 없음 (이미 성공 알림이 표시됨)
@@ -181,6 +221,11 @@ class UploadManager(
     private suspend fun getPresignedUrl(videoFile: File, locationType: Int): PresignedUrlResponse {
         return withContext(Dispatchers.IO) {
             try {
+                // 백엔드 API 서비스 확인
+                if (backendApiService == null) {
+                    throw Exception("API 서비스가 초기화되지 않았습니다. 로그인이 필요합니다.")
+                }
+                
                 // 타임스탬프를 포함한 고유한 파일명 생성
                 val fileName = "accident_${System.currentTimeMillis()}_${videoFile.name}"
 
@@ -201,7 +246,7 @@ class UploadManager(
                 Log.d(TAG, "Presigned URL 요청: fileName=$fileName, contentType=$contentType, locationType=$locationType")
 
                 // API 호출
-                val response = backendApiService.getPresignedUrl(request)
+                val response = backendApiService!!.getPresignedUrl(request)
                 // 응답 상태 로깅
                 Log.d(TAG, "Presigned URL 응답 코드: ${response.code()}")
 

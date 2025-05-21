@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.crush.aiblackboxreview.services.VideoMonitoringService
+import com.crush.aiblackboxreview.api.BackendApiClient
 import java.io.File
 
 class BootCompletedReceiver : BroadcastReceiver() {
@@ -14,7 +15,13 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            Log.d(TAG, "부팅 완료, 서비스 시작")
+            Log.d(TAG, "부팅 완료, 서비스 시작 전 인증 상태 확인")
+
+            // 인증 상태 확인
+            if (!BackendApiClient.isLoggedIn(context)) {
+                Log.d(TAG, "사용자가 로그인하지 않은 상태입니다. 서비스를 시작하지 않습니다.")
+                return
+            }
 
             // 대상 폴더 존재 여부 확인 및 생성
             ensureTargetDirectoryExists()

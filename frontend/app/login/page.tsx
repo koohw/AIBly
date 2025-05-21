@@ -92,6 +92,25 @@ export default function LoginPage() {
     };
   }, []);
 
+  // 네이티브 서비스를 시작하는 함수
+  const startNativeService = () => {
+    try {
+      // 자바스크립트 인터페이스가 있는지 확인
+      if (window && (window as any).androidServiceBridge) {
+        log('[LoginPage] 네이티브 서비스 시작 요청');
+        const result = (window as any).androidServiceBridge.startMonitoringService();
+        log(`[LoginPage] 네이티브 서비스 시작 결과: ${result ? '성공' : '실패'}`);
+        return result;
+      } else {
+        log('[LoginPage] 네이티브 서비스 브릿지를 찾을 수 없습니다');
+        return false;
+      }
+    } catch (error: any) {
+      log(`[LoginPage] 네이티브 서비스 시작 중 오류: ${error.message || error}`);
+      return false;
+    }
+  };
+
   const handleKakaoLogin = async () => {
     console.log('📱📱📱 앱 직접 로그인 방식 실행됨');
     console.log('[LoginPage] 🔥 handleKakaoLogin 호출됨');
@@ -164,6 +183,14 @@ export default function LoginPage() {
           log('[LoginPage] FCM 토큰 등록 요청 완료');
         } catch (fcmError: any) {
           log(`[LoginPage] FCM 토큰 등록 중 오류 (로그인은 계속 진행됨): ${fcmError.message || fcmError}`);
+        }
+
+        // 네이티브 서비스 시작
+        try {
+          const serviceStarted = startNativeService();
+          log(`[LoginPage] 네이티브 서비스 시작 ${serviceStarted ? '성공' : '실패'}`);
+        } catch (serviceError: any) {
+          log(`[LoginPage] 네이티브 서비스 시작 중 오류: ${serviceError.message || serviceError}`);
         }
 
         // 4️⃣ 대시보드 페이지로 이동
