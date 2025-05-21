@@ -59,10 +59,22 @@ export default function Home() {
       if (fcmRegistered !== "true") {
         try {
           console.log("[Home] FCM 토큰이 등록되지 않았습니다. 등록을 시도합니다.");
+          
+          // 인증 토큰 확인
+          const { value: currentToken } = await Preferences.get({ key: "AUTH_TOKEN" });
+          console.log("[Home] 현재 저장된 인증 토큰:", currentToken ? (currentToken.substring(0, 10) + '...') : '없음');
+          
           // 타임아웃 추가하여 비동기로 처리
           setTimeout(async () => {
             try {
-              await registerFcmToken(authToken);
+              // 최신 토큰으로 다시 확인
+              const { value: refreshedToken } = await Preferences.get({ key: "AUTH_TOKEN" });
+              if (!refreshedToken) {
+                console.error("[Home] 인증 토큰을 찾을 수 없습니다.");
+                return;
+              }
+              
+              await registerFcmToken(refreshedToken);
               await Preferences.set({ key: "fcm_token_registered", value: "true" });
               console.log("[Home] FCM 토큰 등록 완료");
             } catch (delayedError) {
