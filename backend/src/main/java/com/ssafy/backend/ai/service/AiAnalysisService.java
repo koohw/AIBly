@@ -123,7 +123,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                 .map(entry -> {
                     String event = entry.path("event").asText();
                     int frame = entry.path("frameIdx").asInt();
-                    double seconds = Math.round(frame * 0.68 * 100.0) / 100.0; // 소수점 둘째 자리 반올림
+                    double seconds = Math.round(frame * 0.05 * 100.0) / 100.0; // 1초당 20프레임 (0.05초/프레임)
                     String eventText = switch (event) {
                         case "vehicle_B_first_seen" -> "상대 차량 최초 인식";
                         case "aftermath" -> "사고 발생 시점";
@@ -150,7 +150,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                 .map(entry -> {
                     String event = entry.path("event").asText();
                     int frame = entry.path("frameIdx").asInt();
-                    double seconds = Math.round(frame * 0.68 * 100.0) / 100.0;
+                    double seconds = Math.round(frame * 0.05 * 100.0) / 100.0; // 1초당 20프레임 (0.05초/프레임)
                     return switch (event) {
                         case "vehicle_B_first_seen" -> "상대 차량 최초 인식 " + seconds + "초";
                         case "aftermath" -> "사고 발생 시점 " + seconds + "초";
