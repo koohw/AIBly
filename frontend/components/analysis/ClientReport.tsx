@@ -128,7 +128,13 @@ export default function ClientReport({ id }: { id: string }) {
             <div className="flex items-center text-muted-foreground">
               <Calendar className="mr-2" size={18} />
               <Clock className="mr-2" size={18} />
-              <span>{report.createdAt}</span>
+              <span>
+                 {report.createdAt
+                    .split(" ")               // ["2025년","5월","21일","18시","49분"]
+                    .slice(0, 3)              // ["2025년","5월","21일"]
+                    .join(" ")                // "2025년 5월 21일"
+                  }
+              </span>
             </div>
           </div>
     
@@ -322,16 +328,13 @@ export default function ClientReport({ id }: { id: string }) {
                   </div>
     
                   <div className="app-card p-4">
-                    <h3 className="font-medium mb-2 text-foreground">과실 비율 산정 기준</h3>
+                    <h3 className="font-medium mb-2 text-foreground"></h3>
                     <ul className="text-sm space-y-2 text-muted-foreground">
                       <li className="flex justify-between">
                         <span>• 기본 과실 비율: 30:70 (사용자:상대방)</span>
                       </li>
                       <li className="flex justify-between">
                         <span>• 신호 위반: +10%p (상대방)</span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>• 회피 과실 비율: 30:70 (사용자:상대방)</span>
                       </li>
                     </ul>
                   </div>
@@ -347,6 +350,17 @@ export default function ClientReport({ id }: { id: string }) {
                       <p className="text-muted-foreground">
                         <FormattedText text={report.precedents} />
                       </p>
+                    </div>
+                  </div>
+                  <div className="app-card p-4">
+                    <h3 className="font-medium mb-2 text-foreground"></h3>
+                    <div className="text-sm">
+                      <p className="text-muted-foreground">
+                      </p>
+                      <ul className="list-disc pl-5 text-sm space-y-1 text-foreground">
+                      <li>사고 발생 위치: 교차로 중앙</li>
+                      <li>분석 결과 추가: 신호 위반 확인됨</li>
+                    </ul>
                     </div>
                   </div>
                 </div>

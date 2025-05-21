@@ -34,7 +34,13 @@ export default function HistoryList({ items, onItemClick }: HistoryListProps) {
           </div>
           <div className="flex-1">
             <h3 className="font-medium">{item.title}</h3>
-            <p className="text-xs text-muted-foreground">{item.createdAt}</p>
+            <p className="text-xs text-muted-foreground">
+               {item.createdAt
+                    .split(" ")               // ["2025년","5월","21일","18시","49분"]
+                    .slice(0, 3)              // ["2025년","5월","21일"]
+                    .join(" ")                // "2025년 5월 21일"
+                  }
+            </p>
             <div className="flex mt-1">
 
                 <span className="text-xs bg-appblue/20 text-appblue px-2 py-0.5 rounded mr-1">

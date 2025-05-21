@@ -369,7 +369,6 @@ export default function AuthScreen() {
               width={24}
               height={24}
               className="object-contain magin-right-5"/>
-              {/* <Image src="/kakao-logo.png" alt="Kakao" width={24} height={24} className="mr-2" /> */}
               카카오톡으로 로그인하기
             </>
           )}
