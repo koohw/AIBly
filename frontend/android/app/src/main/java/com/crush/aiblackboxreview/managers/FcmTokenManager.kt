@@ -39,16 +39,28 @@ class FcmTokenManager(private val context: Context) {
         if (authToken != null) {
             Log.e(TAG, "🔑 네이티브 저장소에서 인증 토큰 찾음: ${authToken.substring(0, 10)}...")
         } else {
-            // Capacitor 저장소 확인
+            // Capacitor 저장소 확인 - 대소문자 구분에 주의! 'AUTH_TOKEN'이 올바른 키
             val capacitorPrefs =
                 context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-            authToken = capacitorPrefs.getString("auth_token", null)
+            authToken = capacitorPrefs.getString("AUTH_TOKEN", null)
 
             if (authToken != null) {
                 Log.e(TAG, "🔑 Capacitor 저장소에서 인증 토큰 찾음: ${authToken.substring(0, 10)}...")
             } else {
-                Log.e(TAG, "❌ 인증 토큰을 찾을 수 없음. 로그인 필요")
-                return  // 토큰이 없으면 등록 중단
+                // 다른 가능한 키도 확인
+                authToken = capacitorPrefs.getString("auth_token", null)
+                if (authToken != null) {
+                    Log.e(TAG, "🔑 Capacitor 저장소에서 소문자 키로 인증 토큰 찾음: ${authToken.substring(0, 10)}...")
+                } else {
+                    // 모든 SharedPreferences 키-값 쌍 로깅
+                    Log.e(TAG, "❓ Capacitor 저장소 내용 확인:")
+                    capacitorPrefs.all.forEach { (key, value) ->
+                        Log.e(TAG, "📌 키: $key, 값: ${if (value is String && value.length > 10) value.substring(0, 10) + "..." else value}")
+                    }
+                    
+                    Log.e(TAG, "❌ 인증 토큰을 찾을 수 없음. 로그인 필요")
+                    return  // 토큰이 없으면 등록 중단
+                }
             }
         }
 
