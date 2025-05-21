@@ -15,6 +15,7 @@ import  FileText  from "@/public/image/filetext.png"
 import  User  from "@/public/image/user.png"
 import Accident from "@/public/image/accident.jpg"
 import { getUserMe } from "@/lib/api/User"
+import { getReportList, ReportListResponse } from "@/lib/api/Report";
 
 
 
@@ -28,6 +29,7 @@ export default function Home() {
   const [autoDetectEnabled, setAutoDetectEnabled] = useState(true) // 자동 감지 활성화 여부
   const { theme } = useTheme()
   const [userName, setUserName] = useState("사용자")
+  const [reports, setReports] = useState<ReportListResponse[]>([]);
 
   // 인증 상태 확인
   useEffect(() => {
@@ -113,6 +115,25 @@ export default function Home() {
       }
       checkAuth()
   }, [])
+
+  useEffect(() => {
+  if (!isLoggedIn) return;
+  (async () => {
+    try {
+      const data = await getReportList();
+      setReports(data);
+    } catch (err) {
+      console.error("[Home] getReportList 실패:", err);
+    }
+  })();
+}, [isLoggedIn]);
+
+const latestReport = reports.length > 0
+  ? [...reports].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0]
+  : null;
+
 
   const handleLogout = () => {
     Preferences.remove({ key: "AUTH_TOKEN" })
@@ -316,52 +337,61 @@ export default function Home() {
 
           {/* 최근 분석 */}
           <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">최근 분석</h2>
-              <Button variant="link" className="text-appblue p-0 hover:text-appblue-dark" onClick={handleHistory}>
-                모두 보기
-              </Button>
-            </div>
+  <div className="flex justify-between items-center mb-4">
+    <h2 className="text-lg font-semibold text-gray-800">최근 분석</h2>
+    <Button variant="link" className="text-appblue p-0" onClick={handleHistory}>
+      모두 보기
+    </Button>
+  </div>
 
-            {hasAnalysis ? (
-              <div className="bg-gray-50 shadow-sm backdrop-blur-sm rounded-xl overflow-hidden">
-                <div
-                  className="p-4 border-b border-gray-200 flex items-center cursor-pointer"
-                  onClick={handleViewAnalysis}
-                >
-                  <div className="w-16 h-16 bg-muted rounded-md mr-3 flex-shrink-0 overflow-hidden">
-                    <img
-                      src={Accident.src}
-                      alt="사고 영상 썸네일"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-800">교차로 신호위반 사고</h3>
-                    <p className="text-xs text-gray-600">2025년 4월 15일 오후 2:30</p>
-                    <div className="flex mt-1">
-                      <span className="text-xs bg-appblue/20 text-appblue px-2 py-0.5 rounded mr-1">
-                        과실비율 30:70
-                      </span>
-                      <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">신호위반</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={20} className="text-gray-500" />
+  {latestReport ? (
+    <div className="bg-gray-50 shadow-sm rounded-xl overflow-hidden">
+      <div
+        className="p-4 border-b border-gray-200 flex items-center cursor-pointer"
+        onClick={() => router.push(`/analysis?id=${latestReport.id}`)}
+      >
+              <div className="w-16 h-16 bg-muted rounded-md mr-3 overflow-hidden">
+                {/* 실제 썸네일 URL로 교체하세요 */}
+                <img
+                  src={Accident.src}
+                  alt="사고 영상 썸네일"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-800">{latestReport.title}</h3>
+                <p className="text-xs text-gray-600">
+                  {latestReport.createdAt
+                    .split(" ")               // ["2025년","5월","21일","18시","49분"]
+                    .slice(0, 3)              // ["2025년","5월","21일"]
+                    .join(" ")                // "2025년 5월 21일"
+                  }
+                </p>
+                <div className="flex mt-1">
+                  <span className="text-xs bg-appblue/20 text-appblue px-2 py-0.5 rounded mr-1">
+                    과실비율 {latestReport.faultA}:{latestReport.faultB}
+                  </span>
+                  {/* <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">
+                    {latestReport.accidentCode}
+                  </span> */}
                 </div>
               </div>
-            ) : (
-              <div className="bg-gray-50 shadow-sm backdrop-blur-sm rounded-xl p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-appblue mx-auto mb-4 flex items-center justify-center">
-                  <Clock className="text-white" size={32} />
-                </div>
-                <h3 className="text-lg font-medium mb-2 text-gray-800">분석 내역이 없습니다</h3>
-                <p className="text-gray-600 mb-4">블랙박스 영상을 업로드하여 AI 분석을 시작해보세요.</p>
-                <Button className="bg-appblue hover:bg-appblue-dark text-white" onClick={handleUpload}>
-                  <Upload className="mr-2 h-4 w-4" /> 영상 업로드하기
-                </Button>
-              </div>
-            )}
-          </section>
+              <ChevronRight size={20} className="text-gray-500" />
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gray-50 shadow-sm rounded-xl p-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-appblue mx-auto mb-4 flex items-center justify-center">
+              <Clock className="text-white" size={32} />
+            </div>
+            <h3 className="text-lg font-medium mb-2 text-gray-800">분석 내역이 없습니다</h3>
+            <p className="text-gray-600 mb-4">블랙박스 영상을 업로드하여 AI 분석을 시작해보세요.</p>
+            <Button className="bg-appblue text-white" onClick={handleUpload}>
+              <Upload className="mr-2 h-4 w-4" /> 영상 업로드하기
+            </Button>
+          </div>
+        )}
+      </section>
         </div>
       </main>
 
