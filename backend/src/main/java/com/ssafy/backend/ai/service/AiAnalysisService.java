@@ -83,6 +83,7 @@ public class AiAnalysisService {//AI 서버의 JSON 데이터를 분석, Report 
                 .carB(carB)
                 .faultA(faultA)
                 .faultB(faultB)
+                .damageLocation(damageLocation)
                 .mainEvidence(timelineJson)
                 .mainEvidenceHtml(timelineHtml)
                 .createdAt(LocalDateTime.now())
