@@ -8,19 +8,21 @@ deploy-ai-server:
     - "ci / cd"
 
   before_script:
+    # SSH 키 설정
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
 
   script:
-    # 1. 원격 서버에서 .venv 제외하고 ai 디렉토리 정리
+    # 1. 원격에서 .venv 제외한 ai 디렉토리 정리
     - >-
-      ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" 
+      ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" \
       "find /home/ubuntu/ai-server/ai -mindepth 1 -not -path '*/.venv*' -delete"
 
-    # 2. 로컬 ai 디렉토리를 .venv 제외하고 rsync 전송
+    # 2. 로컬 ai 디렉토리를 .venv 제외하고 전송
     - >-
-      rsync -avz --exclude='.venv' -e "ssh -o StrictHostKeyChecking=no" 
+      rsync -avz --exclude='.venv' \
+      -e "ssh -o StrictHostKeyChecking=no" \
       ./ai/ "$DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/ai-server/ai/"
 
     # 3. 원격에서 의존성 설치 및 CUDA OpenCV 연동
@@ -28,20 +30,20 @@ deploy-ai-server:
       ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" << 'EOF'
       cd /home/ubuntu/ai-server/ai
 
-      # 가상환경이 없으면 생성
-      if [ ! -d ".venv" ]; then
-          python3 -m venv .venv --system-site-packages
-      fi
-
+      # 가상환경 활성화
       source .venv/bin/activate
       export PATH=$PATH:/home/ubuntu/.local/bin
 
-      # 의존성 설치 (OpenCV 제외)
-      uv pip install -e .
+      # 프로젝트 패키지 설치
+      pip install -e .
 
-      # CUDA OpenCV .so 바이너리 복사
-      cp /usr/local/lib/python3.12/dist-packages/cv2/python-3.12/cv2*.so \
+      # pip로 설치된 opencv-python 계열이 있다면 삭제
+      pip uninstall -y opencv-python opencv-contrib-python || true
+
+      # 시스템에 설치된 CUDA-enabled OpenCV 모듈 전체를 venv에 복사
+      cp -r /usr/local/lib/python3.12/dist-packages/cv2 \
          .venv/lib/python3.12/site-packages/
+
       EOF
 
     # 4. AI 서버 재시작
