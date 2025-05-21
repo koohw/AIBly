@@ -368,7 +368,7 @@ export default function AuthScreen() {
               alt="upload"
               width={24}
               height={24}
-              className="object-contain magin-right-5"/>
+              className="object-contain mr-2"/>
               카카오톡으로 로그인하기
             </>
           )}
