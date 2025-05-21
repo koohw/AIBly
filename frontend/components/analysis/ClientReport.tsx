@@ -34,7 +34,7 @@ export default function ClientReport({ id }: { id: string }) {
   "6":   "/car/6.png",
   "7":   "/car/7.png",
   "8":   "/car/8.png",
-  "1,2": "/car/12.png",
+  "1,2": "/car/3.png",
   "2,3": "/car/23.png",
   "1,4": "/car/14.png",
   "3,5": "/car/35.png",
@@ -294,7 +294,7 @@ export default function ClientReport({ id }: { id: string }) {
                     {/* ────── 충돌 위치 오버레이 ────── */}
                       {report.damageLocation && damageImageMap[report.damageLocation] && (
                       <div className="mb-4">
-                        <h4 className="text-sm font-medium mb-2 text-foreground">충돌 위치</h4>
+                        <h4 className="text-sm font-medium mb-2 text-foreground">차량 충돌 위치</h4>
                         <div className="relative w-full h-48 rounded overflow-hidden">
                           {/* 배경 차 이미지 */}
                           <Image
