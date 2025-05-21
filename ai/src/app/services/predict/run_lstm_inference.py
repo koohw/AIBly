@@ -22,8 +22,6 @@ def extract_vehicleB_sequence(yolo_results):
     sorted_frames = sorted(yolo_results, key=lambda x: int(os.path.splitext(x["frame"])[0]))
     
     for item in sorted_frames:
-        frame_idx = int(os.path.splitext(item["frame"])[0])
-        
         for box in item.get("boxes", []):
             if box["class"] == VEHICLE_B_CLASS:
                 x1, y1, x2, y2 = box["bbox"]
@@ -31,7 +29,8 @@ def extract_vehicleB_sequence(yolo_results):
                 center_y = (y1 + y2) / 2
                 width = x2 - x1
                 height = y2 - y1
-                feature = [frame_idx, center_x, center_y, width, height, width * height]
+                # CLI 버전과 일치하는 특징 형식: [cx, cy, w, h, x1, y1]
+                feature = [center_x, center_y, width, height, x1, y1]
                 trajectory.append(feature)
                 break
     
@@ -57,7 +56,8 @@ def run_lstm_inference(yolo_results):
         traj_tensor = torch.from_numpy(np.array([trajectory], dtype=np.float32))
         with torch.no_grad():
             pred = model(traj_tensor).argmax(1).item()
-            direction = ["from_left", "center", "from_right"][pred]
+            # CLI 버전과 일치하는 방향 매핑: 0→left, 1→center, 2→right
+            direction = ["left", "center", "right"][pred]
     
     return {
         "direction": direction,

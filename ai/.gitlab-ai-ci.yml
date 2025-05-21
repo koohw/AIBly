@@ -27,11 +27,19 @@ deploy-ai-server:
     - |
       ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" << 'EOF'
       cd /home/ubuntu/ai-server/ai
+
+      # 가상환경이 없으면 생성
+      if [ ! -d ".venv" ]; then
+          python3 -m venv .venv --system-site-packages
+      fi
+
       source .venv/bin/activate
       export PATH=$PATH:/home/ubuntu/.local/bin
+
+      # 의존성 설치 (OpenCV 제외)
       uv pip install -e .
 
-      # 실제 존재하는 경로로 복사
+      # CUDA OpenCV .so 바이너리 복사
       cp /usr/local/lib/python3.12/dist-packages/cv2/python-3.12/cv2*.so \
          .venv/lib/python3.12/site-packages/
       EOF

@@ -4,6 +4,7 @@ from ...models.response_models import AnalysisResponse, TimelineEvent
 from ...services.report_service import ReportService
 import logging
 from fastapi.responses import JSONResponse
+import asyncio
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +29,7 @@ async def analyze_video(request: AnalysisRequest):
     영상을 다운로드하고 AI 분석을 통해 사고 정보를 추출합니다.
     
     Parameters:
-        request (AnalysisRequest): 사용자 ID, 비디오 ID, 파일명, 프리사인드 URL 정보
+        request (AnalysisRequest): 사용자 ID, 비디오 ID, 파일명, 프리사인드 URL 정보, 위치 타입, 위치
         
     Returns:
         AnalysisResponse: 사고 분석 결과를 포함한 응답
@@ -47,7 +48,7 @@ async def analyze_video_test(request: AnalysisRequest):
     실제 분석 없이 테스트용 더미 데이터를 반환합니다.
     
     Parameters:
-        request (AnalysisRequest): 사용자 ID, 비디오 ID, 파일명, 프리사인드 URL 정보
+        request (AnalysisRequest): 사용자 ID, 비디오 ID, 파일명, 프리사인드 URL 정보, 위치 타입, 위치
         
     Returns:
         AnalysisResponse: 더미 테스트 데이터를 포함한 응답
@@ -55,6 +56,11 @@ async def analyze_video_test(request: AnalysisRequest):
     logger.info(f"테스트 분석 요청 받음: userId={request.userId}")
     
     try:
+        # 10초 지연 추가
+        logger.info("10초 지연 시작...")
+        await asyncio.sleep(10)
+        logger.info("10초 지연 완료")
+        
         # 테스트용 타임라인 이벤트 생성
         test_timeline = [
             TimelineEvent(event="vehicle_B_entry", frameIdx=0),

@@ -41,7 +41,8 @@ class ReportService:
         result = {
             "userId": request.userId,
             "videoId": request.videoId,
-            "fileName": request.fileName
+            "fileName": request.fileName,
+            "locationType": request.locationType
         }
 
         # 1. 동영상 다운로드
@@ -101,7 +102,18 @@ class ReportService:
         elapsed = time.time() - start_time
         logger.info(f"LSTM 방향 추론 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 5. generate_timeline_log
+        # 5. generate_traffic_light_events
+        start_time = time.time()
+        logger.info(f"교통 신호등 이벤트 생성 시작")
+        try:
+            traffic_light_events = generate_traffic_light_events.generate_traffic_light_events(yolo_results)
+            result["traffic_light_events"] = traffic_light_events
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"교통 신호등 이벤트 생성 중 오류 발생: {str(e)}")
+        elapsed = time.time() - start_time
+        logger.info(f"교통 신호등 이벤트 생성 완료 (소요시간: {elapsed:.2f}초)")
+
+        # 6. generate_timeline_log
         start_time = time.time()
         logger.info(f"타임라인 생성 시작")
         try:
@@ -109,16 +121,24 @@ class ReportService:
                 yolo_results=result["yolo_analysis"], 
                 video_id=request.videoId, 
                 direction=result["lstm_analysis"]["direction"],
-                bg_dir=result["bg_output_dir"]
-                # skip_frames, post_offset, iou_threshold는 기본값 사용
+                bg_dir=result["bg_output_dir"],
+                traffic_light_data=result["traffic_light_events"]
             )
             result["timeline_analysis"] = timeline_data
+            
+            # 디버깅: 타임라인 데이터 확인
+            logger.info(f"타임라인 데이터 생성됨: 키={list(timeline_data.keys() if timeline_data else [])}")
+            if timeline_data and "timeline" in timeline_data:
+                logger.info(f"타임라인 하위 키: {list(timeline_data['timeline'].keys())}")
+                if "event_timeline" in timeline_data["timeline"]:
+                    logger.info(f"이벤트 타임라인 길이: {len(timeline_data['timeline']['event_timeline'])}")
+
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"타임라인 생성 중 오류 발생: {str(e)}")
         elapsed = time.time() - start_time
         logger.info(f"타임라인 생성 완료 (소요시간: {elapsed:.2f}초)")
 
-        # 6. generate_traffic_light_info
+        # 7. generate_traffic_light_info
         start_time = time.time()
         logger.info(f"교통 신호등 정보 생성 시작")
         try:
@@ -135,20 +155,18 @@ class ReportService:
         elapsed = time.time() - start_time
         logger.info(f"교통 신호등 정보 생성 완료 (소요간: {elapsed:.2f}초)")
 
-        # 7. generate_traffic_light_events
-        start_time = time.time()
-        logger.info(f"교통 신호등 이벤트 생성 시작")
-        try:
-            traffic_light_events = generate_traffic_light_events.generate_traffic_light_events(yolo_results)
-            result["traffic_light_events"] = traffic_light_events
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"교통 신호등 이벤트 생성 중 오류 발생: {str(e)}")
-        elapsed = time.time() - start_time
-        logger.info(f"교통 신호등 이벤트 생성 완료 (소요시간: {elapsed:.2f}초)")
-
         # 8. estimate_vehicleA_trajectory
         start_time = time.time()
         logger.info(f"차량A 궤적 추정 시작")
+        
+        # 디버깅: 차량A 궤적 추정 전 타임라인 데이터 확인
+        if "timeline_analysis" in result:
+            logger.info(f"차량A 궤적 추정 전 타임라인 데이터 확인: 키={list(result['timeline_analysis'].keys())}")
+            if "timeline" in result["timeline_analysis"]:
+                logger.info(f"타임라인 하위 키: {list(result['timeline_analysis']['timeline'].keys())}")
+        else:
+            logger.warning("차량A 궤적 추정 전 타임라인 데이터가 없습니다")
+            
         try:
             vehicleA_trajectory = estimate_vehicleA_trajectory.estimate_vehicleA_trajectory(result)
             result["vehicleA_trajectory"] = vehicleA_trajectory

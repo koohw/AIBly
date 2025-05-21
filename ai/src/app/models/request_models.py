@@ -10,6 +10,7 @@ class AnalysisRequest(BaseModel):
     videoId: int = Field(..., description="영상 ID")
     fileName: str = Field(..., description="영상 파일명")
     presignedUrl: HttpUrl = Field(..., description="영상 다운로드를 위한 프리사인드 URL")
+    locationType: int = Field(..., description="위치 타입")
     
     class Config:
         json_schema_extra = {
@@ -17,6 +18,7 @@ class AnalysisRequest(BaseModel):
                 "userId": 1,
                 "videoId": 123,
                 "fileName": "accident_video.mp4",
-                "presignedUrl": "https://example.com/download/video.mp4"
+                "presignedUrl": "https://example.com/download/video.mp4",
+                "locationType": 2,
             }
         }
