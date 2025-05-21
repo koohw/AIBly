@@ -4,6 +4,7 @@ import type { AxiosError } from 'axios';
 export interface PresignedUrlRequest {
   fileName: string;
   contentType: string;
+  locationType: number;
 }
 
 export interface PresignedUrlResponse {

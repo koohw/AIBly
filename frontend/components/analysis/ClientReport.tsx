@@ -140,10 +140,12 @@ export default function ClientReport({ id }: { id: string }) {
           <div className="mx-4 mb-4 bg-black rounded-md overflow-hidden relative">
             <video
               ref={videoRef}
-              src="/car-accident-dashcam.png"
+              src={report.videoUrl}
               className="w-full h-auto"
               onTimeUpdate={handleTimeUpdate}
               onEnded={() => setIsPlaying(false)}
+              controls
+              playsInline
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <button
