@@ -128,10 +128,16 @@ AI블리는 이러한 과정을 자동화하고 객관화함으로써, 사고 �
 - JavaScript
 
 ### 백엔드
-- 
+- Java 17
+- Spring Boot
+- Spring Security (JWT, OAuth2)
+- Spring Data JPA
+- RESTful API
+- FCM (Firebase Cloud Messaging)
 
 ### 데이터베이스
 - MySQL
+
 
 ### CI/CD \& 인프라
 - AWS EC2
@@ -152,7 +158,7 @@ AI블리는 이러한 과정을 자동화하고 객관화함으로써, 사고 �
 - Git, GitLab
 - Jira
 - Mattermost
-
+- MySQL Workbench
 
 ## CI/CD - Jenkins + Docker 기반 자동 배포
 
