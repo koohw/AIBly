@@ -181,5 +181,6 @@ AI블리는 이러한 과정을 자동화하고 객관화함으로써, 사고 �
 
 # 아키텍쳐
 ![architecture](architecture.png)
+![architecture](2architecture.png)
 
 <div style="text-align: center">⁂</div>
