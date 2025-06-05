@@ -17,7 +17,7 @@ class OpenAIClient {
     private val TAG = "OpenAIClient"
 
     // 여기에 실제 OpenAI API 키를 입력하세요
-    private val apiKey = "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"
+    private val apiKey = "enter_your_api_key"
     private val baseUrl = "https://api.openai.com/"
     private val service: OpenAIService
 
