@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <style type="text/css">
+        @font-face {
+            font-family: 'Noto Sans KR';
+            src: url('NotoSansKR-Regular.ttf');
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 50px;
+            font-size: 14px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 26px;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 18px;
+            border-bottom: 2px solid #444;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .text-block {
+            margin-top: 5px;
+            white-space: pre-wrap;
+        }
+
+        .label {
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: right;
+            margin-top: 50px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+<h1>교통사고 분석 보고서</h1>
+
+<div class="section">
+    <div class="section-title">사고 제목</div>
+    <div class="text-block">${title}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">사고 장소</div>
+    <div class="text-block">${locationName}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">사고 유형</div>
+    <div class="text-block">${accidentType}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">차량 정보</div>
+    <div class="text-block"><span class="label">A 차량 (내 차량):</span> ${carA}</div>
+    <div class="text-block"><span class="label">B 차량 (상대 차량):</span> ${carB}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">과실 비율</div>
+    <div class="text-block"><span class="label">A 차량 (내 차량):</span> ${faultA}%</div>
+    <div class="text-block"><span class="label">B 차량 (상대 차량):</span> ${faultB}%</div>
+</div>
+
+<div class="section">
+    <div class="section-title">주요 정황 (AI 타임라인)</div>
+    <div class="text-block">${mainEvidenceHtml}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">적용 법조문</div>
+    <div class="text-block">${laws}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">관련 판례</div>
+    <div class="text-block">${decisions}</div>
+</div>
+
+<div class="footer">
+    보고서 생성일: ${createdAt}
+</div>
+<div class="footer-box">
+    <div class="text-block"><strong>※ 본 보고서는 AI 기반 분석 결과를 바탕으로 자동 생성되었습니다.</strong></div>
+    <div class="text-block">보험사 제출 또는 법원 참고용으로 활용 가능합니다.</div>
+    <div class="text-block" style="margin-top: 20px;">공식 확인용 도장 또는 서명: ___________________________</div>
+</div>
+</body>
+</html>

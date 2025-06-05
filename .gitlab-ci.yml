@@ -1,24 +1,50 @@
 stages:
-  - test-ssh
+  - file-check
 
-test-ssh:
-  stage: test-ssh
-  tags:
-    - "ci / cd"
-  image: ubuntu:22.04
-  script:
-    # 1. 필요한 패키지 설치 및 .ssh 디렉토리 생성
-    - apt update && apt install -y openssh-client git docker.io
-    - mkdir -p ~/.ssh
 
-    # 2. EC2용 SSH 키 설정 (Base64 -> 원문)
-    - echo "$SSH_PRIVATE_KEY" | base64 --decode > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo ✅ EC2 SSH 연결 성공!"
+ai-file-check:
+  stage: file-check
+  trigger:
+    include: ai/.gitlab-ai-ci.yml
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master"'
+      changes:
+        - ai/**/*
 
-    # 3. EC2에 접속하여 Jenkins 컨테이너에서 직접 GitLab 연결 및 브랜치 클론
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker exec jenkins bash -c 'echo ✅ Jenkins 컨테이너 접속 성공!'"
 
-    # 4. Jenkins 컨테이너에서 GitLab 리포지토리에서 브랜치 클론 테스트 (/tmp 디렉토리 사용)
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker exec jenkins bash -c 'cd /tmp && git clone --branch \"${CI_COMMIT_REF_NAME}\" \"${CI_REPOSITORY_URL}\" test_repo && echo \"✅ 브랜치 클론 성공\" || echo \"❌ 브랜치 클론 실패\"'"
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker exec jenkins bash -c 'rm -rf /tmp/test_repo'"
+fe-file-check:
+  stage: file-check
+  trigger:
+    include: frontend/.gitlab-fe-ci.yml
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - frontend/**/*
+      exists:
+        - frontend/Dockerfile
+
+
+be-file-check:
+  stage: file-check
+  trigger:
+    include: backend/.gitlab-be-ci.yml
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - backend/**/*
+      exists:
+        - backend/Dockerfile
+
+
+deploy-file-check:
+  stage: file-check
+  trigger:
+    include: deploy/.gitlab-deploy-ci.yml
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - deploy/**/*
+      exists:
+        - deploy/Dockerfile

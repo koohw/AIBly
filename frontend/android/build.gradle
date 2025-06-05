@@ -1,0 +1,79 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+
+buildscript {
+    ext {
+        kotlin_version = '1.8.21'     // 쓰시려는 Kotlin 버전
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+
+        // Firebase Google Services 플러그인 추가
+        classpath 'com.google.gms:google-services:4.4.2'
+
+    }
+}
+
+apply from: "variables.gradle"
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://devrepo.kakao.com/nexus/content/groups/public/" }
+    }
+    // → 모든 JavaCompile 작업을 JVM 17 모드로
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        options.release = 17
+    }
+
+    // → 모든 KotlinCompile 작업을 JVM 17 모드로
+    tasks.withType(KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
+}
+
+ext {
+    compileSdkVersion = 35   // ← 여기 35로 바꿔야 합니다
+    targetSdkVersion  = 35   // ← 여기 35로 바꿔야 합니다
+    minSdkVersion     = 23
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+
+import org.gradle.api.tasks.compile.JavaCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+// 모든 프로젝트가 평가된 뒤에(=tasks가 모두 생성된 뒤에) 실행
+gradle.projectsEvaluated {
+    // 루트 + 모든 서브프로젝트 순회
+    allprojects { project ->
+        // JavaCompile 작업을 전부 Java 17 모드로
+        project.tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
+            options.release = 17   // 필요 없으면 주석 처리
+        }
+
+        // KotlinCompile 작업을 전부 JVM 17 모드로
+        project.tasks.withType(KotlinCompile).configureEach {
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+    }
+}
