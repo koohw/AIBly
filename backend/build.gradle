@@ -1,0 +1,109 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.4.5'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.ssafy'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+
+
+	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	/* AWS SDK S3 START */
+	implementation platform('software.amazon.awssdk:bom:2.25.3')
+	implementation 'software.amazon.awssdk:s3'
+	/* AWS SDK S3 END */
+
+	/* DB START */
+	implementation 'com.zaxxer:HikariCP'
+	implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+	runtimeOnly 'com.mysql:mysql-connector-j'
+	/* DB END */
+
+
+	/* SQL logging START */
+	implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
+	/* SQL logging END */
+
+	/* JPA START */
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	testRuntimeOnly 'com.h2database:h2'
+	/* JPA END */
+
+	/* JWT START */
+	/*implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+	implementation   'io.jsonwebtoken:jjwt-impl:0.12.3'
+	implementation   'io.jsonwebtoken:jjwt-jackson:0.12.3'*/
+	implementation   'io.jsonwebtoken:jjwt-api:0.11.5'
+	implementation   'io.jsonwebtoken:jjwt-impl:0.11.5'
+	implementation   'io.jsonwebtoken:jjwt-jackson:0.11.5'
+	/* JWT END */
+
+	/* Dotenv START */
+	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+	implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+	/* Dotenv END */
+
+	/* Swagger 3 START */
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+	implementation 'org.springdoc:springdoc-openapi-starter-common:2.3.0'
+	/* Swagger 3 END */
+
+	/* Lombok START */
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	/* Lombok END */
+
+	/* OAuth START */
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	/* OAuth END */
+
+	/* OpenCSV START */
+	implementation 'com.opencsv:opencsv:5.9'
+    /* OpenCSV END */
+
+	/* HTML을 PDF로 변환 START */
+	implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
+	implementation 'com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10'
+    /* HTML을 PDF로 변환 END */
+
+	/* FCM v1 서비스 START */
+	implementation 'com.google.auth:google-auth-library-oauth2-http:1.17.0'
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	/* FCM v1 서비스 END */
+
+	/* Testing START */
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	/* Testing END */
+
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

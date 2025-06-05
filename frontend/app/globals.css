@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 라이트 모드 색상 - 아이콘 색상에 맞게 조정 */
+    --background: 0 0% 98%;
+    --foreground: 215 35% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 35% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 35% 12%;
+
+    --primary: 40 78% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 35% 12%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 215 35% 12%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 40 78% 60%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* 다크 모드 색상 - 아이콘 색상에 맞게 조정 */
+    --background: 215 35% 12%;
+    --foreground: 210 40% 98%;
+
+    --card: 215 40% 10%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 215 40% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 40 78% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 215 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 33% 17%;
+    --input: 215 33% 17%;
+    --ring: 40 78% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .app-blue-button {
+    @apply bg-appblue text-white hover:bg-appblue-dark transition-colors;
+  }
+
+  .app-blue-outline {
+    @apply border border-appblue text-appblue bg-transparent hover:bg-appblue/5 transition-colors;
+  }
+
+  .app-card {
+    @apply bg-card rounded-lg border border-border shadow-sm;
+  }
+
+  .app-section-title {
+    @apply text-lg font-semibold mb-4;
+  }
+
+  .app-header {
+    @apply p-4 border-b border-border flex justify-between items-center bg-appnavy text-white;
+  }
+
+  .app-container {
+    @apply p-4;
+  }
+
+  /* 모바일 Safe Area 유틸리티 - 강화된 버전 */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1.5rem) !important;
+  }
+
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 1.5rem) !important;
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 1.5rem) !important;
+  }
+
+  .mt-safe {
+    margin-top: env(safe-area-inset-top, 1.5rem) !important;
+  }
+}
+
+/* 모바일 환경에서 하단 영역 안전 마진 추가 */
+@media (max-width: 768px) {
+  /* 하단 네비게이션 바 높이 정의 (기기별로 다를 수 있음) */
+  :root {
+    --navigation-bar-height: 56px; /* 안드로이드 네비게이션 바 높이 (기본값) */
+  }
+}
+
+/* 네이티브 앱 환경 감지 및 스타일 적용 */
+[data-native-app="true"] {
+  /* 네이티브 앱 전용 스타일 */
+  --navigation-bar-height: 56px; /* 안드로이드 네비게이션 바 높이 (기본값) */
+}
+
+/* 네이티브 앱에서 고정 하단 요소 처리 */
+[data-native-app="true"] .bottom-action-bar {
+  bottom: var(--navigation-bar-height) !important;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0)) !important;
+  z-index: 100 !important;
+}

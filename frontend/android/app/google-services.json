@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "913555848358",
+    "project_id": "ablri-b137e",
+    "storage_bucket": "ablri-b137e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:913555848358:android:c9fef5dcca506a6cbf4867",
+        "android_client_info": {
+          "package_name": "com.crush.aiblackboxreview"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCotbxp3Byy-8_TcI-7zvHawq_077YZDcI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
